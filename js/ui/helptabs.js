@@ -22,6 +22,17 @@
     ['⚙ Sistemas', sys.slice(0, half)],
     ['⚔ Mundo y combate', sys.slice(half)],
     ['🎣 Movimiento y pesca', move],
+    ['🕳 Profundidades', [
+      '<b>Bajar:</b> cava un hoyo hasta el fondo y pica ese fondo: se abre un <i>pozo</i>. Salta dentro con <kbd>Espacio</kbd> y caes a la capa de abajo (con una <i>Cuerda</i> en el inventario, sin hacerte daño). Con una <i>Escalera de mano</i> sobre el pozo bajas tranquilo y la escalera llega hasta el fondo.',
+      '<b>Subir:</b> pon una <i>Escalera de mano</i> bajo tierra y úsala (clic derecho): abres un hueco en el techo y sales a la capa de arriba. También puedes volver por donde bajaste. Si arriba hay agua, ácido o lava, primero lo notas (te avisa) y, si insistes, te cae encima.',
+      '<b>Lo de arriba se nota abajo:</b> bajo los lagos y el mar hay agua; bajo la lava de una capa suele haber lava en la siguiente. Cada casilla de una capa está justo debajo de la misma casilla de la capa de arriba.',
+      '<b>Capa 1 · Cavernas húmedas (−2 a −5):</b> roca de caverna, agua fría, carbón, hierro, cobre y estaño. Murciélagos, reptadores del barro, arañas y limos.',
+      '<b>Capa 2 · Grutas de cristal (−6 a −9):</b> pizarra profunda (pico de piedra o mejor), frío, cristales que brillan, oro, plata, cobalto y geodas. Arañas de cristal y gólems de geoda.',
+      '<b>Capa 3 · Ciénaga de esporas (−10 a −13):</b> esporas tóxicas en el aire (equipa una <i>Máscara de filtro</i>), grietas tóxicas, lagos de ácido, uranio y platino. Esporosos que explotan y gusanos ácidos.',
+      '<b>Capa 4 · Entrañas ígneas (−14 a −17):</b> 47 °C y lagos de lava que queman si te pegas a ellos (<i>Pócima ignífuga</i> o <i>Capa ignífuga</i>). Wolframio, obsidiana, mithril y adamantita. Babosas de magma y demonios de ceniza.',
+      '<b>Capa 5 · Abismo primigenio (−18 a −21):</b> casi a oscuras y te roba las fuerzas (<i>Amuleto abisal</i>). Las menas más raras del mundo, acechadores del vacío y horrores abisales. Debajo está la <i>roca madre</i>: el fondo de todo.',
+      '<b>Más abajo, más difícil:</b> la roca es más dura (picas más despacio y pide mejor pico), hay menos luz y los monstruos tienen mucha más vida. Lleva luz: el <i>Farol de liquen</i> alumbra sin gastar y cerca de la luz no aparecen monstruos.',
+    ]],
     ['🏛 Durabilidad y final', [
       '<b>Durabilidad:</b> picos, hachas, palas, armas, armaduras, escudos y guantes se gastan con el uso. La barra bajo el icono pasa de verde a rojo y el tooltip dice cuántos usos quedan. Al llegar a cero, la pieza se rompe.',
       '<b>Reparar:</b> <i>Piedra de afilar</i> (30 % a herramientas y armas), <i>Kit de reparación</i> (50 % a la pieza más gastada) y <i>Esencia restauradora</i> (todo como nuevo). Se usan con <kbd>F</kbd>.',

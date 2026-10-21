@@ -26,7 +26,11 @@ function drawPlayer(ctx) {
   // En el aire: piernas abiertas (fotograma de zancada). En el agua: solo asoma lo que queda sobre la superficie
   const air = z > 0.5, wl = swm === 2 ? y + 1 + bob : y + 6, held = !ui.hand && swm !== 2 ? heldId() : null;
   if (swm) { ctx.save(); ctx.beginPath(); ctx.rect(x - 60, y - 90, 120, wl - (y - 90)); ctx.clip(); }
+  // En un hoyo: el borde del suelo de delante tapa los pies (y más cuanto más hondo; ver world/layers.js)
+  const hc = !swm && !m && typeof holeCut === 'function' ? holeCut(x, p.y) : null;
+  if (hc !== null) { ctx.save(); ctx.beginPath(); ctx.rect(x - 60, y - 120, 120, hc - (y - 120)); ctx.clip(); }
   drawAvatar(ctx, ch.look, S.equip, x, y + 8 - z + (swm === 2 ? 9 + bob : swm ? 2 : 0), fa, air ? 1.2 : P.walk, (moving || air) && !m, 1.6, held, sw2);
+  if (hc !== null) { ctx.restore(); ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(x, hc, 11, 2.2, 0, 0, 7); ctx.fill(); }
   if (swm) { ctx.restore(); ctx.globalAlpha = 1;
     // Superficie alrededor del cuerpo: anillo claro y brillo que se mueve con el oleaje
     const t = performance.now() / 400; ctx.fillStyle = 'rgba(120,180,230,.35)'; ctx.beginPath(); ctx.ellipse(x, wl, 11, 3.6, 0, 0, 7); ctx.fill();

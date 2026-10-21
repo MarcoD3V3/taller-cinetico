@@ -56,7 +56,7 @@ function drawMini() {
   for (const m of S.marks) { const mx = w / 2 + (m.x - px) * s, my = h / 2 + (m.y - py) * s; miniX.fillStyle = '#ff6b5b'; miniX.fillRect(mx - 2, my - 2, 4, 4); }
   miniX.fillStyle = '#e0b54c'; miniX.beginPath(); miniX.arc(w / 2, h / 2, 3, 0, 7); miniX.fill(); miniX.strokeStyle = '#000'; miniX.stroke();
   miniX.fillStyle = 'rgba(0,0,0,.55)'; miniX.fillRect(0, h - 16, w, 16); miniX.fillStyle = '#ece6d8'; miniX.font = '11px system-ui,sans-serif'; miniX.textAlign = 'center'; miniX.textBaseline = 'middle';
-  miniX.fillText(`X ${Math.floor(px)} · Y ${Math.floor(py)}`, w / 2, h - 8);
+  miniX.fillText(`X ${Math.floor(px)} · Y ${(typeof surfY === 'function' ? surfY(Math.floor(py)) : Math.floor(py))}${typeof layerOf === 'function' && layerOf(Math.floor(py)) ? ' · capa ' + layerOf(Math.floor(py)) : ''}`, w / 2, h - 8);
 }
 mini.addEventListener('click', () => openMap());
 mini.addEventListener('wheel', e => { e.preventDefault(); miniZoom = clamp(miniZoom * (e.deltaY > 0 ? 0.8 : 1.25), 0.5, 6); drawMini(); }, { passive: false });
@@ -76,7 +76,7 @@ function drawBig() {
   for (const m of S.marks) { const [x, y] = toS(m.x + .5, m.y + .5); bigX.fillStyle = '#ff6b5b'; bigX.beginPath(); bigX.moveTo(x, y); bigX.lineTo(x - 5 * dpr, y - 12 * dpr); bigX.lineTo(x + 5 * dpr, y - 12 * dpr); bigX.fill(); bigX.fillStyle = '#fff'; bigX.fillText(m.n, x + 8 * dpr, y - 8 * dpr); }
   const core = L.core && L.core[0]; if (core) { const [x, y] = toS(core.x + .5, core.y + .5); bigX.fillStyle = '#fff4cc'; bigX.fillText('Núcleo', x + 8 * dpr, y); }
   const [px, py] = toS(S.player.x / T, S.player.y / T); bigX.fillStyle = '#e0b54c'; bigX.beginPath(); bigX.arc(px, py, 5 * dpr, 0, 7); bigX.fill(); bigX.strokeStyle = '#000'; bigX.lineWidth = 2; bigX.stroke();
-  $('mapCoords').textContent = `Centro X ${Math.floor(mv.x)} · Y ${Math.floor(mv.y)} · zoom ×${mv.z.toFixed(1)} · ${MAPT.size} chunks explorados · ${S.marks.length} marcadores`;
+  $('mapCoords').textContent = `Centro X ${Math.floor(mv.x)} · Y ${(typeof surfY === 'function' ? surfY(Math.floor(mv.y)) : Math.floor(mv.y))}${typeof layerOf === 'function' && layerOf(Math.floor(mv.y)) ? ' · ' + LAYERS[layerOf(Math.floor(mv.y))].n : ''} · zoom ×${mv.z.toFixed(1)} · ${MAPT.size} chunks explorados · ${S.marks.length} marcadores`;
 }
 big.addEventListener('mousedown', e => { mv.drag = { x: e.clientX, y: e.clientY, mx: mv.x, my: mv.y, moved: false, btn: e.button }; });
 addEventListener('mousemove', e => { if (!mv.drag || ui.open !== 'map') return; const dx = e.clientX - mv.drag.x, dy = e.clientY - mv.drag.y; if (Math.abs(dx) + Math.abs(dy) > 3) mv.drag.moved = true; mv.x = mv.drag.mx - dx / mv.z; mv.y = mv.drag.my - dy / mv.z; drawBig(); });

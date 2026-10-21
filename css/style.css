@@ -1043,3 +1043,14 @@ body.inmenu #chat:not(.open) { display: none; }
 .chs.eqs.eqrune:nth-child(1), .chs.eqs.eqrune:nth-child(6) { margin-top: -6px; } .chs.eqs.eqrune:nth-child(3), .chs.eqs.eqrune:nth-child(4) { margin-top: 8px; }
 .chs.eqs.eqrune:not(.emp):hover { transform: rotate(45deg) scale(1.1); }
 @media (max-width: 760px) { .eqdoll { grid-template-columns: 1fr 1fr; } .eqfig { grid-column: 1 / -1; grid-row: 1; } }
+/* Capas subterráneas: indicador y cartel al llegar */
+#layerHud { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 12; display: flex; align-items: center; gap: 10px; padding: 6px 14px; border-radius: 999px; background: rgba(14,15,17,.78); border: 1px solid #ffffff14; backdrop-filter: blur(4px); font-size: 12.5px; pointer-events: none; box-shadow: 0 4px 18px #0006; }
+#layerHud b { color: var(--brass); font-weight: 700; } #layerHud .lvd { font-variant-numeric: tabular-nums; font-weight: 700; color: #e8e4dc; padding: 1px 8px; border-radius: 999px; background: #ffffff10; } #layerHud .mut { font-size: 11.5px; }
+#layerBanner { position: fixed; left: 50%; top: 30%; transform: translate(-50%, 0); z-index: 13; text-align: center; pointer-events: none; opacity: 0; max-width: min(560px, 90vw); text-shadow: 0 2px 14px #000; }
+#layerBanner.in { animation: lbIn .7s ease forwards; } #layerBanner.out { animation: lbOut .7s ease forwards; }
+#layerBanner small { letter-spacing: .2em; text-transform: uppercase; font-size: 11px; color: var(--brass); }
+#layerBanner h2 { margin: 4px 0 6px; font-size: 34px; letter-spacing: .02em; color: #f4efe4; }
+#layerBanner p { margin: 0; font-size: 14px; color: #d8d2c4; }
+@keyframes lbIn { from { opacity: 0; transform: translate(-50%, 12px); letter-spacing: .1em; } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes lbOut { from { opacity: 1; } to { opacity: 0; transform: translate(-50%, -8px); } }
+body.inmenu #layerHud, body.inmenu #layerBanner { display: none; }

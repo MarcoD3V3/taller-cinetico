@@ -72,7 +72,7 @@ function tileCard(tx, ty) {
   if (fogHidden(tx, ty)) return `<div class="hch"><b>Roca sin explorar</b>${hchip('Oscuro', 'soft')}</div><div class="hcm">No sabes qué hay dentro. Pica las paredes que ves para ir descubriendo la montaña.</div>`;
   const g = gnd(tx, ty), gi = GI[g], B = BIOMES[biomeOf(tx, ty)], lv = lvAt(tx, ty), held = heldId(), sel = selectedBlock();
   let h = `<div class="hch">${gi.drop ? hicon(gi.drop) : ''}<b>${esc(gi.n)}</b>${hchip(esc(B.n), 'soft')}</div>`;
-  const meta = [`X ${tx} · Y ${ty}`]; if (lv) meta.push(`⛰ Terraza ${lv}`); const dp = depthAt(tx, ty); if (dp) meta.push(`⛏ Profundidad ${dp}`);
+  const lk = typeof layerOf === 'function' ? layerOf(ty) : 0, meta = [`X ${tx} · Y ${lk ? surfY(ty) : ty}`]; if (lk) meta.push(`${LAYERS[lk].i} Capa ${lk} · ${depthLabel(tx, ty)}`); else if (lv) meta.push(`⛰ Terraza ${lv}`); const dp = depthAt(tx, ty); if (dp) meta.push(`⛏ Profundidad ${dp}`);
   h += `<div class="hcs">${meta.map(t => `<span>${t}</span>`).join('')}</div>`;
   if (gi.liquid === 'water' && !gi.walk) {
     const deep = gi.key === 'DEEP' || !nearShore(tx, ty);

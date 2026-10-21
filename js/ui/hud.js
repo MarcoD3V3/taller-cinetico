@@ -96,7 +96,7 @@ function infoHTML() {
   const mw = mouseWorld(), an = animalAt(mw.x, mw.y);
   if (an) { const sp = SPECIES[an.sp]; return `<b>${esc(sp.n)}</b><div class="mut">Mano + clic mantenido para cazar: ${sp.drops.map(([id, n]) => n + ' ' + esc(ITEMS[id].n)).join(', ')}</div><div class="mut small">O ponle una trampa en su camino</div>`; }
   if (!b) {
-    let h = `<b>${GI[g].n}</b> <span class="mut small">X ${tx} · Y ${ty}</span><div class="inf small">${esc(BIOMES[biomeOf(tx, ty)].n)}</div>`;
+    let h = `<b>${GI[g].n}</b> <span class="mut small">X ${tx} · Y ${(typeof surfY === 'function' ? surfY(ty) : ty)}</span><div class="inf small">${esc(BIOMES[biomeOf(tx, ty)].n)}</div>`;
     const dp = depthAt(tx, ty); if (dp) h += `<div class="small">Profundidad ${dp}: ${g === G.PIT ? `hacen falta ${dp} bloques de suelo para taparlo` : 'cavado en parte'}</div>`;
     if (GI[g].drop) h += `<div class="mut">Mano + clic mantenido: ${esc(ITEMS[GI[g].drop].n)}${GI[g].hp ? ` (${treeHp(tx, ty)} restantes)` : ''}${GI[g].extra ? ' · a veces ' + esc(ITEMS[GI[g].extra[0]].n) : ''}</div>`;
     if (GI[g].liquid && FLUIDS[GI[g].liquid]) h += `<div class="mut small">Líquido: ${esc(FLUIDS[GI[g].liquid].n)} (se puede bombear)</div>`;
