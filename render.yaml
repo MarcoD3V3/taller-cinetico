@@ -1,5 +1,7 @@
-# Publicar en Render con un clic (New → Blueprint → este repositorio).
-# Crea el servidor del juego y su base de datos PostgreSQL en la misma región y los conecta.
+# Publicar en Render gratis (New → Blueprint → este repositorio).
+# El servidor del juego va en Render; la base de datos, en Neon (PostgreSQL gratuito que no
+# caduca). Al crear el Blueprint, Render pide las dos variables secretas: la dirección de Neon
+# y el Client Secret de Discord. Ver DESPLEGAR.md.
 services:
   - type: web
     name: taller-cinetico
@@ -12,16 +14,10 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "20"
-      - key: DATABASE_URL
-        fromDatabase:
-          name: taller-cinetico-db
-          property: connectionString
       - key: DISCORD_CLIENT_ID
         value: "1562327426837516288"
-      # El secreto se escribe en el panel de Render al crear el servicio (nunca en el código)
+      # Se escriben en el panel de Render (nunca en el código)
+      - key: DATABASE_URL
+        sync: false
       - key: DISCORD_CLIENT_SECRET
         sync: false
-databases:
-  - name: taller-cinetico-db
-    plan: free
-    region: virginia
