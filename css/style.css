@@ -1054,3 +1054,13 @@ body.inmenu #chat:not(.open) { display: none; }
 @keyframes lbIn { from { opacity: 0; transform: translate(-50%, 12px); letter-spacing: .1em; } to { opacity: 1; transform: translate(-50%, 0); } }
 @keyframes lbOut { from { opacity: 1; } to { opacity: 0; transform: translate(-50%, -8px); } }
 body.inmenu #layerHud, body.inmenu #layerBanner { display: none; }
+/* Escalada sin escalera */
+#mClimb { position: fixed; inset: 0; z-index: 72; display: flex; align-items: center; justify-content: center; background: rgba(6,7,9,.62); backdrop-filter: blur(3px); }
+#mClimb[hidden] { display: none; }
+.clin { width: min(600px, calc(100vw - 20px)); max-height: calc(100vh - 20px); overflow: auto; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 20px 60px #000a; }
+.clin header { display: flex; gap: 10px; align-items: center; } .clin header > div { flex: 1; min-width: 0; } .clin header b { font-family: var(--display); font-size: 16px; display: block; } .clin header small { color: var(--muted); font-size: 12px; letter-spacing: .02em; }
+#clCv { width: 100%; border-radius: 10px; touch-action: none; cursor: pointer; background: #141517; }
+.clfoot { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12.5px; line-height: 1.45; }
+.clhow, .cltip { background: #ffffff08; border: 1px solid #ffffff0c; border-radius: 10px; padding: 8px 10px; } .cltip { color: #f0dca0; }
+@media (max-width: 560px) { .clfoot { grid-template-columns: 1fr; } }
+body.climbing #layerHud, body.climbing #layerBanner { display: none; }
