@@ -149,7 +149,19 @@ function openCharInfo(id) {
   const c = PF.list.find(x => x.id === id); if (!c) return; _chInfo = id; const R = RACE_OF(c), pf = PROF_OF(c), pc = c.pc || {}, eq = c.equip || {}, inv = c.inv || [];
   const bar = (lab, v, max, col) => `<div class="chst"><span>${lab}</span><span class="cb"><i style="width:${(clamp(v / max, 0, 1) * 100).toFixed(0)}%;background:${col}"></i></span><b>${Math.round(v)}</b></div>`;
   const slot = (id2, n, k) => `<div class="chs ${id2 ? '' : 'emp'}" ${id2 ? `data-tip="${esc(id2)}"` : `title="${esc(k || '')}"`}>${id2 ? itemImg(id2, 26) : ''}${n > 1 ? `<span class="n">${n > 999 ? fmt(n) : n}</span>` : ''}</div>`;
-  const eqH = EQ_SLOTS.map(k => `<div class="cheq"><small>${esc((EQ_N[slotType(k)] || k) + (/\d$/.test(k) ? ' ' + k.slice(-1) : ''))}</small>${slot(eq[k], 1, EQ_N[slotType(k)])}</div>`).join('');
+  // Equipo como muñeco: armadura a la izquierda, figura con capa/guantes/escudo, joyas a la derecha y runas en arco
+  const eqName = k => (EQ_N[slotType(k)] || k) + (/\d$/.test(k) ? ' ' + k.slice(-1) : '');
+  const eqs = (k, cls = '') => { const id2 = eq[k]; return `<div class="chs eqs ${cls} ${id2 ? '' : 'emp'}" ${id2 ? `data-tip="${esc(id2)}"` : `title="${esc(eqName(k))} · vacío"`}>${id2 ? itemImg(id2, 26) : `<span class="ph">${EQ_ICON[slotType(k)] || ''}</span>`}</div>`; };
+  const eqRow = k => `<div class="eqrow">${eqs(k)}<div><small>${esc(eqName(k))}</small><b class="${eq[k] ? '' : 'mut'}">${eq[k] ? esc(ITEMS[eq[k]].n) : 'Vacío'}</b></div></div>`;
+  const eqN = EQ_SLOTS.filter(k => eq[k]).length;
+  const eqH = `<div class="eqdoll">
+    <div class="eqgrp eqarm"><small class="eqt">Armadura</small>${['head', 'chest', 'legs', 'feet'].map(eqRow).join('')}</div>
+    <div class="eqfig"><svg viewBox="0 0 120 200" class="eqsil"><circle cx="60" cy="26" r="15"/><path d="M38 52Q60 44 82 52L92 104 81 107 76 72 74 120 78 192H64L60 130 56 192H42L46 120 44 72 39 107 28 104Z"/></svg>
+      <div class="eqat" style="left:4px;top:30px">${eqs('back')}</div><div class="eqat" style="right:4px;top:30px">${eqs('costume')}</div>
+      <div class="eqat" style="left:0;top:112px">${eqs('hands')}</div><div class="eqat" style="right:0;top:112px">${eqs('shield')}</div>
+      <div class="eqat" style="left:50%;bottom:0;transform:translateX(-50%)">${eqs('totem', 'eqtot')}</div></div>
+    <div class="eqgrp eqjew"><small class="eqt">Joyas</small><div class="eqrings">${eqs('ring1', 'eqring')}${eqs('ring2', 'eqring')}</div><div class="eqaccs">${['acc1', 'acc2', 'acc3', 'acc4'].map(k => eqs(k)).join('')}</div></div>
+  </div><div class="eqrunebar"><small class="eqt">Runas engarzadas</small><div>${[1, 2, 3, 4, 5, 6].map(i => eqs('rune' + i, 'eqrune')).join('')}</div></div>`;
   const invH = Array.from({ length: INV_N }, (_, i) => { const s = inv[i]; return slot(s && s.id, s && s.n) + (i === 8 ? '<div class="chsep"></div>' : ''); }).join('');
   const skills = Object.entries(SKILLS).map(([k, s]) => { const lv = (pc.lv && pc.lv[k]) || 0; return `<div class="chsk" title="${esc(s[2])}"><span>${s[1]}</span><span>${esc(s[0])}</span><b>${lv}</b><span class="cb"><i style="width:${Math.min(100, lv * 5)}%"></i></span></div>`; }).join('');
   const worlds = Object.entries(c.worlds || {}).sort((a, b) => (b[1].at || 0) - (a[1].at || 0)).slice(0, 8);
@@ -158,7 +170,7 @@ function openCharInfo(id) {
     <div class="chcols"><div class="chleft"><canvas class="chav chbig" data-av="${c.id}" width="200" height="230"></canvas><div class="row center"><button class="ico" data-pf="rot:-1">⟲</button><button class="ico" data-pf="walk">🚶</button><button class="ico" data-pf="rot:1">⟳</button></div>
       ${bar('❤ Vida', pc.hp ?? 100, 100 + 2 * ((pc.lv && pc.lv.fit) || 0), '#e05050')}${bar('🍖 Hambre', pc.food ?? 100, 100, '#e0a040')}${bar('💧 Sed', pc.water ?? 100, 100, '#4aa8ec')}${bar('🌙 Energía', pc.energy ?? 100, 100, '#a47ae8')}
       <div class="chfacts"><div><small>Jugado</small><b>${fmtHours(c.playMs)}</b></div><div><small>Objetos</small><b>${fmt(items)}</b></div><div><small>Nivel total</small><b>${lvSum(c)}</b></div><div><small>Creado</small><b>${fmtDate(c.created).split(',')[0]}</b></div></div></div>
-    <div class="chright"><div class="cssub">Equipo</div><div class="cheqg">${eqH}</div><div class="cssub">Inventario · ${inv.filter(Boolean).length}/${INV_N} huecos</div><div class="chinv">${invH}</div>
+    <div class="chright"><div class="cssub">Equipo · ${eqN}/${EQ_SLOTS.length}</div>${eqH}<div class="cssub">Inventario · ${inv.filter(Boolean).length}/${INV_N} huecos</div><div class="chinv">${invH}</div>
       <div class="cssub">Habilidades</div><div class="chskg">${skills}</div>
       ${worlds.length ? `<div class="cssub">Mundos visitados</div><div class="chworlds">${worlds.map(([k, w]) => `<span>${esc(w.name || k)}<small>${fmtDate(w.at)}</small></span>`).join('')}</div>` : ''}</div></div>
     <footer class="chmf"><button class="danger" data-pf="del:${c.id}">Borrar…</button><span class="grow"></span><button data-pf="look:${c.id}">Cambiar aspecto</button><button class="pri" data-pf="use:${c.id}">${c.id === PF.active ? '✓ Elegido' : 'Elegir'}</button></footer></div>`;
