@@ -17,7 +17,8 @@
 const http = require('http'), fs = require('fs'), path = require('path'), crypto = require('crypto'), os = require('os');
 const ROOT = __dirname, PORT = +process.env.PORT || 8080, LOCAL_ONLY = process.argv.includes('--solo-yo');
 const DC_ID = process.env.DISCORD_CLIENT_ID || '1562327426837516288', DC_SECRET = process.env.DISCORD_CLIENT_SECRET || '';
-const PUBLIC = (process.env.PUBLIC_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : '')).replace(/\/$/, '');
+// Dirección pública: la que pongas en PUBLIC_URL o la que da el alojamiento (Railway o Render)
+const PUBLIC = (process.env.PUBLIC_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : '') || process.env.RENDER_EXTERNAL_URL || '').replace(/\/$/, '');
 let DB = null; const MAX_SAVE = 8e6;
 // Dirección pública con la que vuelve Discord (la fija PUBLIC_URL; si no, la de la petición)
 const baseOf = req => PUBLIC || ((req.headers['x-forwarded-proto'] || 'http').split(',')[0] + '://' + req.headers.host);

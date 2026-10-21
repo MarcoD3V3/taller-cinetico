@@ -36,5 +36,17 @@ https://TU-DOMINIO.up.railway.app/auth/discord/callback
 - Abre el juego → Cuenta → *Iniciar sesión con Discord*.
 - Multijugador → abre tu mundo con Esc → *Abrir en red* y pasa la dirección a tus amigos.
 
+## Alternativa: Render (si Railway tiene los despliegues pausados)
+1. Entra en https://dashboard.render.com con tu cuenta de GitHub.
+2. **New → Blueprint** y elige el repositorio `MarcoD3V3/taller-cinetico`. Render lee
+   `render.yaml` y crea el servidor del juego y su base de datos PostgreSQL ya conectados.
+3. Te pedirá `DISCORD_CLIENT_SECRET`: pega ahí el secreto nuevo.
+4. Cuando termine, tu juego estará en `https://taller-cinetico.onrender.com` (o parecido).
+   En Discord añade como Redirect: `https://TU-DIRECCION.onrender.com/auth/discord/callback`.
+
+En el plan gratis, el servidor se duerme tras 15 minutos sin nadie conectado (tarda unos
+segundos en despertar) y la base de datos gratuita caduca a los 30 días: para algo serio,
+usa un plan de pago o vuelve a Railway cuando quite la pausa.
+
 ## En tu ordenador
 `jugar.bat` arranca el mismo servidor sin base de datos (guarda en `.datos/`).

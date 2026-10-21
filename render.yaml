@@ -1,0 +1,23 @@
+# Publicar en Render con un clic (New → Blueprint → este repositorio).
+# Crea el servidor del juego y su base de datos PostgreSQL, y los conecta.
+services:
+  - type: web
+    name: taller-cinetico
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node servidor.js
+    healthCheckPath: /api/info
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: taller-cinetico-db
+          property: connectionString
+      - key: DISCORD_CLIENT_ID
+        value: "1562327426837516288"
+      # El secreto se escribe en el panel de Render al crear el servicio (nunca en el código)
+      - key: DISCORD_CLIENT_SECRET
+        sync: false
+databases:
+  - name: taller-cinetico-db
+    plan: free
