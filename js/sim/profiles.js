@@ -215,6 +215,6 @@ function pfRefresh() { if (ui.open === 'title') { if (document.querySelector('.c
 { const c0 = netConnectWs; netConnectWs = async url => { await c0(url); const acc = NET.kind === 'ws' && NET.me.verified; if (pfSetNS(acc ? nsOf(NET.me.id) : '', acc ? 'Cuenta: ' + NET.me.name : '') || acc) pfSync(); }; }
 pfLoad(); pfMigrate();
 // La conexión llega cuando llega (al arrancar, al iniciar o cerrar sesión): se vigila y se cambia de espacio
-setInterval(() => { if (!NET.kind) return; const want = NET.kind === 'ws' && NET.me.verified ? nsOf(NET.me.id) : ''; if (want !== WNS) { pfSetNS(want, want ? 'Cuenta: ' + NET.me.name : 'Sin sesión: personajes y mundos de este navegador'); if (want) pfSync(); } }, 400);
+setInterval(() => { if (!NET.kind) return; if (NET.kind === 'ws' && !NET.me.verified && typeof dcSess === 'function' && dcSess() && WNS) return; const want = NET.kind === 'ws' && NET.me.verified ? nsOf(NET.me.id) : ''; if (want !== WNS) { pfSetNS(want, want ? 'Cuenta: ' + NET.me.name : 'Sin sesión: personajes y mundos de este navegador'); if (want) pfSync(); } }, 400);
 // Cerrar sesión: fuera de cualquier mundo en línea o de la cuenta, y vuelven los de sin cuenta
 { const o0 = dcLogout; dcLogout = () => { const was = WNS; if (inGame()) netLeave(true); o0(); if (was) pfSetNS('', 'Sesión cerrada: personajes y mundos de este navegador'); }; }

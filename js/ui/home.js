@@ -73,5 +73,5 @@ accHTML = function (inPause) {
 // El panel «Abrir en red» del menú de pausa también avisa
 { const l0 = lanHTML; lanHTML = () => needLogin() && !inGame() ? pzHead('Abrir en red', 'Hace falta sesión') + accHTML(true).replace(/^<header[\s\S]*?<\/header>/, '') : l0(); }
 // Cerrar sesión en mitad de una partida en línea: fuera de ella
-{ const m0 = menuNetChanged; menuNetChanged = () => { if (inGame() && NET.kind === 'ws' && !NET.me.verified) { netLeave(true); toastErr('Has cerrado sesión: sales de la partida en línea'); } m0(); if (ui.open === 'title' && document.querySelector('.home')) showMain(); }; }
+{ const m0 = menuNetChanged; menuNetChanged = () => { if (inGame() && NET.kind === 'ws' && !NET.me.verified && !(typeof dcSess === 'function' && dcSess())) { netLeave(true); toastErr('Has cerrado sesión: sales de la partida en línea'); } m0(); if (ui.open === 'title' && document.querySelector('.home')) showMain(); }; }
 if (ui.open === 'title') setTimeout(showMain, 0);

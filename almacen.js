@@ -14,8 +14,11 @@ async function pgStore(url) {
   // Red interna del alojamiento (Render: «dpg-…-a» sin puntos; Railway: «.railway.internal») o local: sin SSL
   let host = ''; try { host = new URL(url).hostname; } catch (e) { }
   const internal = !host.includes('.') || /localhost|127\.0\.0\.1|\.railway\.internal$/.test(host);
-  const pool = new Pool({ connectionString: url, ssl: internal ? false : { rejectUnauthorized: false }, max: 5 });
-  const q = (t, v) => pool.query(t, v);
+  // Neon y otros Postgres «serverless» se duermen y cortan las conexiones quietas: sin este manejador,
+  // el corte tumbaba todo el servidor (y con él las partidas y las sesiones). Cada consulta se reintenta.
+  const pool = new Pool({ connectionString: url, ssl: internal ? false : { rejectUnauthorized: false }, max: 5, idleTimeoutMillis: 20000, connectionTimeoutMillis: 15000, keepAlive: true });
+  pool.on('error', e => console.error('  Postgres cortó una conexión (se recupera sola):', e.message));
+  const q = async (t, v) => { for (let i = 0; ; i++) { try { return await pool.query(t, v); } catch (e) { if (i >= 2 || /syntax|violates|does not exist|invalid input/i.test(e.message)) throw e; await new Promise(r => setTimeout(r, 400 * (i + 1))); } } };
   await q(`CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, name TEXT, username TEXT, avatar TEXT, created TIMESTAMPTZ DEFAULT now(), seen TIMESTAMPTZ DEFAULT now());
     CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, created TIMESTAMPTZ DEFAULT now(), expires TIMESTAMPTZ NOT NULL);
     CREATE TABLE IF NOT EXISTS saves (user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, id TEXT NOT NULL, name TEXT, data TEXT NOT NULL, meta JSONB, updated TIMESTAMPTZ DEFAULT now(), PRIMARY KEY (user_id, id));

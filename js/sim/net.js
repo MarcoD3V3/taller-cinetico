@@ -52,8 +52,48 @@ async function netConnectWs(url) {
     if (r.me.sessBad && typeof dcSessSet === 'function') { dcSessSet(null); DC.err = 'Tu sesión caducó: vuelve a iniciar sesión con Discord.'; }
     NET.public = r.me.public || null; if (DC.ok && r.me.verified) { DC.ok = 0; okMsg('Sesión iniciada con Discord: ' + r.me.name); }
     NET.status = r.me.verified ? 'Conectado con Discord (' + r.me.name + ')' : 'Conectado como invitado'; wireLobby(r);
-    r.onConnection(c => { if (!c) { NET.status = 'Se perdió la conexión con el servidor'; if (inGame()) { errMsg('Se perdió la conexión con el servidor.'); netLeave(true); } NET.room = null; NET.kind = null; netRefreshUI(); } });
+    if (r.me.sessRetry) { NET.status = 'Conectado (comprobando tu sesión…)'; setTimeout(() => { if (NET.room === r && !inGame() && !NET.me.verified) netReconnect(); }, 15000); }
+    // Se corta: la partida sigue en tu pantalla y wsroom.js reconecta solo; al volver se recupera todo
+    r.onConnection(c => { if (NET.room !== r) return; if (!c) { NET.status = 'Reconectando con el servidor…'; if (inGame() && !NET.offT) NET.offT = setTimeout(() => { NET.offT = 0; if (NET.room === r && !r.connected()) toastErr('📡 Conexión perdida: reconectando… (la partida sigue)'); }, 2500); }
+      else { clearTimeout(NET.offT); NET.offT = 0; NET.status = NET.me.verified ? 'Conectado con Discord (' + NET.me.name + ')' : 'Conectado como invitado'; } netRefreshUI(); });
+    r.onReconnect(ev => netResumed(r, ev));
+    r.onHost(m => netHostChanged(m));
   } catch (e) { NET.status = e.message || 'No hay servidor'; }
+  netRefreshUI();
+}
+// Tras reconectar: si el servidor nos recuerda, todo sigue; si se reinició, el anfitrión vuelve a abrir
+// la misma partida (mismo código y enlace) y los invitados vuelven a entrar y reciben el mundo otra vez
+async function netResumed(r, ev) {
+  if (NET.room !== r) return;
+  if (!(r.me.sessRetry && NET.me.verified)) NET.me = { id: r.me.by, name: r.me.name, avatar: r.me.avatar, color: colorOf(r.me.by), verified: r.me.verified };
+  const g = NET.game;
+  if (ev.resumed) { if (g) okMsg('📡 Conexión recuperada.'); if (g && ev.lost && !g.host) netResync(); netRefreshUI(); return; }
+  if (!g) { netRefreshUI(); return; }
+  if (g.host) {
+    try { await r.create(g.r.name, { hostName: myNick(), name: g.opt.name, pass: g.opt.pass, max: g.opt.max, mode: g.opt.mode, requireDc: g.opt.requireDc, cheats: g.opt.cheats, keep: g.opt.keep !== false }); okMsg('📡 Reconectado: tu mundo vuelve a estar abierto con el mismo código.'); }
+    catch (e) { errMsg('No se pudo volver a abrir tu mundo: ' + (e.message || e.code)); netLeave(true, true); }
+    netRefreshUI(); return;
+  }
+  // Invitado: reintenta entrar durante un minuto (el anfitrión puede tardar en volver)
+  const until = Date.now() + 60000;
+  while (NET.game === g && Date.now() < until) {
+    try { await r.join(g.r.name, g.pass || ''); netResync(); okMsg('📡 Reconectado a la partida.'); return; }
+    catch (e) { if (e.code === 'bad_pass' || e.code === 'banned' || e.code === 'full') { errMsg(WS_ERR[e.code]); break; } }
+    await new Promise(ok => setTimeout(ok, 3000));
+  }
+  if (NET.game === g) { errMsg('La partida ya no está disponible.'); netLeave(true, true); }
+}
+// El invitado vuelve a pedir el mundo (al volver de un corte en el que se perdieron cambios)
+function netResync() { const g = NET.game; if (!g || g.host) return; g.waiting = true; g.resync = true; g.snap = null; setTimeout(() => { if (NET.game === g && g.waiting && g.resync) { g.waiting = false; g.resync = false; } }, 15000); NET.status = 'Sincronizando el mundo…'; if (g.r) g.r.emit('hi', { nick: myNick(), resync: 1 }).catch(() => { }); }
+// El anfitrión se fue y dejó la partida abierta: otro pasa a ser el anfitrión
+function netHostChanged(m) {
+  const g = NET.game; if (!g || !g.r || g.r.name !== m.room) return;
+  if (m.peer === myPeer(g.r)) {
+    const mt = m.meta || {}; g.host = true; delete g.hostPeer; g.waiting = false;
+    g.opt = { ...defaultOpt(), ...(g.perm || {}), name: mt.name || (S && S.name) || 'Partida', max: mt.max || 8, mode: mt.mode || 'survival', requireDc: !!mt.requireDc, cheats: !!mt.cheats, pass: mt.pass || '', keep: true };
+    g.perm = g.opt; if (S) S.mpPlayers = S.mpPlayers || {};
+    sysMsg('♛ El anfitrión se ha ido: ahora eres tú el anfitrión. La partida sigue abierta mientras quede alguien.'); sendWd();
+  } else { g.hostPeer = m.peer; sysMsg(`♛ ${String(m.name || 'Otro jugador').slice(0, 20)} es ahora el anfitrión.`); }
   netRefreshUI();
 }
 const netReconnect = () => { if (!inClaude() && !inGame()) netConnectWs(NET.server && NET.server !== 'claude.ai' ? NET.server : defaultServer()); };
@@ -64,8 +104,10 @@ function lobbyPresence() {
 }
 async function netGames() { if (NET.kind === 'ws' && NET.room) { try { NET.lobby = (await NET.room.list()).map(x => ({ ...x, code: x.room.replace(/^tc-/, '') })); } catch (e) { } } return NET.lobby; }
 // ---------- Abrir tu mundo (anfitrión) ----------
-const newCode = () => Array.from({ length: 5 }, () => 'abcdefghjkmnpqrstuvwxyz23456789'[Math.random() * 31 | 0]).join('');
-const defaultOpt = () => ({ name: (S && S.name) || 'Mi mundo', pass: '', max: 8, mode: 'survival', build: true, containers: true, cheats: false, requireDc: false, ...(S && S.mpOpt || {}) });
+const newCode = () => Array.from({ length: 9 }, (_, i) => (i < 6 ? 'abcdefghjkmnpqrstuvwxyz' : '23456789')[Math.random() * (i < 6 ? 23 : 8) | 0]).join('');
+// Enlace para entrar con un clic (solo con el servidor propio en una web)
+const inviteURL = code => NET.kind === 'ws' && /^https?:$/.test(location.protocol) && !inClaude() ? location.origin + '/server/' + code : '';
+const defaultOpt = () => ({ name: (S && S.name) || 'Mi mundo', pass: '', max: 8, mode: 'survival', build: true, containers: true, cheats: false, requireDc: false, keep: true, ...(S && S.mpOpt || {}) });
 async function netHost(opt) {
   if (!S || !currentWorld) return errMsg('Abre primero un mundo.');
   if (!NET.room) return errMsg(NET.status);
@@ -73,29 +115,34 @@ async function netHost(opt) {
   opt = { ...defaultOpt(), ...(opt || {}) }; if (opt.mode === 'adventure') opt.build = opt.containers = false;
   S.mpOpt = { ...opt, pass: '' }; S.mpPlayers = S.mpPlayers || {};
   const code = newCode(), name = 'tc-' + code; NET.game = { code, host: true, opt, perm: opt };
-  try { NET.game.r = NET.kind === 'ws' ? await NET.room.create(name, { hostName: myNick(), name: opt.name, pass: opt.pass, max: opt.max, mode: opt.mode, requireDc: opt.requireDc, cheats: opt.cheats }) : await NET.room.join(name); }
+  try { NET.game.r = NET.kind === 'ws' ? await NET.room.create(name, { hostName: myNick(), name: opt.name, pass: opt.pass, max: opt.max, mode: opt.mode, requireDc: opt.requireDc, cheats: opt.cheats, keep: opt.keep !== false }) : await NET.room.join(name); }
   catch (e) { NET.game = null; netRefreshUI(); return errMsg('No se pudo abrir: ' + (e.message || e.code)); }
   wireGame(NET.game.r); lobbyPresence();
-  okMsg(`Mundo abierto. Código ${code.toUpperCase()}${opt.pass ? ' · con contraseña' : ''}. Los demás entran desde Multijugador en el menú principal.`); netRefreshUI();
+  const link = inviteURL(code);
+  okMsg(`Mundo abierto. Código ${code.toUpperCase()}${opt.pass ? ' · con contraseña' : ''}.${link ? ' Enlace para entrar con un clic: ' + link : ' Los demás entran desde Multijugador en el menú principal.'}`);
+  if (link && navigator.clipboard) navigator.clipboard.writeText(link).then(() => toast('🔗 Enlace de la partida copiado'), () => { });
+  if (NET.kind === 'ws' && NET.game.r.onOut) NET.game.r.onOut(why => { if (NET.game && NET.game.host) { errMsg(WS_ERR[why] || 'La partida se cerró.'); netLeave(true, true); } });
+  netRefreshUI();
 }
 function netSetOpt(p) {
   const g = NET.game; if (!g || !g.host) return; Object.assign(g.opt, p); if (g.opt.mode === 'adventure') g.opt.build = g.opt.containers = false;
   S.mpOpt = { ...g.opt, pass: '' }; g.perm = g.opt;
-  if (NET.kind === 'ws') NET.room.meta(g.r.name, { name: g.opt.name, pass: g.opt.pass, max: g.opt.max, mode: g.opt.mode, requireDc: g.opt.requireDc, cheats: g.opt.cheats });
+  if (NET.kind === 'ws') NET.room.meta(g.r.name, { name: g.opt.name, pass: g.opt.pass, max: g.opt.max, mode: g.opt.mode, requireDc: g.opt.requireDc, cheats: g.opt.cheats, keep: g.opt.keep !== false });
   sendWd(); lobbyPresence(); netRefreshUI();
 }
 // ---------- Entrar en el mundo de otro ----------
 const PROFILE_KEY = 'tc-profile';
 const saveProfile = () => { try { if (S && S.char && S.char.made) localStorage.setItem(PROFILE_KEY, JSON.stringify({ char: S.char, nick: S.nick || null })); } catch (e) { } };
 async function netJoin(code, pass) {
-  code = normTxt(code).replace(/[^a-z0-9]/g, ''); if (!code) return errMsg('Falta el código.');
+  const lk = String(code || '').match(/server\/([a-z0-9]+)/i); if (lk) code = lk[1];
+  code = normTxt(code).replace(/[^a-z0-9]/g, ''); if (!code) return errMsg('Falta el código.'); NET.lastErr = null;
   if (!NET.room) return errMsg(NET.status);
   if (inGame()) await netLeave(true);
   if (S && currentWorld && !String(currentWorld).startsWith('mp-')) { saveGame(true); saveProfile(); }
   NET.game = { code, host: false, waiting: true, prev: S && currentWorld && !String(currentWorld).startsWith('mp-') ? currentWorld : null, perm: {} };
   try { NET.game.r = NET.kind === 'ws' ? await NET.room.join('tc-' + code, pass || '') : await NET.room.join('tc-' + code); }
-  catch (e) { NET.game = null; netRefreshUI(); return errMsg('No se pudo entrar: ' + (e.message || e.code)); }
-  const r = NET.game.r; if (r.onOut) r.onOut(why => { errMsg(WS_ERR[why] || 'Has salido de la partida.'); netLeave(true, true); });
+  catch (e) { NET.game = null; NET.lastErr = e.code; netRefreshUI(); errMsg('No se pudo entrar: ' + (e.message || e.code)); return false; }
+  NET.game.pass = pass || ''; const r = NET.game.r; if (r.onOut) r.onOut(why => { errMsg(WS_ERR[why] || 'Has salido de la partida.'); netLeave(true, true); });
   wireGame(r); NET.status = 'Pidiendo el mundo al anfitrión…'; netRefreshUI();
   r.emit('hi', { nick: myNick(), pass: NET.kind === 'claude' ? (pass || '') : undefined }).catch(() => { });
   setTimeout(() => { const g = NET.game; if (g && g.code === code && g.waiting && !g.snap) { errMsg('Nadie responde con ese código.'); netLeave(true); } }, 12000);
@@ -107,7 +154,8 @@ async function netLeave(quiet, gone) {
   if (!gone) { try { await g.r.emit('bye', {}); } catch (e) { } try { await g.r.leave(); } catch (e) { } }
   lobbyPresence();
   if (!g.host && !g.waiting) { FOES = []; ANIMALS = []; if (g.prev && loadWorld(g.prev)) enterWorld(); else { S = null; currentWorld = null; openTitle(); } }
-  if (!quiet) sysMsg(g.host ? 'Tu mundo ya no está abierto a otros.' : 'Has salido de la partida.'); netRefreshUI();
+  if (!quiet) sysMsg(g.host ? (g.opt && g.opt.keep !== false && NET.peers.size ? 'Has salido: la partida sigue para los demás hasta que se vayan. Si vuelves a abrir tu mundo, tendrá un enlace nuevo.' : 'Tu mundo ya no está abierto a otros.') : 'Has salido de la partida.'); netRefreshUI();
+  if (/^\/server\//.test(location.pathname)) try { history.replaceState(null, '', '/'); } catch (e) { }
 }
 // ---------- Mensajes de la partida ----------
 function wireGame(r) {
@@ -124,7 +172,7 @@ function wireGame(r) {
   r.on('hi', m => { if (m.sameTab || !g.host) return; const d = m.data || {};
     if (NET.kind === 'claude' && g.opt.pass && d.pass !== g.opt.pass) return netEmit('deny', { to: m.peer, why: 'bad_pass' });
     if (g.bans && g.bans.has(m.by)) return netEmit('deny', { to: m.peer, why: 'banned' });
-    sysMsg(`${String((m.verified && m.name) || d.nick || 'Alguien').slice(0, 20)} entra en tu mundo.`); sendSnap(m.peer, m.by); });
+    if (!d.resync) sysMsg(`${String((m.verified && m.name) || d.nick || 'Alguien').slice(0, 20)} entra en tu mundo.`); sendSnap(m.peer, m.by); });
   r.on('deny', m => { if (!fromHost(m) && g.hostPeer) return; if (!m.data || m.data.to !== myPeer(r)) return; errMsg(WS_ERR[m.data.why] || 'El anfitrión no te deja entrar.'); netLeave(true); });
   r.on('snap', m => { if (g.host || m.sameTab || !m.data || m.data.to !== myPeer(r)) return; takeSnapPart(m); });
   r.on('chat', m => { if (m.sameTab) return; const d = m.data || {}, nick = String((m.verified && m.name) || d.nick || 'Alguien').slice(0, 20);
@@ -194,12 +242,14 @@ async function takeSnapPart(m) {
     let prof = null; try { prof = JSON.parse(localStorage.getItem(PROFILE_KEY)); } catch (e) { }
     const mine = { char: (S && S.char && S.char.made ? S.char : prof && prof.char) || undefined, nick: (S && S.nick) || (prof && prof.nick) || undefined, autoSort: S ? S.autoSort : true, mute: S ? S.mute : false, marks: [] };
     let personal = w.you;
+    // Al resincronizar tras un corte, te quedas con tu inventario y tu sitio de ahora
+    if (g.resync && S) { personal = {}; for (const k of PDAT_KEYS) if (S[k] !== undefined) personal[k] = S[k]; }
     if (!personal) { const inv = new Array(INV_N).fill(null); personal = { inv, sel: 0, equip: {}, player: { x: w.host.x + T, y: w.host.y } }; }
     netGuard(() => deserialize(JSON.stringify({ ...w.ws, ...mine, ...personal, v: 3, ch: w.ch, bs: w.bs, seen: [] })));
     if (!personal.pc) pcInit();
     currentWorld = 'mp-' + g.code; S.name = (w.ws.name || 'Mundo') + ' (en línea)';
-    FOES = []; ANIMALS = []; g.waiting = false; g.snap = null; g.perm = w.perm || {}; applyGuestMode();
-    enterWorld(); NET.status = 'En la partida ' + g.code.toUpperCase(); okMsg('¡Dentro! Llevas a ' + myNick() + ' con su propio inventario.'); netRefreshUI();
+    const re = g.resync; FOES = []; ANIMALS = []; g.waiting = false; g.resync = false; g.snap = null; g.perm = w.perm || {}; applyGuestMode();
+    enterWorld(); NET.status = 'En la partida ' + g.code.toUpperCase(); okMsg(re ? '📡 Mundo sincronizado.' : '¡Dentro! Llevas a ' + myNick() + ' con su propio inventario.'); netRefreshUI();
   } catch (e) { errMsg('El mundo llegó dañado: ' + e.message); netLeave(true); }
 }
 function applyGuestMode() { if (!isGuest() || !S) return; const c = NET.game.perm.mode === 'creative'; S.creative = S.sandbox = c; vitalsDirty = true; }
