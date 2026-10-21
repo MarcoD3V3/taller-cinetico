@@ -11,7 +11,10 @@ const token = () => crypto.randomBytes(24).toString('base64url');
 // ---------- PostgreSQL ----------
 async function pgStore(url) {
   const { Pool } = require('pg');
-  const pool = new Pool({ connectionString: url, ssl: /localhost|127\.0\.0\.1|\.railway\.internal/.test(url) ? false : { rejectUnauthorized: false }, max: 5 });
+  // Red interna del alojamiento (Render: «dpg-…-a» sin puntos; Railway: «.railway.internal») o local: sin SSL
+  let host = ''; try { host = new URL(url).hostname; } catch (e) { }
+  const internal = !host.includes('.') || /localhost|127\.0\.0\.1|\.railway\.internal$/.test(host);
+  const pool = new Pool({ connectionString: url, ssl: internal ? false : { rejectUnauthorized: false }, max: 5 });
   const q = (t, v) => pool.query(t, v);
   await q(`CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, name TEXT, username TEXT, avatar TEXT, created TIMESTAMPTZ DEFAULT now(), seen TIMESTAMPTZ DEFAULT now());
     CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, created TIMESTAMPTZ DEFAULT now(), expires TIMESTAMPTZ NOT NULL);
