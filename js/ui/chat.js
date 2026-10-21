@@ -38,7 +38,7 @@ function chatOpen(pre) {
 function chatClose() { CHAT.open = false; $('chatBar').hidden = true; cIn.blur(); $('chatSug').textContent = ''; chatRender(); }
 // Lo que se hace con un mensaje normal (net.js lo cambia para enviarlo a los demás)
 let chatSend = text => chatPush('say', text, { nick: myNick(), c: '#ffe08a' });
-const myNick = () => { if (S && S.nick) return S.nick; const acc = typeof NET !== 'undefined' && NET.me && NET.me.name && NET.kind === 'claude' ? NET.me.name.split(' ')[0] : ''; if (acc) return acc; if (S) return (S.char && S.char.name && S.char.name !== 'Superviviente' ? S.char.name : '') || (typeof NET !== 'undefined' && NET.me.name) || 'Jugador'; try { const p = JSON.parse(localStorage.getItem('tc-profile')); return (p && (p.nick || p.char && p.char.name)) || 'Jugador'; } catch (e) { return 'Jugador'; } };
+const myNick = () => { if (typeof pfName === 'function' && pfName()) return pfName(); if (S && S.nick) return S.nick; const acc = typeof NET !== 'undefined' && NET.me && NET.me.name && NET.kind === 'claude' ? NET.me.name.split(' ')[0] : ''; if (acc) return acc; if (S) return (S.char && S.char.name && S.char.name !== 'Superviviente' ? S.char.name : '') || (typeof NET !== 'undefined' && NET.me.name) || 'Jugador'; try { const p = JSON.parse(localStorage.getItem('tc-profile')); return (p && (p.nick || p.char && p.char.name)) || 'Jugador'; } catch (e) { return 'Jugador'; } };
 function chatSubmit() {
   const t = cIn.value.trim(); if (!t) { chatClose(); return; }
   CHAT.hist.unshift(t); if (CHAT.hist.length > 40) CHAT.hist.pop(); CHAT.hi = -1;

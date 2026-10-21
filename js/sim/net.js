@@ -194,12 +194,12 @@ async function takeSnapPart(m) {
     let prof = null; try { prof = JSON.parse(localStorage.getItem(PROFILE_KEY)); } catch (e) { }
     const mine = { char: (S && S.char && S.char.made ? S.char : prof && prof.char) || undefined, nick: (S && S.nick) || (prof && prof.nick) || undefined, autoSort: S ? S.autoSort : true, mute: S ? S.mute : false, marks: [] };
     let personal = w.you;
-    if (!personal) { const inv = new Array(INV_N).fill(null); if (w.perm.mode !== 'creative') START_ITEMS.forEach(([id, n], i) => { if (i < 9) inv[i] = { id, n }; else slotsAdd(inv, id, n, false, FILL_ORDER); }); personal = { inv, sel: 0, equip: {}, player: { x: w.host.x + T, y: w.host.y } }; }
+    if (!personal) { const inv = new Array(INV_N).fill(null); personal = { inv, sel: 0, equip: {}, player: { x: w.host.x + T, y: w.host.y } }; }
     netGuard(() => deserialize(JSON.stringify({ ...w.ws, ...mine, ...personal, v: 3, ch: w.ch, bs: w.bs, seen: [] })));
     if (!personal.pc) pcInit();
     currentWorld = 'mp-' + g.code; S.name = (w.ws.name || 'Mundo') + ' (en línea)';
     FOES = []; ANIMALS = []; g.waiting = false; g.snap = null; g.perm = w.perm || {}; applyGuestMode();
-    enterWorld(); NET.status = 'En la partida ' + g.code.toUpperCase(); okMsg(w.you ? '¡Has vuelto! Sigues donde lo dejaste en este mundo.' : '¡Dentro! Empiezas con lo básico en este mundo.'); netRefreshUI();
+    enterWorld(); NET.status = 'En la partida ' + g.code.toUpperCase(); okMsg('¡Dentro! Llevas a ' + myNick() + ' con su propio inventario.'); netRefreshUI();
   } catch (e) { errMsg('El mundo llegó dañado: ' + e.message); netLeave(true); }
 }
 function applyGuestMode() { if (!isGuest() || !S) return; const c = NET.game.perm.mode === 'creative'; S.creative = S.sandbox = c; vitalsDirty = true; }

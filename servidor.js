@@ -152,6 +152,20 @@ async function onMsg(c, m) {
         await DB.putSave(c.by, id, clean(m.name, 40) || 'Mundo', data, m.meta && typeof m.meta === 'object' ? m.meta : {}); return rep({ op: 'ok' });
       } catch (e) { console.error('nube', e.message); return rep({ op: 'err', code: 'db' }); }
     }
+    // ---- Personajes de la cuenta (hasta 5, con su inventario) ----
+    case 'chars': case 'char.put': case 'char.del': {
+      if (!c.verified || !DB) return rep({ op: 'err', code: 'need_discord' });
+      const id = clean(m.id, 40).replace(/[^a-z0-9_-]/gi, '');
+      try {
+        if (m.op === 'chars') return rep({ op: 'chars', list: await DB.listChars(c.by) });
+        if (!id) return rep({ op: 'err', code: 'bad_id' });
+        if (m.op === 'char.del') { await DB.delChar(c.by, id); return rep({ op: 'ok' }); }
+        const data = m.data && typeof m.data === 'object' ? m.data : null, txt = data && JSON.stringify(data);
+        if (!txt || txt.length > 400000) return rep({ op: 'err', code: 'too_big' });
+        if ((await DB.listChars(c.by)).filter(x => x.id !== id).length >= 5) return rep({ op: 'err', code: 'quota' });
+        await DB.putChar(c.by, id, txt); return rep({ op: 'ok' });
+      } catch (e) { console.error('personajes', e.message); return rep({ op: 'err', code: 'db' }); }
+    }
     case 'logout': if (c.sess && DB) await DB.endSession(c.sess).catch(() => { }); return rep({ op: 'ok' });
     case 'meta': { const r = rooms.get(rn); if (!r || !r.meta || r.meta.host !== c.id) return; const mt = m.meta || {}; if ('pass' in mt) r.meta.pass = clean(mt.pass, 40); if (mt.max) r.meta.max = Math.max(2, Math.min(32, +mt.max)); if ('requireDc' in mt) r.meta.requireDc = !!mt.requireDc; if (mt.mode) r.meta.mode = clean(mt.mode, 12); if ('cheats' in mt) r.meta.cheats = !!mt.cheats; if (mt.name) r.meta.name = clean(mt.name, 40); return; }
   }

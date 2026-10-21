@@ -61,17 +61,17 @@ const TRAITS = {
 // ---------- Profesiones ----------
 const PROFS = {
   vagabond: { n: 'Vagabundo', i: '🎒', pts: 8, d: 'Sin oficio: empiezas sin ventajas pero con muchos puntos para rasgos.', sk: {}, kit: [] },
-  miner: { n: 'Minero', i: '⛏', pts: 0, d: 'Minería 2. Pico de piedra y un farol.', sk: { mining: 2 }, kit: [['stonePick', 1], ['lantern', 1]], free: ['bornMiner'] },
-  lumber: { n: 'Leñadora', i: '🪓', pts: 1, d: 'Tala 2, Forma física 1. Hacha de piedra.', sk: { wood: 2, fit: 1 }, kit: [['stoneAxe', 1], ['log', 32]] },
-  hunterP: { n: 'Cazador', i: '🏹', pts: 0, d: 'Caza 2, Combate 1. Arco de madera y 32 flechas.', sk: { hunt: 2, combat: 1 }, kit: [['woodBow', 1], ['arrow', 32]] },
-  medic: { n: 'Médica', i: '✚', pts: 1, d: 'Supervivencia 3. Botiquín y vendas. Tus curas valen el doble.', sk: { surv: 3 }, kit: [['medkit', 2], ['bandage', 8], ['splint', 2]], med: 1 },
-  smith: { n: 'Herrero', i: '⚒', pts: 0, d: 'Ingeniería 2. Lingotes y un yunque.', sk: { craft: 2 }, kit: [['ironIngot', 24], ['anvil', 1]] },
-  engineer: { n: 'Ingeniera', i: '⚙', pts: 0, d: 'Ingeniería 1, Construcción 2. Circuitos y engranajes.', sk: { craft: 1, build: 2 }, kit: [['circuit', 4], ['cog', 12], ['redstone', 16]] },
-  mage: { n: 'Aprendiz de mago', i: '✦', pts: 1, d: 'Magia 2. Conoces Bola de fuego y llevas pociones de maná.', sk: { magic: 2 }, kit: [['spell_fireball', 1], ['potionMana', 3]] },
-  soldier: { n: 'Soldado', i: '⚔', pts: -1, d: 'Combate 3, Forma física 1. Espada de hierro y armadura de cuero.', sk: { combat: 3, fit: 1 }, kit: [['ironSword', 1], ['leatherHelmet', 1], ['leatherChest', 1], ['leatherLegs', 1], ['leatherBoots', 1]] },
-  farmer: { n: 'Granjera', i: '🌾', pts: 2, d: 'Recolección 2, Supervivencia 1. Comida y fertilizante.', sk: { gather: 2, surv: 1 }, kit: [['berries', 24], ['fertilizer', 16], ['cookedMeat', 8]] },
-  explorer: { n: 'Exploradora', i: '🧭', pts: 1, d: 'Forma física 2, Supervivencia 1. Brújula, catalejo y raciones.', sk: { fit: 2, surv: 1 }, kit: [['compass', 1], ['spyglass', 1], ['ration', 6]] },
-  noble: { n: 'Noble', i: '👑', pts: -2, d: 'Sin habilidades, pero empiezas con 150 monedas y los comerciantes te respetan (-10 %).', sk: {}, kit: [['coin', 150]], price: 0.9 },
+  miner: { n: 'Minero', i: '⛏', pts: 0, d: 'Minería 2. Nace para la roca: picas más rápido desde el primer día.', sk: { mining: 2 }, kit: [], free: ['bornMiner'] },
+  lumber: { n: 'Leñadora', i: '🪓', pts: 1, d: 'Tala 2, Forma física 1.', sk: { wood: 2, fit: 1 }, kit: [] },
+  hunterP: { n: 'Cazador', i: '🏹', pts: 0, d: 'Caza 2, Combate 1.', sk: { hunt: 2, combat: 1 }, kit: [] },
+  medic: { n: 'Médica', i: '✚', pts: 1, d: 'Supervivencia 3. Tus curas valen el doble.', sk: { surv: 3 }, kit: [], med: 1 },
+  smith: { n: 'Herrero', i: '⚒', pts: 0, d: 'Ingeniería 2.', sk: { craft: 2 }, kit: [] },
+  engineer: { n: 'Ingeniera', i: '⚙', pts: 0, d: 'Ingeniería 1, Construcción 2.', sk: { craft: 1, build: 2 }, kit: [] },
+  mage: { n: 'Aprendiz de mago', i: '✦', pts: 1, d: 'Magia 2. Conoces Bola de fuego.', sk: { magic: 2 }, kit: [] },
+  soldier: { n: 'Soldado', i: '⚔', pts: -1, d: 'Combate 3, Forma física 1.', sk: { combat: 3, fit: 1 }, kit: [] },
+  farmer: { n: 'Granjera', i: '🌾', pts: 2, d: 'Recolección 2, Supervivencia 1.', sk: { gather: 2, surv: 1 }, kit: [] },
+  explorer: { n: 'Exploradora', i: '🧭', pts: 1, d: 'Forma física 2, Supervivencia 1.', sk: { fit: 2, surv: 1 }, kit: [] },
+  noble: { n: 'Noble', i: '👑', pts: -2, d: 'Sin habilidades, pero los comerciantes te respetan (−10 %).', sk: {}, kit: [], price: 0.9 },
 };
 // ---------- Armaduras ----------
 // def: defensa total del conjunto · heavy: frena un poco · warm: abrigo · fire: resistencia al fuego

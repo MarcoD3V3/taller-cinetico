@@ -14,7 +14,7 @@ function newGame(gen = {}, extra = {}) {
   };
   WORLD.clear(); _lk = -1; _lc = null; blocks = [];
   worldReset();
-  const kit = extra.kit || 'normal';
+  const kit = 'empty'; // los objetos son de cada personaje y se empiezan sin nada
   if (kit !== 'empty') {
     START_ITEMS.forEach(([id, n], i) => { if (i < 9) S.inv[i] = { id, n }; else slotsAdd(S.inv, id, n, false, FILL_ORDER); });
     if (kit === 'rich') for (const [id, n] of RICH_ITEMS) slotsAdd(S.inv, id, n, false, FILL_ORDER);

@@ -73,7 +73,7 @@ function showList() {
 }
 function showCreate() {
   const n = worldIndex().length + 1;
-  cwS = { pv: 'near', name: 'Mundo ' + n, seed: '', rand: ((Math.random() * 2e9) | 0) || 1, preset: 'normal', gen: { ...GEN_DEFAULT }, kit: 'normal', alwaysDay: false, sandbox: false, spawnKit: true, safeSpawn: true, diff: 1 };
+  cwS = { pv: 'near', name: 'Mundo ' + n, seed: '', rand: ((Math.random() * 2e9) | 0) || 1, preset: 'normal', gen: { ...GEN_DEFAULT }, startHour: 7, alwaysDay: false, sandbox: false, spawnKit: true, safeSpawn: true, diff: 1 };
   let h = `<div class="trow"><h2>Crear mundo</h2><button data-w="back">← Volver</button></div><div class="cgrid"><div class="cform">
     <div class="cwtabs">${CW_TABS.map(([k, n]) => `<button data-w="cwt:${k}" class="${k === 'gen' ? 'on' : ''}">${n}</button>`).join('')}</div>
     <div class="cwp" data-cwp="gen">
@@ -84,7 +84,7 @@ function showCreate() {
     <div class="cwp" data-cwp="ter" hidden><div class="slgrid">${SLIDERS.map(slHTML).join('')}</div></div>
     <div class="cwp" data-cwp="cli" hidden><div class="slgrid">${SLIDERS2.map(slHTML).join('')}</div><p class="mut small">Estas opciones cambian el carácter del mundo, pero no deciden qué encontrarás: los biomas raros y las menas de fantasía siguen siendo raros y su sitio depende de la semilla.</p></div>
     <div class="cwp" data-cwp="play" hidden>
-      <label class="fl"><span>Inventario inicial</span><select id="cwKit"><option value="normal">Normal (kit de inicio)</option><option value="rich">Abundante (más materiales)</option><option value="empty">Vacío (desde cero)</option></select></label>
+      <label class="fl"><span>Hora de inicio</span><select id="cwHour"><option value="7">Amanecer (07:00)</option><option value="12">Mediodía (12:00)</option><option value="18">Atardecer (18:00)</option><option value="22">Noche cerrada (22:00)</option></select></label>
       <label class="fl"><span>Enemigos</span><select id="cwFoes"><option value="0">Ninguno (mundo pacífico)</option><option value="0.5">Pocos</option><option value="1" selected>Normales</option><option value="1.6">Muchos</option><option value="2.4">Horda</option></select></label>
       <label class="fl"><span>Dificultad</span><select id="cwDiff"><option value="1">Normal</option><option value="1.5">Difícil (picar y cazar cuesta un 50 % más)</option><option value="2">Extremo (el doble)</option></select></label>
       <label class="chk"><input type="checkbox" id="cwSpawn" checked> Zona de inicio con recursos garantizados cerca</label>
@@ -231,7 +231,7 @@ $('mTitle').addEventListener('input', e => {
 });
 $('mTitle').addEventListener('change', e => {
   const t = e.target; if (!cwS) return;
-  if (t.id === 'cwKit') cwS.kit = t.value;
+  if (t.id === 'cwHour') cwS.startHour = +t.value;
   if (t.id === 'cwDay') cwS.alwaysDay = t.checked;
   if (t.id === 'cwSand') cwS.sandbox = t.checked;
   if (t.id === 'cwSpawn') { cwS.spawnKit = t.checked; schedulePreview(); }

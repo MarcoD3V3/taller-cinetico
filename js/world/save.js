@@ -25,13 +25,17 @@ function deserialize(str) {
 }
 // ---------- Varias partidas ----------
 // Índice: lista de mundos con sus datos resumidos. Cada mundo se guarda en su propia clave.
-const IDX_KEY = 'taller-worlds-v1', WKEY = id => 'taller-world-' + id;
+// Espacio de nombres: '' = sin cuenta (lo de siempre); con sesión de Discord, cada cuenta tiene
+// sus propios mundos (y personajes, ver sim/profiles.js), que no se mezclan con los de sin cuenta
+let WNS = '';
+const IDX_KEY = 'taller-worlds-v1';
+const idxKey = () => WNS ? 'tc@' + WNS + ':worlds' : IDX_KEY, WKEY = id => (WNS ? 'tc@' + WNS + ':w-' : 'taller-world-') + id;
 let currentWorld = null;
 function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
 function lsDel(k) { try { localStorage.removeItem(k); } catch (e) { } }
-function worldIndex() { try { return JSON.parse(lsGet(IDX_KEY)) || []; } catch (e) { return []; } }
-function saveIndex(list) { return lsSet(IDX_KEY, JSON.stringify(list)); }
+function worldIndex() { try { return JSON.parse(lsGet(idxKey())) || []; } catch (e) { return []; } }
+function saveIndex(list) { return lsSet(idxKey(), JSON.stringify(list)); }
 const newWorldId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 function indexEntry(id, data) {
   return { id, name: S.name, seed: S.gen.seed, created: S.created || Date.now(), played: Date.now(), tier: S.tier, sandbox: !!S.sandbox, blocks: blocks.length, kb: Math.round(data.length / 1024) };

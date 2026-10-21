@@ -25,7 +25,7 @@ const dcSess = () => { try { return localStorage.getItem(SESS_KEY) || null; } ca
 const dcSessSet = t => { try { if (t) localStorage.setItem(SESS_KEY, t); else localStorage.removeItem(SESS_KEY); } catch (e) { } };
 // ¿El servidor al que estamos conectados hace él el inicio de sesión?
 const dcServerAuth = () => typeof NET !== 'undefined' && NET.kind === 'ws' && NET.room && NET.room.me && NET.room.me.oauth;
-const dcLogout = () => { try { if (NET.kind === 'ws' && NET.room && NET.room.logout) NET.room.logout(); } catch (e) { } DC.data = null; DC.err = ''; dcSave(); dcTokSet(null); dcSessSet(null); if (typeof netReconnect === 'function') setTimeout(netReconnect, 150); };
+let dcLogout = () => { try { if (NET.kind === 'ws' && NET.room && NET.room.logout) NET.room.logout(); } catch (e) { } DC.data = null; DC.err = ''; dcSave(); dcTokSet(null); dcSessSet(null); if (typeof netReconnect === 'function') setTimeout(netReconnect, 150); };
 // Vuelta del inicio de sesión del servidor: #tcs=<sesión> o #tcerr=<motivo>
 { const h = new URLSearchParams(location.hash.slice(1)); if (h.get('tcs') || h.get('tcerr')) { if (h.get('tcs')) { dcSessSet(h.get('tcs')); DC.ok = 1; } else DC.err = h.get('tcerr'); try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { } } }
 const dcRedirect = () => location.origin + location.pathname;

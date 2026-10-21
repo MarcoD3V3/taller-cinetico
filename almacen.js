@@ -19,6 +19,7 @@ async function pgStore(url) {
   await q(`CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, name TEXT, username TEXT, avatar TEXT, created TIMESTAMPTZ DEFAULT now(), seen TIMESTAMPTZ DEFAULT now());
     CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, created TIMESTAMPTZ DEFAULT now(), expires TIMESTAMPTZ NOT NULL);
     CREATE TABLE IF NOT EXISTS saves (user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, id TEXT NOT NULL, name TEXT, data TEXT NOT NULL, meta JSONB, updated TIMESTAMPTZ DEFAULT now(), PRIMARY KEY (user_id, id));
+    CREATE TABLE IF NOT EXISTS chars (user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, id TEXT NOT NULL, data TEXT NOT NULL, updated TIMESTAMPTZ DEFAULT now(), PRIMARY KEY (user_id, id));
     CREATE TABLE IF NOT EXISTS bans (host TEXT NOT NULL, banned TEXT NOT NULL, created TIMESTAMPTZ DEFAULT now(), PRIMARY KEY (host, banned));`);
   await q('DELETE FROM sessions WHERE expires < now()');
   return {
@@ -31,6 +32,9 @@ async function pgStore(url) {
     async getSave(uid, id) { return (await q('SELECT id, name, data, meta, updated FROM saves WHERE user_id=$1 AND id=$2', [uid, id])).rows[0] || null; },
     async putSave(uid, id, name, data, meta) { await q(`INSERT INTO saves (user_id, id, name, data, meta, updated) VALUES ($1,$2,$3,$4,$5,now()) ON CONFLICT (user_id, id) DO UPDATE SET name=$3, data=$4, meta=$5, updated=now()`, [uid, id, name, data, meta || {}]); },
     async delSave(uid, id) { await q('DELETE FROM saves WHERE user_id=$1 AND id=$2', [uid, id]); },
+    async listChars(uid) { return (await q('SELECT data FROM chars WHERE user_id=$1', [uid])).rows.map(r => { try { return JSON.parse(r.data); } catch (e) { return null; } }).filter(Boolean); },
+    async putChar(uid, id, data) { await q(`INSERT INTO chars (user_id, id, data, updated) VALUES ($1,$2,$3,now()) ON CONFLICT (user_id, id) DO UPDATE SET data=$3, updated=now()`, [uid, id, data]); },
+    async delChar(uid, id) { await q('DELETE FROM chars WHERE user_id=$1 AND id=$2', [uid, id]); },
     async bans(host) { return new Set((await q('SELECT banned FROM bans WHERE host=$1', [host])).rows.map(r => r.banned)); },
     async addBan(host, who) { await q('INSERT INTO bans (host, banned) VALUES ($1,$2) ON CONFLICT DO NOTHING', [host, who]); },
     async delBan(host, who) { await q('DELETE FROM bans WHERE host=$1 AND banned=$2', [host, who]); },
@@ -39,7 +43,7 @@ async function pgStore(url) {
 // ---------- Archivo JSON (local) ----------
 function fileStore(dir) {
   fs.mkdirSync(dir, { recursive: true }); const file = path.join(dir, 'datos.json');
-  let D = { users: {}, sessions: {}, saves: {}, bans: {} }; try { D = { ...D, ...JSON.parse(fs.readFileSync(file, 'utf8')) }; } catch (e) { }
+  let D = { users: {}, sessions: {}, saves: {}, bans: {}, chars: {} }; try { D = { ...D, ...JSON.parse(fs.readFileSync(file, 'utf8')) }; } catch (e) { } D.chars = D.chars || {};
   let tm = 0; const save = () => { clearTimeout(tm); tm = setTimeout(() => { try { fs.writeFileSync(file + '.tmp', JSON.stringify(D)); fs.renameSync(file + '.tmp', file); } catch (e) { console.error('No se pudo guardar', e.message); } }, 300); };
   for (const t in D.sessions) if (D.sessions[t].expires < Date.now()) delete D.sessions[t];
   return {
@@ -52,6 +56,9 @@ function fileStore(dir) {
     async getSave(uid, id) { return (D.saves[uid] || {})[id] || null; },
     async putSave(uid, id, name, data, meta) { (D.saves[uid] || (D.saves[uid] = {}))[id] = { id, name, data, meta: meta || {}, updated: Date.now() }; save(); },
     async delSave(uid, id) { if (D.saves[uid]) delete D.saves[uid][id]; save(); },
+    async listChars(uid) { return Object.values(D.chars[uid] || {}).map(t => { try { return JSON.parse(t); } catch (e) { return null; } }).filter(Boolean); },
+    async putChar(uid, id, data) { (D.chars[uid] || (D.chars[uid] = {}))[id] = data; save(); },
+    async delChar(uid, id) { if (D.chars[uid]) delete D.chars[uid][id]; save(); },
     async bans(host) { return new Set(D.bans[host] || []); },
     async addBan(host, who) { const b = new Set(D.bans[host] || []); b.add(who); D.bans[host] = [...b]; save(); },
     async delBan(host, who) { D.bans[host] = (D.bans[host] || []).filter(x => x !== who); save(); },

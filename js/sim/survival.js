@@ -42,7 +42,6 @@ function pcInit() {
   if (!S.pc) {
     S.pc = newPC();
     // Las partidas antiguas reciben un pico de madera: ahora la roca necesita herramienta
-    if (!S.inv.some(s => s && TOOLS[s.id] && KIND_AS.pick.includes(TOOLS[s.id].kind))) invAdd('woodPick', 1);
   }
   return S.pc;
 }

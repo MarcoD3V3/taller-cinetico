@@ -43,6 +43,10 @@ function wsConnect(url, hello) {
         saveGet: async id => ask({ op: 'save.get', id }),
         savePut: async (id, name, data, meta) => ask({ op: 'save.put', id, name, data, meta }),
         saveDel: async id => ask({ op: 'save.del', id }),
+        // Personajes de la cuenta
+        chars: async () => (await ask({ op: 'chars' })).list || [],
+        charPut: async (id, data) => ask({ op: 'char.put', id, data }),
+        charDel: async id => ask({ op: 'char.del', id }),
       })); return; }
       if (m.op === 'msg') { const r = rooms.get(m.room); if (!r) return; for (const f of r.h[m.topic] || []) try { f({ ...sender(m), topic: m.topic, data: m.data }); } catch (er) { console.warn(er); } return; }
       if (m.op === 'peers') { const r = rooms.get(m.room); if (!r) return; const old = new Map(r.peers.map(p => [p.peer, p]));
