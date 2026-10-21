@@ -1,0 +1,208 @@
+<meta charset="utf-8">
+<title>Taller Cinético</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/style.css">
+
+<div id="loader" class="on"><div class="ldin"><h2 id="ldTitle">Taller Cinético</h2><div class="ldbar"><i id="ldBar" style="width:8%"></i></div></div></div>
+<canvas id="c"></canvas>
+<div id="goal" class="panel"></div>
+<div id="right">
+  <canvas id="mini" width="176" height="176" title="Clic: mapa completo (M) · rueda: zoom"></canvas>
+  <div id="topbar">
+    <button id="bInv">Inventario <kbd>E</kbd></button>
+    <button id="bBook">Recetario <kbd>B</kbd></button>
+    <button id="bMap">Mapa <kbd>M</kbd></button>
+    <button id="bHelp">Ayuda <kbd>H</kbd></button>
+    <button id="bSave">Guardar</button>
+    <button id="bWorlds">Mundos</button>
+    <button id="bMute">Sonido: sí</button>
+  </div>
+</div>
+<div id="info" class="panel"></div>
+<div id="fps" hidden></div>
+<div id="hotbar"></div>
+<div id="toast"></div>
+<div id="tip" hidden></div>
+<div id="held" hidden></div>
+<div id="vitals" hidden></div>
+<div id="spellBar" hidden></div>
+<div id="bossBar" hidden></div>
+<div id="moodles" hidden></div>
+<div id="hurtFx"></div>
+<div id="sleepFx" hidden><span>Durmiendo…</span></div>
+<div id="death" hidden><div class="dbox"><h1>Has muerto</h1><p id="deathCause"></p><p class="mut small" id="deathStats"></p><button class="pri big" id="bRespawn">Reaparecer</button></div></div>
+<div id="mComp" class="modal" hidden><div class="modal-in compm" id="compBody"></div></div>
+<div id="mTrade" class="modal" hidden><div class="modal-in tradem" id="tradeBody"></div></div>
+<div id="mChar" class="modal" hidden><div class="modal-in charm"><header><h2>Personaje</h2><button data-close>Cerrar <kbd>C</kbd></button></header><div id="charBody"></div></div></div>
+
+<div id="mInv" class="modal" hidden><div class="modal-in inv"><section id="invLeft"></section><section id="invRight"></section></div></div>
+<div id="mBook" class="modal" hidden><div class="modal-in">
+  <header><h2>Recetario</h2><div class="row gap"><input type="search" id="bookQ" placeholder="Buscar objeto…" aria-label="Buscar en el recetario"><button data-close>Cerrar <kbd>Esc</kbd></button></div></header>
+  <p class="mut small"><span id="bookHint"></span> <span id="bookCount"></span></p>
+  <div id="bookBody"></div>
+</div></div>
+<div id="mMap" class="modal" hidden><div class="modal-in mapbox">
+  <header><h2>Mapa</h2><div class="row gap"><span class="mut small" id="mapCoords"></span><button data-close>Cerrar <kbd>M</kbd></button></div></header>
+  <canvas id="bigmap"></canvas>
+  <p class="mut small">Arrastra para moverte · rueda: zoom · clic: poner marcador · clic derecho: quitar marcador</p>
+</div></div>
+<div id="mTitle" class="title" hidden><div class="title-in">
+  <div class="brand"><h1>Taller Cinético</h1><p>Automatización mecánica en un mundo infinito</p></div>
+  <div id="tBody"></div>
+</div></div>
+<div id="mHelp" class="modal" hidden><div class="modal-in help">
+  <header><h2>Taller Cinético</h2><button data-close>Jugar <kbd>Esc</kbd></button></header>
+  <p>Construye una fábrica: genera <b>rotación</b>, conviértela en <b>energía</b>, bombea <b>fluidos</b>, mueve objetos y contrólalo todo con <b>redstone</b>. Entrega materiales al <b>Núcleo</b> para subir de nivel (8 niveles, más de 1.200 objetos y 138 bloques).</p>
+  <div class="cols">
+    <div><div class="cat">Controles</div><ul>
+      <li><kbd>WASD</kbd> moverse (<kbd>Shift</kbd> correr, gasta aguante) · <kbd>Espacio</kbd> saltar (sube un nivel de terraza) · en el agua nadas (la profunda gasta aguante) · rueda: zoom · <kbd>Shift</kbd>+rueda: barra rápida</li>
+      <li><b>Clic derecho mantenido</b> en el terreno: picar, talar o cavar (con lo que lleves en la mano) · <kbd>C</kbd> personaje</li>
+      <li><kbd>1</kbd>–<kbd>9</kbd> elegir ranura · <kbd>Q</kbd> mano (extraer aunque lleves un bloque)</li>
+      <li>Clic: colocar (arrastra para líneas) · clic derecho: quitar · clic rueda: copiar bloque a la mano</li>
+      <li>Con una herramienta, arma o la mano (<kbd>Q</kbd>): clic izquierdo mantenido también pica y caza. La roca y las menas piden un <b>pico</b> de cierto nivel; los árboles grandes, un <b>hacha</b>; la arcilla, la sal y las raíces, una <b>pala</b>.</li>
+      <li>Con tierra, arena, piedra, tablones o ladrillos en la mano: clic izquierdo en un hoyo, roca pelada o agua pone suelo</li>
+      <li><kbd>F</kbd> sin bloque delante: comer, beber, curarte o usar lo que llevas · <kbd>F</kbd> junto al agua: beber (con un frasco, llenarlo)</li>
+      <li><kbd>F</kbd> usar / abrir bloque · <kbd>Alt</kbd>+clic también abre</li>
+      <li><kbd>R</kbd> girar · <kbd>T</kbd> ajustar (filtro, periodo, frecuencia…) · <kbd>G</kbd> modo redstone · <kbd>X</kbd> apagar</li>
+      <li><kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd> copiar/pegar ajustes · <kbd>Shift</kbd> al colocar los aplica</li>
+      <li>Cofres: <kbd>Shift</kbd>+<kbd>F</kbd> guardar todo · <kbd>Alt</kbd>+<kbd>F</kbd> recoger todo</li>
+      <li><kbd>E</kbd> inventario · <kbd>B</kbd> recetario · <kbd>M</kbd> mapa · <kbd>N</kbd> minimapa · <kbd>P</kbd> FPS</li>
+    </ul></div>
+    <div><div class="cat">Inventario y banco</div><ul>
+      <li>Clic coge/suelta la pila · clic derecho: coge la mitad / suelta uno · <kbd>Shift</kbd>+clic: mover rápido</li>
+      <li>Arrastra con una pila para repartirla (clic derecho: 1 por ranura) · doble clic: juntar iguales · <kbd>Ctrl</kbd>+clic: mover todas las de ese tipo</li>
+      <li>Rueda sobre una ranura: mover de 1 en 1 · <kbd>1</kbd>–<kbd>9</kbd> sobre una ranura: intercambiar con la barra</li>
+      <li>Se ordena al recoger objetos nuevos (desactivable), nunca mientras lo tienes abierto · <kbd>O</kbd> ordenar · buscador para resaltar</li>
+      <li><b>Banco de ensamblaje:</b> un <b>núcleo</b> en el centro y hasta 6 <b>dientes</b>. No importa el orden, solo qué pones. Las recetas avanzadas exigen <b>RPM</b> en el banco. La redstone en el catalizador fabrica el doble de rápido.</li>
+      <li>El inventario (<kbd>E</kbd>) trae un banco de bolsillo: núcleo + 3 dientes, sin rotación.</li>
+    </ul></div>
+  </div>
+  <div class="cols">
+    <div><div class="cat">Sistemas</div><ul>
+      <li><b>Rotación:</b> los generadores dan RPM y capacidad (SU); cada máquina consume impacto × RPM. Si te pasas, la red se para.</li>
+      <li><b>Energía:</b> dinamos, paneles y generadores producen FE. Los cables (con su capacidad) la llevan. Las <b>baterías</b> tienen cada cara configurable: entrada, salida, ambas o bloqueada, para que la energía no pase al otro lado.</li>
+      <li><b>Fluidos:</b> bombas, tanques de líquido y de gas, calderas, turbinas, refinería… Las bombas sacan cualquier líquido: agua, lava, ácido, petróleo o miel.</li>
+      <li><b>Biomas:</b> 36 biomas grandes con su flora, fauna y recursos: océanos, selvas, desiertos, tundras, volcanes, campos de cristal… Los raros pueden estar muy lejos. Los ríos llevan el líquido de su bioma.</li>
+      <li><b>Materiales:</b> 34 metales y aleaciones (reales y exóticos) en 16 formas: lingote, polvo, pepita, lámina, papel, varilla, perno, tornillo, anillo, muelle, engranaje, cable, bloque… Mena → <i>triturar</i> → <i>lavar</i> → fundir rinde el doble y da pepitas.</li>
+      <li><b>Cadenas:</b> piezas (rodamientos, pistones, rotores) → motores → circuitos (placa, transistores, procesadores) → máquinas cada vez más avanzadas. Busca cualquier objeto en el recetario (<kbd>B</kbd>).</li>
+      <li><b>Máquinas extrañas:</b> acelerador crónico (duplica la velocidad de sus vecinas), enlace cuántico (teletransporta objetos entre canales), pozo gravitatorio, transmutador, colisionador de partículas…</li>
+      <li><b>Herramientas:</b> pico, hacha, martillo (3×3), hoz (cosecha 3×3), multiherramienta y excavadora (5×5) de muchos materiales, y herramientas mágicas (pico ígneo que funde, taladro rúnico, amuleto de fortuna…). Objetos de uso: farol, botas rápidas, prospector, llave inglesa, brújula, catalejo y escáner de biomas.</li>
+      <li><b>Construcción:</b> bloques de piedra, ladrillo, troncos, cristal, arenisca, hielo, obsidiana, metales y más (recetas en el recetario, sección «Construcción»). Los muros, máquinas, árboles y rocas no se atraviesan; cintas, cables, tuberías, redstone, alfombras, hierba y flores sí.</li>
+      <li><b>Personaje:</b> al crear un mundo eliges aspecto, profesión y rasgos (más de 35, positivos y negativos, que cambian de verdad cómo juegas). La armadura se equipa en el inventario (E) y se ve en tu personaje. Puedes cambiar tu aspecto en la ficha (C).</li>
+      <li><b>Supervivencia:</b> vigila vida, hambre, sed, energía y maná (anillos sobre la barra). Los iconos de la derecha avisan de lo que te pasa. Los depredadores atacan y causan heridas en partes del cuerpo: véndalas, entablilla las fracturas y desinfecta las mordeduras. Duerme en una <b>Cama</b>; la <b>Hoguera</b> y el abrigo protegen del frío. Cada acción da experiencia en su habilidad (<kbd>C</kbd>).</li>
+      <li><b>Pesca:</b> fabrica una caña (palo + juncos), apunta al agua y haz clic. Cuando el corcho se hunda («¡Pica!»), clic; luego mantén pulsado para subir la zona verde y suéltalo para bajarla: si el pez queda dentro, la barra se llena. Cada agua (dulce, mar, cálida, fría, profunda, pantano) y la noche tienen sus peces; el cebo y las cañas mejores traen piezas raras y cofres hundidos.</li>
+      <li><b>Terreno:</b> cerca de las montañas hay terrazas con paredes de roca: bajar es libre, subir un nivel pide saltar (<kbd>Espacio</kbd>). En el agua nadas; en la profunda gastas aguante y, sin aguante, te ahogas. La arena, la nieve y el barro frenan; el hielo resbala; los caminos construidos aceleran.</li>
+      <li><b>Combate:</b> con un arma en la mano, clic izquierdo ataca (espadas en arco, arcos y armas de fuego disparan y gastan munición, báculos gastan maná). <kbd>Espacio</kbd>: saltar · <kbd>Shift</kbd>+<kbd>Espacio</kbd>: impulso (esquiva y no recibes daño). <kbd>Z</kbd> <kbd>V</kbd> <kbd>Y</kbd> <kbd>U</kbd>: hechizos; dos elementos seguidos hacen una combinación. Más de 100 enemigos salen sobre todo de noche (cuántos depende de la opción «Enemigos» y la dificultad del mundo); en la luna de sangre, más. No aparecen cerca de luces, casas, camas ni del Núcleo. Para proteger zonas: espantapájaros, tótem de guarda, inhibidor de aparición (energía), faro sagrado, pergamino de protección, hechizo Santuario y poción de sigilo. 24 jefes con objetos de invocación (F), barra de vida y música propia.</li>
+      <li><b>Mascotas:</b> F sobre un animal con su comida en la mano para domesticarlo. Lobos y osos pelean, caballos, camellos y grifos se montan (F), ovejas y abejas producen. <b>NPC:</b> construye una casa cerrada (paredes, puerta, suelo construido, luz, mesa, silla, cama y un bloque de trabajo) y pulsa F en la puerta. <b>Computadora:</b> F para programarla.</li>
+      <li><b>Fauna:</b> mantén el clic sobre un animal para cazarlo, o pon una <b>Trampa</b> en su camino. En los biomas raros viven criaturas fantásticas: grifos, dracos, unicornios, fénix, gólems…</li>
+      <li><b>Armas (76):</b> espadas, dagas, lanzas, hachas de guerra, mazas, guadañas, arcos, ballestas, báculos y 7 legendarias. Cazan más rápido, desde más lejos y con su elemento: el fuego asa la carne, la escarcha congela, la tormenta alcanza a varias presas…</li>
+      <li><b>Fantasía:</b> mithril, adamantita, arcanita y plata estelar solo salen en biomas raros. Gemas, hierbas mágicas, runas, pociones (se beben con <kbd>F</kbd> sin bloque delante), pergaminos y 3 máquinas arcanas: mesa de alquimia, tallador de runas y altar de encantamiento.</li>
+    </ul></div>
+    <div><div class="cat">Primeros pasos</div><ul>
+      <li>Pon la <b>Rueda hidráulica</b> junto al lago del sur y lleva un <b>Eje</b> hasta tus máquinas.</li>
+      <li>Coloca un <b>Taladro</b> sobre la mena de hierro y una <b>Cinta</b> desde su flecha hasta un <b>Horno</b> con carbón.</li>
+      <li>Lleva los lingotes al <b>Núcleo</b> con cintas o pulsando <kbd>F</kbd> sobre él.</li>
+    </ul></div>
+  </div>
+</div></div>
+
+<script src="js/core/util.js"></script>
+<script src="js/data/items.js"></script>
+<script src="js/data/blocks.js"></script>
+<script src="js/data/recipes.js"></script>
+<script src="js/data/materials.js"></script>
+<script src="js/data/expansion.js"></script>
+<script src="js/data/fantasy.js"></script>
+<script src="js/data/survival-items.js"></script>
+<script src="js/data/minerals-list.js"></script>
+<script src="js/world/biomes.js"></script>
+<script src="js/data/tools-tiers.js"></script>
+<script src="js/data/combat-data.js"></script>
+<script src="js/data/character-data.js"></script>
+<script src="js/data/races.js"></script>
+<script src="js/data/origins.js"></script>
+<script src="js/data/building.js"></script>
+<script src="js/data/minerals.js"></script>
+<script src="js/data/gear.js"></script>
+<script src="js/data/endgame.js"></script>
+<script src="js/data/fauna-extra.js"></script>
+<script src="js/data/fishing.js"></script>
+<script src="js/data/medical.js"></script>
+<script src="js/data/items300.js"></script>
+<script src="js/data/uses2.js"></script>
+<script src="js/data/ills.js"></script>
+<script src="js/data/blockmods.js"></script>
+<script src="js/data/catalog.js"></script>
+<script src="js/world/state.js"></script>
+<script src="js/world/chunks.js"></script>
+<script src="js/world/gen.js"></script>
+<script src="js/world/save.js"></script>
+<script src="js/sim/logic.js"></script>
+<script src="js/sim/kinetic.js"></script>
+<script src="js/sim/networks.js"></script>
+<script src="js/sim/machines.js"></script>
+<script src="js/sim/logistics.js"></script>
+<script src="js/sim/fauna.js"></script>
+<script src="js/sim/survival.js"></script>
+<script src="js/sim/character.js"></script>
+<script src="js/sim/durability.js"></script>
+<script src="js/sim/tick.js"></script>
+<script src="js/render/sprites.js"></script>
+<script src="js/render/hires.js"></script>
+<script src="js/render/avatar.js"></script>
+<script src="js/render/avatarhd.js"></script>
+<script src="js/render/animals.js"></script>
+<script src="js/render/trees.js"></script>
+<script src="js/render/decor.js"></script>
+<script src="js/render/blocks.js"></script>
+<script src="js/render/props.js"></script>
+<script src="js/render/terrain.js"></script>
+<script src="js/render/tiletex.js"></script>
+<script src="js/render/ruins.js"></script>
+<script src="js/render/world.js"></script>
+<script src="js/ui/hud.js"></script>
+<script src="js/ui/inventory.js"></script>
+<script src="js/ui/book.js"></script>
+<script src="js/ui/crafting.js"></script>
+<script src="js/ui/stations.js"></script>
+<script src="js/ui/map.js"></script>
+<script src="js/ui/worlds.js"></script>
+<script src="js/ui/charcreate.js"></script>
+<script src="js/ui/vitals.js"></script>
+<script src="js/sim/combat.js"></script>
+<script src="js/sim/housing.js"></script>
+<script src="js/sim/computer.js"></script>
+<script src="js/ui/combat-ui.js"></script>
+<script src="js/render/foes.js"></script>
+<script src="js/sim/motion.js"></script>
+<script src="js/sim/fishing.js"></script>
+<script src="js/sim/mobai.js"></script>
+<script src="js/sim/breaking.js"></script>
+<script src="js/input.js"></script>
+<script src="js/sim/endgame.js"></script>
+<script src="js/ui/helptabs.js"></script>
+<script src="js/ui/bookplan.js"></script>
+<script src="js/ui/hovercard.js"></script>
+<script src="js/render/fog.js"></script>
+<script src="js/ui/hudmin.js"></script>
+<script src="js/ui/charsheet.js"></script>
+<script src="js/main.js"></script>
+<script src="js/sim/medical.js"></script>
+<script src="js/ui/medgame.js"></script>
+<script src="js/sim/weather.js"></script>
+<script src="js/render/fx.js"></script>
+<script src="js/sim/worldwx.js"></script>
+<script src="js/sim/illness.js"></script>
+<script src="js/ui/blockui.js"></script>
+<script src="js/sim/links.js"></script>
+<script src="js/ui/opts.js"></script>
+<script src="js/ui/chat.js"></script>
+<script src="js/sim/discord.js"></script>
+<script src="js/sim/wsroom.js"></script>
+<script src="js/sim/net.js"></script>
+<script src="js/ui/menu.js"></script>
+<script src="js/ui/loader.js"></script>
+<script src="js/sim/cloud.js"></script>
+<script src="js/ui/medgame2.js"></script>

@@ -1,0 +1,16 @@
+{
+  "name": "taller-cinetico",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Taller Cinético: juego de automatización con servidor de partidas en línea",
+  "main": "servidor.js",
+  "scripts": {
+    "start": "node servidor.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "optionalDependencies": {
+    "pg": "^8.11.3"
+  }
+}
