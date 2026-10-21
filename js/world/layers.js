@@ -113,6 +113,12 @@ function caveTile(L, k, s, P, X, Ys, st, oreT, oreSum) {
   if (g.hole) l -= Math.max(1, depthAt(x, y)); else if (g.hp && S.depth && S.depth[x + ',' + y]) l -= 1;
   return l;
 }; }
+// Casilla bajo un pozo abierto (la tuya o una de al lado): por ahí se puede escalar, también desde el agua
+function shaftNear(tx, ty) {
+  if (!layerOf(ty)) return null;
+  for (const [dx, dy] of [[0, 0], [0, -1], [0, 1], [-1, 0], [1, 0], [-1, -1], [1, -1], [-1, 1], [1, 1]]) { const x = tx + dx, y = ty + dy, c = peekChunk(x >> CSH, (y - LAY_OFF) >> CSH); if (c && GI[c.g[(((y - LAY_OFF) & CMASK) << CSH) | (x & CMASK)]].shaft) return [x, y]; }
+  return null;
+}
 // Profundidad que se muestra (−2 … −21): la de la capa menos lo cavado
 function depthLabel(tx, ty) { const k = layerOf(ty); if (!k) return -Math.min(3, depthAt(tx, ty)); return LAYERS[k].top - Math.min(3, depthAt(tx, ty)); }
 
@@ -301,7 +307,7 @@ function layerHud(force) {
   const p = S.player, tx = Math.floor(p.x / T), ty = Math.floor((p.y + 5) / T), k = layerOf(ty), g = GI[gnd(tx, ty)];
   let h = '';
   const stuck = g.hole && typeof stuckInHole === 'function' && stuckInHole(tx, ty);
-  if (k) { const L = LAYERS[k]; h = `<b>${L.i} Capa ${k}</b><span>${esc(L.n)}</span><span class="lvd">${depthLabel(tx, ty)}</span>${g.key === 'LIGHTSHAFT' && !at(tx, ty) ? '<span class="mut">Espacio: escalar por el pozo · con una escalera, sin riesgo</span>' : stuck ? '<span class="mut">Espacio: escalar para salir del hoyo</span>' : ''}`; }
+  if (k) { const L = LAYERS[k]; h = `<b>${L.i} Capa ${k}</b><span>${esc(L.n)}</span><span class="lvd">${depthLabel(tx, ty)}</span>${shaftNear(tx, ty) && !at(tx, ty) ? `<span class="mut">Espacio: escalar por el pozo${g.liquid ? ' (desde el agua)' : ' · con una escalera, sin riesgo'}</span>` : stuck ? '<span class="mut">Espacio: escalar para salir del hoyo</span>' : ''}`; }
   else if (g.hole && depthAt(tx, ty) >= 2) h = `<b>⛏ Hoyo</b><span class="lvd">${depthLabel(tx, ty)}</span><span class="mut">${g.key === 'PIT' ? 'Pica el fondo: se abrirá un pozo a las Cavernas' : ''}${stuck ? (g.key === 'PIT' ? ' · ' : '') + 'Espacio: escalar para salir' : ''}</span>`;
   if (h === _lhS && !force) return; _lhS = h; _lh.innerHTML = h; _lh.hidden = !h;
 }

@@ -342,10 +342,10 @@ function stuckInHole(tx, ty) {
 }
 function holeExit(tx, ty) { let best = null, bl = 99; for (const [dx, dy] of [[0, 1], [1, 0], [-1, 0], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]]) { const g = GI[gnd(tx + dx, ty + dy)]; if ((g.solid && !g.flora) || (g.liquid && !g.walk) || g.shaft) continue; const l = lvAt(tx + dx, ty + dy); if (l < bl) { bl = l; best = [tx + dx, ty + dy]; } } return best; }
 // Subir por el pozo sin escalera: arriba tiene que estar abierto
-function climbShaft(tx, ty) {
+function climbShaft(tx, ty, wet) {
   const k = layerOf(ty), uy = ty - LAY_OFF; prepArea(tx, uy);
   if (!GI[gnd(tx, uy)].shaft) { toastErr('El pozo de arriba está tapado: no hay por dónde salir'); return; }
-  climbStart({ k, d: k + 1 - (S.equip && S.equip.hands ? 1 : 0), title: k > 1 ? `Escalar a ${LAYERS[k - 1].n}` : 'Escalar a la superficie', onWin: () => {
+  climbStart({ k, d: k + 1 + (wet ? 1 : 0) - (S.equip && S.equip.hands ? 1 : 0), title: (wet ? 'Trepar desde el agua · ' : '') + (k > 1 ? `Escalar a ${LAYERS[k - 1].n}` : 'Escalar a la superficie'), onWin: () => {
     let ax = null, ay = null; for (const [dx, dy] of [[0, 1], [1, 0], [-1, 0], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]]) if (freeTile(tx + dx, uy + dy)) { ax = tx + dx; ay = uy + dy; break; }
     if (ax === null) { ax = tx; ay = uy + 1; setGround(ax, ay, k - 1 ? LAYERS[k - 1].floorI : G.ROCKFLOOR); }
     moveTo(ax, ay); toast(k > 1 ? `🧗 Sales escalando a ${LAYERS[k - 1].n}` : '🧗 Sales escalando a la superficie'); layerArrive(k - 1);
@@ -354,7 +354,8 @@ function climbShaft(tx, ty) {
 { const j0 = tryJump; tryJump = () => {
   if (!S || ui.open || CL) return j0();
   const p = S.player, tx = Math.floor(p.x / T), ty = Math.floor((p.y + 5) / T), g = GI[gnd(tx, ty)], k = layerOf(ty);
-  if (k && g.key === 'LIGHTSHAFT') { if (at(tx, ty)) { toast('Hay una escalera: úsala con clic derecho'); return; } climbShaft(tx, ty); return; }
+  const sh = k && shaftNear(tx, ty);
+  if (sh) { const b = at(sh[0], sh[1]); if (b && b.type === 'ladder') { toast('Hay una escalera: úsala con clic derecho'); return; } climbShaft(sh[0], sh[1], !!g.liquid); return; }
   if (g.hole && stuckInHole(tx, ty)) {
     const ex = holeExit(tx, ty); if (!ex) return j0();
     climbStart({ k, d: Math.max(1, k), title: 'Salir del hoyo', onWin: () => { moveTo(ex[0], ex[1]); toast('🧗 Sales del hoyo'); } });
