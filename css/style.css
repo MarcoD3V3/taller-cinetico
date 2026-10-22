@@ -945,7 +945,7 @@ body.inmenu #chat:not(.open) { display: none; }
 /* =================== Personajes =================== */
 .center { text-align: center; } .tiny { font-size: 10.5px; } .grow { flex: 1; }
 .chns { font-size: 12px; color: var(--muted); white-space: nowrap; }
-.chgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.pfgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .chc { position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 8px 12px; border-radius: 14px; background: #1c1d1fe6; border: 1px solid var(--line); cursor: pointer; text-align: center; animation: mpin .3s ease both; animation-delay: var(--d, 0ms); transition: transform .14s, border-color .14s, box-shadow .14s; color: var(--text); font: inherit; }
 .chc:hover, .chc:focus-visible { transform: translateY(-3px); border-color: #e0b54c99; box-shadow: 0 8px 24px #0006; outline: 0; }
 .chc.act { border-color: var(--brass); background: linear-gradient(180deg, #e0b54c1c, #1c1d1fe6 60%); }
@@ -987,7 +987,7 @@ body.inmenu #chat:not(.open) { display: none; }
 .home { position: relative; z-index: 1; width: min(460px, 100%); margin: 10px auto 0; display: flex; flex-direction: column; gap: 10px; animation: mpin .3s ease; }
 .hchar { display: flex; align-items: center; gap: 12px; padding: 8px 12px 8px 8px; border-radius: 16px; background: #1c1d1fe6; border: 1px solid var(--line); cursor: pointer; transition: border-color .14s, transform .14s; color: var(--text); font: inherit; text-align: left; }
 .hchar:hover { border-color: #e0b54c99; transform: translateY(-1px); } .hchar.new { border-style: dashed; } .hchar.new .chplus { margin: 0 4px 0 10px; }
-.hci { flex: 1; display: flex; flex-direction: column; min-width: 0; } .hci small { color: var(--muted); font-size: 11px; } .hci b { font-family: var(--display); font-size: 18px; }
+.hcinfo { flex: 1; display: flex; flex-direction: column; min-width: 0; } .hcinfo small { color: var(--muted); font-size: 11px; } .hcinfo b { font-family: var(--display); font-size: 18px; }
 .hacts { display: flex; flex-direction: column; gap: 8px; }
 .mm.lock { opacity: .8; } .mm.lock small { color: #e0b54c; }
 .htip { display: flex; align-items: center; gap: 8px; padding: 6px 4px; } .htip p { flex: 1; margin: 0; font-size: 12.5px; color: var(--muted); text-align: center; transition: opacity .15s; min-height: 36px; display: flex; align-items: center; justify-content: center; }
@@ -1005,7 +1005,7 @@ body.inmenu #chat:not(.open) { display: none; }
 .chm { z-index: 60; }
 .mm.pri { color: var(--text) !important; }
 .mm.pri svg { color: var(--brass); }
-@media (min-width: 820px) { .chw .chgrid { grid-template-columns: repeat(5, 1fr); } }
+@media (min-width: 820px) { .chw .pfgrid { grid-template-columns: repeat(5, 1fr); } }
 .chw { width: min(860px, 100%); }
 
 /* =================== Minijuegos al fabricar =================== */

@@ -15,9 +15,9 @@ showMain = function () {
   const mpSub = !NET.kind ? 'Sin servidor' : needLogin() ? '🔒 Inicia sesión para jugar en línea' : games ? `${games} partida${games > 1 ? 's' : ''} abierta${games > 1 ? 's' : ''} ahora` : NET.kind === 'claude' ? 'Salas de claude.ai' : 'Servidor conectado';
   $('tBody').innerHTML = `<canvas id="homeBg"></canvas><div class="home">
     ${c ? `<div class="hchar" data-pf="info:${c.id}" role="button" tabindex="0" title="Ver la ficha de ${esc(c.char.name)}"><canvas class="chav" data-av="${c.id}" width="96" height="104"></canvas>
-      <div class="hci"><small>Juegas como</small><b>${esc(c.char.name)}</b><span class="mut small">${esc(RACE_OF(c).n)} · ${esc(PROF_OF(c).n)} · Nv. ${lvSum(c)} · ${fmtHours(c.playMs)}</span></div>
+      <div class="hcinfo"><small>Juegas como</small><b>${esc(c.char.name)}</b><span class="mut small">${esc(RACE_OF(c).n)} · ${esc(PROF_OF(c).n)} · Nv. ${lvSum(c)} · ${fmtHours(c.playMs)}</span></div>
       <button class="ghost" data-hm="chars">Cambiar</button></div>`
-    : `<button class="hchar new" data-pf="new"><span class="chplus">+</span><div class="hci"><b>Crea tu personaje</b><span class="mut small">Nombre, raza, profesión… y su propio inventario, que viaja contigo a cualquier mundo.</span></div></button>`}
+    : `<button class="hchar new" data-pf="new"><span class="chplus">+</span><div class="hcinfo"><b>Crea tu personaje</b><span class="mut small">Nombre, raza, profesión… y su propio inventario, que viaja contigo a cualquier mundo.</span></div></button>`}
     <div class="hacts">
       ${lw ? `<button class="mm pri" data-hm="cont:${esc(lw.id)}">${svgI('M8 5l11 7-11 7V5z', 20)}<span>Continuar<small>${esc(lw.name)} · ${fmtDate(lw.played)}</small></span></button>` : ''}
       <button class="mm ${lw ? '' : 'pri'}" data-mm="single" ${c ? '' : 'data-need="char"'}>${svgI('M3 12l9-8 9 8 M5 10v10h14V10', 20)}<span>Un jugador<small>${worlds} mundo${worlds !== 1 ? 's' : ''}${WNS ? ' en tu cuenta' : ''}</small></span></button>

@@ -120,7 +120,7 @@ function showChars() {
   const acc = WNS ? (NET.me.name || 'tu cuenta') : null;
   $('tBody').innerHTML = `<div class="mpw wide chw"><header class="mph"><button class="ico" data-pf="back" aria-label="Volver">${svgI('M15 5l-7 7 7 7', 18)}</button><h2>Personajes</h2><span class="chns">${acc ? `☁ ${esc(acc)}` : '💾 Sin cuenta'}</span></header>
     <p class="mut small center">${acc ? 'Los personajes de tu cuenta te siguen a cualquier ordenador.' : 'Guardados en este navegador. Inicia sesión con Discord para tener personajes en tu cuenta.'} Cada uno lleva su propio inventario entre mundos y servidores.</p>
-    <div class="chgrid">${slots.map((c, i) => c ? `<div class="chc ${c.id === PF.active ? 'act' : ''}" data-pf="sel:${c.id}" role="button" tabindex="0" style="--d:${i * 50}ms">
+    <div class="pfgrid">${slots.map((c, i) => c ? `<div class="chc ${c.id === PF.active ? 'act' : ''}" data-pf="sel:${c.id}" role="button" tabindex="0" style="--d:${i * 50}ms">
         <canvas class="chav" data-av="${c.id}" width="120" height="132"></canvas>
         <b>${esc(c.char.name)}</b><span class="mut small">${esc(RACE_OF(c).n)} · ${esc(PROF_OF(c).n)}</span>
         <span class="chbar"><i style="width:${Math.round(100 * clamp(((c.pc && c.pc.hp) ?? 100) / 100, 0, 1))}%"></i></span>
@@ -176,7 +176,7 @@ function openCharInfo(id) {
     <footer class="chmf"><button class="danger" data-pf="del:${c.id}">Borrar…</button><span class="grow"></span><button data-pf="look:${c.id}">Cambiar aspecto</button><button class="pri" data-pf="use:${c.id}">${c.id === PF.active ? '✓ Elegido' : 'Elegir'}</button></footer></div>`;
   mChar.hidden = false; chAnimate();
 }
-function closeCharInfo() { mChar.hidden = true; _chInfo = null; hideTip(); if ($('tBody') && document.querySelector('.chgrid')) showChars(); }
+function closeCharInfo() { mChar.hidden = true; _chInfo = null; hideTip(); if ($('tBody') && document.querySelector('.pfgrid')) showChars(); }
 // Pista de cada objeto de la ficha (sin depender de un mundo abierto)
 function chTip(id, x, y) { const it = ITEMS[id]; if (!it) return; const t = $('tip'); t.innerHTML = `<b>${esc(it.n)}</b><div class="mut small">${esc(ICATS[it.cat] || '')}</div><div>${esc(it.d || '')}</div>${it.weapon ? `<div class="small">⚔ Daño ${it.weapon.dmg}${it.weapon.el ? ' · ' + it.weapon.el : ''}</div>` : ''}${it.armor ? `<div class="small">🛡 Defensa ${it.armor.def}</div>` : ''}${it.food ? `<div class="small">🍖 Alimenta</div>` : ''}`; t.hidden = false; const right = x > innerWidth - 320, below = y < 260; t.style.transform = `translate(${right ? x - 14 : x + 14}px,${below ? y + 18 : y - 10}px) translate(${right ? '-100%' : '0'},${below ? '0' : '-100%'})`; }
 mChar.addEventListener('mousemove', e => { const s = e.target.closest('[data-tip]'); if (s) chTip(s.dataset.tip, e.clientX, e.clientY); else hideTip(); });
@@ -211,7 +211,7 @@ function pfEditLook(c) {
   openCharCreator('look');
 }
 // ---------- Al conectar: espacio de la cuenta (con sesión de Discord) o el de sin cuenta ----------
-function pfRefresh() { if (ui.open === 'title') { if (document.querySelector('.chgrid')) showChars(); else if (document.querySelector('.mmain')) showMain(); } }
+function pfRefresh() { if (ui.open === 'title') { if (document.querySelector('.pfgrid')) showChars(); else if (document.querySelector('.mmain')) showMain(); } }
 { const c0 = netConnectWs; netConnectWs = async url => { await c0(url); const acc = NET.kind === 'ws' && NET.me.verified; if (pfSetNS(acc ? nsOf(NET.me.id) : '', acc ? 'Cuenta: ' + NET.me.name : '') || acc) pfSync(); }; }
 pfLoad(); pfMigrate();
 // La conexión llega cuando llega (al arrancar, al iniciar o cerrar sesión): se vigila y se cambia de espacio
