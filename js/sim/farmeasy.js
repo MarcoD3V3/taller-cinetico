@@ -42,4 +42,6 @@ function seedTutorial() {
 // Las semillas dicen cómo conseguirlas
 for (const k in CROP) { const it = ITEMS[CROP[k].seed]; if (it && !/hierba alta/.test(it.d)) it.d = `Salen de ${CROP[k].n.toLowerCase()} silvestre y, a veces, al romper hierba alta o flores${k === 'wheat' ? ' (las más comunes)' : ' en su bioma'}. ` + it.d; }
 // La lupa y la tarjeta del cultivo avisan del riego automático
-{ const c0 = cropInfo; cropInfo = b => c0(b) + (nearWater(b.x, b.y) ? ' · 💧 agua cerca: se riega sola' : ''); }
+{ const c0 = cropInfo; cropInfo = b => c0(b) + (nearWater(b.x, b.y) ? ' · 💧 agua cerca: se riega sola y crece +25 %' : ''); }
+// Junto al agua (4 casillas, como en Minecraft) los cultivos crecen además un 25 % más rápido
+{ const r0 = cropRate; cropRate = b => r0(b) * (nearWater(b.x, b.y) ? 1.25 : 1); }
