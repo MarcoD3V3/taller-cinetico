@@ -1219,3 +1219,13 @@ body.inmenu #ampBar, body.climbing #ampBar { display: none; }
 .invside .icard { height: auto; flex: 1 1 0; min-height: 0; -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 22px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 22px), transparent); }
 .invside .invtip { flex: none; padding: 5px 8px; font-size: 10.5px; line-height: 1.35; }
 @media (max-width: 900px) { .invside .icard { flex: none; height: 240px; } }
+/* Scroll sin barra: se desplaza con la rueda o el dedo y no ocupa sitio */
+* { scrollbar-width: none; } *::-webkit-scrollbar { width: 0; height: 0; display: none; }
+#invLeft, #invRight { scrollbar-gutter: auto; padding-right: 0; }
+/* Ficha del objeto: se desplaza por dentro; el degradado de abajo solo sale si queda más por ver */
+.invside .icard { overflow-y: auto; overscroll-behavior: contain; -webkit-mask-image: none; mask-image: none; }
+.invside .icard.more { -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 26px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 26px), transparent); }
+@media (max-width: 900px) { .invside .icard { height: auto; max-height: 340px; min-height: 200px; } }
+
+.invside .icard .icd { display: block; -webkit-line-clamp: unset; overflow: visible; }
+.invside .icard .icw, .invside .icard .icu li { white-space: normal; overflow: visible; }
