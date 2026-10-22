@@ -7,7 +7,7 @@
 // =====================================================================================
 const LD_TIPS = [
   'Pulsa Esc en cualquier momento para abrir el menú; en multijugador el mundo sigue en marcha.',
-  'Mantén el clic derecho para picar: solo se pica la capa en la que empezaste.',
+  'Mantén el clic izquierdo para picar o romper: solo se pica la capa en la que empezaste. Clic derecho: colocar o usar.',
   'Pon una cinta delante de una máquina y llevará lo que fabrica a donde quieras.',
   'Dos máquinas iguales juntas trabajan un 4 % más rápido. Mira la pestaña Conexiones de su ficha.',
   'Un cofre con carbón al lado del horno lo alimenta solo.',

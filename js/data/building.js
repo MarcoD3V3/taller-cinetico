@@ -33,7 +33,7 @@ const BUILD = [
   ['woodPlatform', 'Plataforma de madera', '#a07848', 'plank', 'planks', 'stick', 2, { walk: 1 }],
 ];
 for (const [id, n, c, tex, core, teeth, out, x] of BUILD) {
-  XB(id, { n, cat: BUILD_CAT, look: { c, tex, g: '', a: '' }, d: (x && x.walk ? 'Decoración: se puede pisar.' : 'Bloque de construcción: no se puede atravesar.') + ' Clic derecho para quitarlo (lo recuperas).', ...(x || {}) });
+  XB(id, { n, cat: BUILD_CAT, look: { c, tex, g: '', a: '' }, d: (x && x.walk ? 'Decoración: se puede pisar.' : 'Bloque de construcción: no se puede atravesar.') + ' Clic izquierdo para quitarlo (lo recuperas).', ...(x || {}) });
   if (!R2(id, out, core, teeth)) RX(id, core, teeth.split(','), 0, 0);
 }
 // Las paredes y muebles anteriores también tienen textura

@@ -46,11 +46,11 @@ cv.addEventListener('mousedown', e => {
 const hbPopEl = document.createElement('div'); hbPopEl.id = 'hbPop'; document.body.appendChild(hbPopEl);
 function hbWhat(id) {
   const it = ITEMS[id]; if (!it) return '';
-  if (BD[id] && BD[id].cat >= 0) return 'Clic: colocar · R: girar';
-  if (it.weapon) return 'Clic: atacar';
-  if (TOOLS[id] && TOOLS[id].kind !== 'util') return 'Mantén el clic: ' + ({ pick: 'picar', axe: 'talar', shovel: 'cavar', hammer: 'romper', sickle: 'segar', paxel: 'picar y talar', excav: 'cavar en área' }[TOOLS[id].kind] || 'usar');
-  if (it.seed) return 'Clic en tierra arada: sembrar';
-  if (typeof FTOOLS !== 'undefined' && FTOOLS[id]) return 'Clic: usar en el huerto';
+  if (BD[id] && BD[id].cat >= 0) return 'Clic derecho: colocar · R: girar';
+  if (it.weapon) return 'Clic izquierdo: atacar';
+  if (TOOLS[id] && TOOLS[id].kind !== 'util') return 'Mantén el clic izquierdo: ' + ({ pick: 'picar', axe: 'talar', shovel: 'cavar', hammer: 'romper', sickle: 'segar', paxel: 'picar y talar', excav: 'cavar en área' }[TOOLS[id].kind] || 'usar');
+  if (it.seed) return 'Clic derecho en tierra arada: sembrar';
+  if (typeof FTOOLS !== 'undefined' && FTOOLS[id]) return 'Clic derecho: usar en el huerto';
   if (it.food || it.med || (it.use && it.use.buff)) return 'F: tomar';
   if (FUEL[id]) return 'Combustible · F en una hoguera';
   return ICATS[it.cat] || '';

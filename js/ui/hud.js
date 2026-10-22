@@ -47,7 +47,7 @@ function refreshHotbar() {
 function itemTip(id) {
   const it = ITEMS[id]; if (!it) return '';
   let h = `<b>${esc(it.n)}</b><div class="mut small">${ICATS[it.cat]}</div><div>${esc(it.d || '')}</div>`;
-  if (BD[id]) { const st = blockStats(id); if (st.length) h += `<ul>${st.map(s => `<li>${esc(s)}</li>`).join('')}</ul>`; const t = BD[id].tier || 0; if (t > S.tier) h += `<div class="bad">Se desbloquea en el nivel ${t + 1}</div>`; h += `<div class="mut small">Clic izquierdo en el mapa para colocar</div>`; }
+  if (BD[id]) { const st = blockStats(id); if (st.length) h += `<ul>${st.map(s => `<li>${esc(s)}</li>`).join('')}</ul>`; const t = BD[id].tier || 0; if (t > S.tier) h += `<div class="bad">Se desbloquea en el nivel ${t + 1}</div>`; h += `<div class="mut small">Clic derecho en el mapa para colocar</div>`; }
   const r = RECIPE_FOR[id];
   if (r) h += `<div class="mut small">Banco: núcleo ${esc(ITEMS[r.core].n)}${r.teeth.length ? ' + ' + r.teeth.length + ' dientes' : ''}${r.rpm ? ' · ≥' + r.rpm + ' RPM' : ''}</div>`;
   for (const k in RECIPES) for (const rc of RECIPES[k]) if (rc.out && rc.out[id]) { h += `<div class="mut small">Se obtiene en: ${MACHINE_NAME[k]}</div>`; break; }

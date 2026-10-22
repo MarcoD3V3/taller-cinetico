@@ -203,7 +203,7 @@ function itemFacts(id) {
   if (it.use && it.use.buff) { fact(Math.round(it.use.t / 60 * 10) / 10 + ' min', BUFF_N[it.use.buff] || 'efecto'); how.push('Pulsa F para usarlo.'); }
   if (it.learn) { const sp = SPELLS[it.learn]; fact(sp.m, 'maná'); fact(sp.cd + ' s', 'recarga'); fact(sp.el, 'elemento'); how.push('Léelo con F y asígnalo a Z, V, Y o U en la ficha (C).'); }
   if (it.summon) { const B = BOSSES[it.summon]; fact(B.hp, 'vida del jefe'); how.push('Úsalo con F (o en un altar) para invocar a ' + B.n + '.'); }
-  if (BD[id]) { const d = BD[id]; if (d.pw) fact(d.pw.rate + ' FE/s', d.pw.role === 'gen' ? 'genera' : 'consume'); if (d.impact) fact(d.impact + '×RPM', 'carga'); if (d.light) fact(d.light, 'luz'); if (d.machine) fact((RECIPES[d.machine] || []).length, 'recetas'); how.push(d.walk ? 'Colócalo con clic; se puede pisar.' : 'Colócalo con clic; no se atraviesa. Clic derecho para quitarlo.'); }
+  if (BD[id]) { const d = BD[id]; if (d.pw) fact(d.pw.rate + ' FE/s', d.pw.role === 'gen' ? 'genera' : 'consume'); if (d.impact) fact(d.impact + '×RPM', 'carga'); if (d.light) fact(d.light, 'luz'); if (d.machine) fact((RECIPES[d.machine] || []).length, 'recetas'); how.push(d.walk ? 'Colócalo con clic; se puede pisar.' : 'Colócalo con clic; no se atraviesa. Clic izquierdo para quitarlo.'); }
   if (!how.length && !f.length) return '';
   return `${f.length ? `<div class="facts">${f.join('')}</div>` : ''}${how.length ? `<p class="small how">💡 ${how.map(esc).join(' ')}</p>` : ''}`;
 }
