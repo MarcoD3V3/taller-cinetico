@@ -334,6 +334,8 @@ function clFallHurt(C) {
 }
 
 // ---------- Cuándo se escala ----------
+// Pozo hacia la capa de abajo en tu casilla o en una de al lado
+function downShaftNear(tx, ty) { for (const [dx, dy] of [[0, 0], [0, 1], [0, -1], [-1, 0], [1, 0], [-1, -1], [1, -1], [-1, 1], [1, 1]]) if (isShaft(tx + dx, ty + dy)) return [tx + dx, ty + dy]; return null; }
 // En un hoyo del que no se sale saltando (todas las casillas de alrededor están más de 2 niveles por encima)
 function stuckInHole(tx, ty) {
   const lp = lvAt(tx, ty); let any = false;
@@ -356,6 +358,9 @@ function climbShaft(tx, ty, wet) {
   const p = S.player, tx = Math.floor(p.x / T), ty = Math.floor((p.y + 5) / T), g = GI[gnd(tx, ty)], k = layerOf(ty);
   // Espacio sin moverte: escalar · Espacio mientras te mueves: saltar (por ejemplo, dentro de un pozo)
   if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].some(kk => keys.has(kk))) return j0();
+  // Un pozo hacia abajo al lado (o bajo tus pies) manda: Espacio te lanza dentro, aunque estés bajo el hueco de subida
+  const dn = downShaftNear(tx, ty);
+  if (dn) { j0(); const [sx, sy] = dn, p0 = S.player; P.mvx = ((sx + 0.5) * T - p0.x) * 4; P.mvy = ((sy + 0.5) * T - p0.y) * 4; setTimeout(() => { if (S && !ui.open && isShaft(sx, sy) && layerOf(Math.floor(S.player.y / T)) === layerOf(sy)) { moveTo(sx, sy); goDown(sx, sy, false); } }, 320); return; }
   const sh = k && shaftNear(tx, ty);
   if (sh) { const b = at(sh[0], sh[1]); if (b && b.type === 'ladder') { toast('Hay una escalera: úsala con clic derecho'); return; } climbShaft(sh[0], sh[1], !!g.liquid); return; }
   if (g.hole && stuckInHole(tx, ty)) {
