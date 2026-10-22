@@ -1255,3 +1255,15 @@ body.inmenu #ampBar, body.climbing #ampBar { display: none; }
 #mInv .s.icsel { box-shadow: inset 0 0 0 2px #6ab8ff, 0 0 10px #6ab8ff55; }
 .icempty { display: flex; flex-direction: column; gap: 6px; padding: 6px 2px; color: #d8d2c4; font-size: 12.5px; line-height: 1.45; } .icempty b { font-family: var(--display); color: var(--brass); } .icempty p { margin: 0; }
 .icic { cursor: pointer; }
+
+/* Ayuda de los estados: qué es, qué hacer y otras formas */
+#tip.tiphelp { max-width: 340px; padding: 10px 12px; border-color: #ffffff22; box-shadow: 0 10px 30px #000a; }
+#tip .mht { display: block; font: 700 14px var(--display); color: var(--brass); margin-bottom: 4px; }
+#tip .mhw { margin: 0 0 6px; color: #d8d2c4; font-size: 12px; line-height: 1.4; }
+#tip .mhs { margin: 6px 0 2px; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+#tip .mhl { margin: 0; padding-left: 16px; font-size: 12px; line-height: 1.45; } #tip .mhl li { margin: 2px 0; } #tip .mhl.alt { color: #c8c2b6; }
+.mhchk { list-style: none; margin: 4px 0; padding: 0; font-size: 11.5px; } .mhchk li { margin: 1px 0; } .mhchk .ok { color: var(--good); } .mhchk .no { color: #ff8a7a; font-weight: 600; }
+.mhhave { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 2px; } .mhhave span { display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 6px; background: #ffffff0c; font-size: 11px; } .mhhave .ic, .mhhave img { width: 16px; height: 16px; }
+.chlife { margin: 6px 0 10px; padding: 8px 10px; border-radius: 10px; background: #ffffff06; border: 1px solid #ffffff12; display: flex; flex-direction: column; gap: 4px; } .chlife > div { display: flex; flex-direction: column; } .chlife b { font-family: var(--display); }
+.chlife.warn { border-color: #f0c75e55; } .chlife.bad { border-color: #ff6b5b77; background: #ff6b5b0c; } .chlife.bad b { color: #ff8a7a; }
+.csmoo .csch, #moodles .moo { cursor: help; }
