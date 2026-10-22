@@ -454,7 +454,7 @@ function combatTick(dt) {
   }
   for (let i = FX.length - 1; i >= 0; i--) { FX[i].t -= dt; if (FX[i].txt) FX[i].y -= 22 * dt; if (FX[i].t <= 0) FX.splice(i, 1); }
   // Torretas y sensores
-  if (L.turret) for (const b of L.turret) { if (!runnable(b) || (b.E || 0) < 15) continue; b.tcd = (b.tcd || 0) - dt; if (b.tcd > 0) continue; const cx = b.x * T + 16, cy = b.y * T + 16, f = nearestFoe(cx, cy, (9 + (typeof trFx === 'function' ? trFx(b, 'range', 0) : 0)) * T); if (!f) continue; b.tcd = 0.6; b.E -= 15; b.aim = Math.atan2(f.y - cy, f.x - cx); PROJ.push({ x: cx, y: cy, vx: Math.cos(b.aim) * 26 * T, vy: Math.sin(b.aim) * 26 * T, r: 4, dmg: 12 * (typeof trFx === 'function' ? trFx(b, 'dmg', 1) : 1), c: '#5af0ff', team: 'p', life: 1, hit: new Set() }); }
+  if (L.turret) for (const b of L.turret) { if (!runnable(b) || (b.E || 0) < 15) continue; b.tcd = (b.tcd || 0) - dt; if (b.tcd > 0) continue; const cx = b.x * T + 16, cy = b.y * T + 16, f = nearestFoe(cx, cy, (9 + (typeof trFx === 'function' ? trFx(b, 'range', 0) : 0)) * T); if (!f) continue; b.tcd = 0.6; b.E -= 15; (b.st || (b.st = { made: 0, run: 0 })).made++; b.aim = Math.atan2(f.y - cy, f.x - cx); PROJ.push({ x: cx, y: cy, vx: Math.cos(b.aim) * 26 * T, vy: Math.sin(b.aim) * 26 * T, r: 4, dmg: 12 * (typeof trFx === 'function' ? trFx(b, 'dmg', 1) : 1), c: '#5af0ff', team: 'p', life: 1, hit: new Set() }); }
   refreshBossBar();
 }
 var shake = 0;

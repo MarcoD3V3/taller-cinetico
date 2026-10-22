@@ -26,6 +26,8 @@ const FAM = {
   light: { n: 'Luz', i: '💡', c: '#ffe08a', learn: 'Da luz: de noche ves y los enemigos no aparecen cerca. En los túneles de la montaña, descubre la roca.' },
   home: { n: 'Hogar', i: '🏠', c: '#d8a0c0', learn: 'Mueble o adorno. En una casa de NPC cuenta como decoración y abarata sus precios. Algunos dan calor.' },
   build: { n: 'Construcción', i: '🧱', c: '#a8a8a4', learn: 'Bloque de construcción: paredes, suelos, columnas y adornos de obra. Los sólidos no se atraviesan.' },
+  fire: { n: 'Fuego', i: '🔥', c: '#ff8a3a', learn: 'Da calor y luz. A 3 casillas o menos notas unos 20 °C más: no pasas frío y te secas antes. Algunas sirven para cocinar.' },
+  farm: { n: 'Cultivo', i: '🌱', c: '#8ad05a', learn: 'Ayuda a la granja: riega la tierra de cultivo, hace crecer más rápido lo plantado alrededor o convierte restos en abono.' },
   core: { n: 'Núcleo', i: '✦', c: '#fff4cc', learn: 'El corazón de tu fábrica: entrégale lo que pide cada nivel para desbloquear tecnología.' },
   misc: { n: 'Especial', i: '✧', c: '#c8c0b0', learn: 'Bloque con una función propia: mira su descripción.' },
 };
@@ -33,8 +35,15 @@ const _famC = {};
 function famOf(t) {
   if (t in _famC) return _famC[t]; const d = BD[t] || {}, cat = d.cat, nm = t + ' ' + (d.n || ''); let f = 'misc';
   if (t === 'core') f = 'core';
-  else if (d.machine || t === 'bench' || t === 'assembler') f = 'proc';
-  else if (/turret|spike|ward|suppress|beacon|scarecrow|trap/i.test(t)) f = 'defense';
+  else if (d.machine || t === 'bench' || t === 'assembler' || t === 'drill') f = 'proc';
+  else if (/^(turret|spikeTrap|wardTotem|spawnSuppressor|holyBeacon|scarecrow|trap)$/.test(t)) f = 'defense';
+  else if (d.heat || /^(campfire|fireplace|woodStove|brazier)$/.test(t)) f = 'fire';
+  else if (d.farmWater || d.farmGrow || /^(compostBin|beehive)$/.test(t)) f = 'farm';
+  else if (/^(ladder|altar)$/.test(t)) f = 'misc';
+  else if (/^(bed|wardrobe)$/.test(t)) f = 'home';
+  else if (/Wall$|^wall/.test(t)) f = 'build';
+  else if (/belt|^arm$|ejector/i.test(t)) f = 'logistic';
+  else if (d.kin && d.fl) f = 'fluid';
   else if (d.pw && d.pw.role === 'gen' || d.gen || cat === 1) f = 'gen';
   else if (d.slots) f = 'storage';
   else if (cat === 0 || d.kin) f = 'kin';
@@ -62,11 +71,11 @@ const BTRAITS = {
   surge: { n: 'Impulsos', d: 'A veces da un pico de +50 % unos segundos', fam: ['gen'], fx: { surge: 1 } },
   quiet: { n: 'Silenciosa', d: 'Sin vibraciones: se desgasta un 30 % menos', fam: ['proc', 'gen', 'kin'], fx: { wear: 0.7 } },
   oiled: { n: 'Bien engrasada', d: 'Gira con menos rozamiento (menos desgaste y +5 %)', fam: ['kin', 'logistic'], fx: { wear: 0.6, spd: 1.05 } },
-  bright: { n: 'Intensa', d: 'Alumbra una casilla más', fam: ['light'], fx: { light: 1 } },
+  bright: { n: 'Intensa', d: 'Alumbra una casilla más', fam: ['light', 'fire'], fx: { light: 1 } },
   cozy: { n: 'Acogedora', d: 'Cuenta doble como decoración', fam: ['home'], fx: { decor: 2 } },
   warm: { n: 'Cálida', d: 'Da un poco de calor cerca', fam: ['home', 'light', 'build'], fx: { warmB: 1 } },
-  solid: { n: 'Maciza', d: 'Cuesta el doble romperla', fam: ['build', 'home', 'storage', 'defense', 'logic'], fx: { hard: 2 } },
-  light2: { n: 'Ligera', d: 'Se quita en la mitad de tiempo', fam: ['build', 'home', 'logistic', 'logic', 'energy', 'fluid', 'storage'], fx: { hard: 0.5 } },
+  solid: { n: 'Maciza', d: 'Cuesta el doble romperla', fam: ['build', 'home', 'storage', 'defense', 'logic', 'fire', 'farm'], fx: { hard: 2 } },
+  light2: { n: 'Ligera', d: 'Se quita en la mitad de tiempo', fam: ['build', 'home', 'logistic', 'logic', 'energy', 'fluid', 'storage', 'farm'], fx: { hard: 0.5 } },
   sorted: { n: 'Ordenada', d: 'Se ordena sola al abrirla', fam: ['storage'], fx: { autosort: 1 } },
   sharp: { n: 'Afilada', d: '+25 % de daño', fam: ['defense'], fx: { dmg: 1.25 } },
   keen: { n: 'Vigilante', d: '+2 casillas de alcance', fam: ['defense'], fx: { range: 2 } },
@@ -98,9 +107,14 @@ function famStats(b, f, P, d, st) {
   switch (f) {
     case 'proc': return [['Velocidad', pc(P.spd)], ['Eficiencia', pc(P.eff)], ['Desgaste', pc(P.wear)], ['Calor', pc(P.heat)], N, ['Piezas hechas', fmt(Math.round(st.made || 0))]];
     case 'gen': return [['Potencia', pc(P.spd)], ['Rendimiento', pc(P.eff)], ['Desgaste', pc(P.wear)], ['Calor', pc(P.heat)], N, ['En marcha', run]];
-    case 'kin': case 'energy': return [['Transmisión', pc(P.spd)], ['Pérdidas', Math.max(0, Math.round((1.1 - P.eff) * 100)) + ' %'], ['Desgaste', pc(P.wear)], ['Fricción', pc(P.heat)], N, ['Carga ahora', Math.round(b.E || 0) + ' E']];
+    case 'kin': return [['Transmisión', pc(P.spd)], ['Pérdidas', Math.max(0, Math.round((1.1 - P.eff) * 100)) + ' %'], ['Desgaste', pc(P.wear)], ['Fricción', pc(P.heat)], N, ['Girando ahora', Math.round(b.rpm || 0) + ' RPM']];
+    case 'energy': return [['Transmisión', pc(P.spd)], ['Pérdidas', Math.max(0, Math.round((1.1 - P.eff) * 100)) + ' %'], ['Desgaste', pc(P.wear)], ['Fricción', pc(P.heat)], N, d.pw ? ['Carga ahora', fmt(Math.round(b.E || 0)) + ' / ' + fmt(d.pw.cap) + ' FE'] : ['Flujo', b.net ? fmt(Math.round(b.net.flow || 0)) + ' FE/s' : 'Sin red']];
+    case 'fire': { const lit = litOf(b); return [['Estado', lit ? 'Encendida' : 'Apagada'], ['Calor cerca', lit ? '+20 °C' : '—'], ['Alcance del calor', '3 casillas'], ['Luz', lightOf(b) + ' casillas'], N, ['Combustible', b.fuel > 0 ? (b.fuel.toFixed ? b.fuel.toFixed(0) : b.fuel) + ' s' : 'No necesita']]; }
+    case 'farm': { const r = d.farmWater || d.farmGrow || 1, held = b.inv ? Object.values(b.inv).reduce((s, v) => s + (v > 0 ? v : 0), 0) : 0;
+      return [['Función', d.farmWater ? 'Riego' : d.farmGrow ? 'Crece +50 %' : b.type === 'compostBin' ? '4 restos → 1 compost' : 'Produce miel'], ['Alcance', (d.farmWater || d.farmGrow) ? r + ' casillas' : 'Su casilla'], ['Robustez', pc(Math.max(0.4, 2 - P.wear))], ['Luz', d.light ? lightOf(b) + ' casillas' : 'No da'], N, ['Contiene', held ? fmt(held) : (b.cmp ? b.cmp + ' restos' : 'Nada')]]; }
     case 'logistic': case 'fluid': return [['Caudal', pc(P.spd)], ['Precisión', pc(P.eff)], ['Desgaste', pc(P.wear)], ['Atascos', P.wear > 1 ? 'Frecuentes' : 'Raros'], N, ['Activa', run]];
-    case 'defense': return [['Cadencia', pc(P.spd)], ['Puntería', pc(P.eff)], ['Desgaste', pc(P.wear)], ['Alcance', '+' + trFx(b, 'range', 0)], N, ['Disparos', fmt(Math.round(st.made || 0))]];
+    case 'defense': { const w = typeof WARD_DEF !== 'undefined' && WARD_DEF[b.type], last = b.type === 'turret' ? ['Disparos', fmt(Math.round(st.made || 0))] : w ? ['Protege', (w.r + trFx(b, 'range', 0)) + ' casillas'] : b.type === 'spikeTrap' ? ['Daño', '12 por segundo'] : ['Capturas', fmt(Math.round(st.made || 0))];
+      return [['Cadencia', pc(P.spd)], ['Puntería', pc(P.eff)], ['Desgaste', pc(P.wear)], ['Alcance', b.type === 'turret' ? (9 + trFx(b, 'range', 0)) + ' casillas' : w ? w.r + ' casillas' : 'Su casilla'], N, last]; }
     case 'logic': return [['Respuesta', Math.round(100 / P.spd) + ' ms'], ['Sensibilidad', pc(P.eff)], ['Fiabilidad', pc(Math.max(0.5, 2 - P.wear))], ['Estado', b.lit || b.on ? 'Encendido' : 'Apagado'], N, ['Ruido', P.heat > 1 ? 'Clic fuerte' : 'Silencioso']];
     case 'light': return [['Brillo', pc(P.eff)], ['Alcance', lightOf(b) + ' casillas'], ['Duración', pc(Math.max(0.4, 2 - P.wear))], ['Calor', pc(P.heat)], N, ['Color', P.heat > 1 ? 'Cálido' : 'Frío']];
     case 'storage': return [['Acceso', pc(P.spd)], ['Orden', pc(P.eff)], ['Robustez', pc(Math.max(0.4, 2 - P.wear))], ['Ocupación', b.slots ? Math.round(b.slots.filter(Boolean).length / b.slots.length * 100) + ' %' : '—'], N, ['Aislamiento', pc(1.4 - P.heat * 0.3)]];
@@ -113,8 +127,11 @@ const trFx = (b, k, def) => { const p = profileOf(b.type), tr = p.trait && BTRAI
 const MODES = { proc: [['eco', 'Eco', 'Más lenta (×0,7), se desgasta la mitad y a veces ahorra material'], ['norm', 'Normal', 'Equilibrada'], ['turbo', 'Turbo', 'Más rápida (×1,6) pero se calienta y se desgasta mucho']], gen: [['eco', 'Ahorro', 'Da menos (×0,7) y apenas se gasta'], ['norm', 'Normal', 'Equilibrado'], ['turbo', 'Máximo', 'Da más (×1,3) pero se calienta y se gasta']] };
 const MODE_FX = { eco: { spd: 0.7, wear: 0.5, save: 0.1, heat: 0.4, gen: 0.7 }, norm: { spd: 1, wear: 1, save: 0, heat: 1, gen: 1 }, turbo: { spd: 1.6, wear: 2.5, save: 0, heat: 2.4, gen: 1.3 } };
 const modeOf = b => MODE_FX[b.mode || 'norm'];
+// ¿Se calienta al trabajar? (las demás no enseñan una barra de calor que siempre marca 0)
+const heatsUp = b => { const f = famOf(b.type), d = BD[b.type]; return f === 'proc' || (f === 'gen' && (b.E !== undefined || d.fuel)) || f === 'defense' && b.type === 'turret'; };
 const hasCond = f => ['proc', 'gen', 'kin', 'logistic', 'energy', 'fluid', 'defense'].includes(f);
-function condMul(b) { const c = b.cond ?? 100; return c <= 0 ? 0 : c < 50 ? 0.5 + c / 100 : 1; }
+function condMul(b) { const c = b.cond ?? 100, dirt = Math.max(0, (b.dirt || 0) - 50) / 250; return (c <= 0 ? 0 : c < 50 ? 0.5 + c / 100 : 1) * (1 - dirt); }
+const dirtUp = (b, v) => { b.dirt = Math.min(100, (b.dirt || 0) + v); };
 function blogEv(b, t) { const L2 = b.log2 || (b.log2 = []); L2.unshift([Math.floor(S.time), t]); if (L2.length > 8) L2.pop(); }
 // ---------- Procesado: velocidad, ahorro, extra, desgaste, calor, lote, receta fija ----------
 { const p0 = procTick; procTick = (b, dt) => {
@@ -126,7 +143,7 @@ function blogEv(b, t) { const L2 = b.log2 || (b.log2 = []); L2.unshift([Math.flo
   const cur0 = b.cur, prog0 = b.prog, r0 = cur0 >= 0 ? RECIPES[BD[b.type].machine][cur0] : null, inv0 = r0 ? { ...b.inv } : null;
   p0(b, dt * mul);
   if (b.lockR >= 0 && b.cur >= 0 && b.cur !== b.lockR) { b.cur = -1; b.prog = 0; }
-  if (b.cur >= 0 || (cur0 >= 0 && b.prog > 0)) { st.run += dt; b.heat = Math.min(130, (b.heat || 0) + dt * 2.2 * m.heat * P2.heat * trFx(b, 'heat', 1)); }
+  if (b.cur >= 0 || (cur0 >= 0 && b.prog > 0)) { st.run += dt; dirtUp(b, dt * 0.02 * P2.wear * m.wear); b.heat = Math.min(130, (b.heat || 0) + dt * 2.2 * m.heat * P2.heat * trFx(b, 'heat', 1)); }
   b.heat = Math.max(0, (b.heat || 0) - dt * 3);
   if (b.heat >= 100) { b.over = 10; blogEv(b, '🔥 Sobrecalentada: parada 10 s'); if (ui.panel === b) toastErr(BD[b.type].n + ': ¡sobrecalentada!'); }
   // ¿Ha terminado una pieza?
@@ -151,13 +168,16 @@ function autoDump(b) { for (let d = 0; d < 4; d++) { const n = at(b.x + DX[d], b
     if ((b.cond ?? 100) <= 0) { b.E = E0[i]; return; }
     let k = m.gen * P2.eff * trFx(b, 'gen', 1) * condMul(b); if (trFx(b, 'surge', 0) && (b.surgeT || 0) > S.time) k *= 1.5; else if (trFx(b, 'surge', 0) && Math.random() < dt / 60) b.surgeT = S.time + 6;
     const cap = BD[b.type].pw ? BD[b.type].pw.cap : Infinity; b.E = Math.min(cap, E0[i] + dE * k);
-    const st = b.st || (b.st = { made: 0, run: 0 }); st.run += dt; st.made += dE * k;
+    const st = b.st || (b.st = { made: 0, run: 0 }); st.run += dt; st.made += dE * k; dirtUp(b, dt * 0.012 * P2.wear * m.wear);
     b.cond = Math.max(0, (b.cond ?? 100) - dt * 0.008 * P2.wear * m.wear * trFx(b, 'wear', 1));
     b.heat = Math.max(0, Math.min(130, (b.heat || 0) + dt * (m.heat - 0.8) * P2.heat * trFx(b, 'heat', 1)));
     if (trFx(b, 'heal', 0)) b.cond = Math.min(100, b.cond + dt * 0.05); }); }; }
 // Ejes, cintas y demás: se desgastan girando; mantenerlos al día también cuenta
 { let _kw = 0; const k0 = machinesTick; machinesTick = dt => { k0(dt); _kw += dt; if (_kw < 1) return; const st = _kw; _kw = 0;
-  for (const b of blocks) { const f = famOf(b.type); if ((f === 'kin' && b.rpm > 0) || (f === 'logistic' && (b.items && b.items.length))) { const P2 = profileOf(b.type); b.cond = Math.max(0, (b.cond ?? 100) - st * 0.004 * P2.wear * trFx(b, 'wear', 1)); (b.st || (b.st = { run: 0 })).run += st; } } }; }
+  for (const b of blocks) { const f = famOf(b.type), d = BD[b.type];
+    const act = (f === 'kin' && b.rpm > 0) || (f === 'logistic' && ((b.items && b.items.length) || b.rpm > 0 || b.hold || b.buf)) || (f === 'gen' && d.gen && b.genOn) || (f === 'fluid' && (b.rpm > 0 || (b.net && b.net.flow > 0)));
+    if (!act) continue; const P2 = profileOf(b.type); b.cond = Math.max(0, (b.cond ?? 100) - st * 0.004 * P2.wear * trFx(b, 'wear', 1)); dirtUp(b, st * 0.008 * P2.wear); (b.st || (b.st = { run: 0 })).run += st;
+    if (f === 'gen' && d.gen) b.heat = Math.max(0, Math.min(100, (b.heat || 0) + st * ((d.fuel ? 0.6 : 0.15) * P2.heat - 0.3))); } }; }
 // Romper: macizas y ligeras
 { const t0 = breakTime; breakTime = b => t0(b) * trFx(b, 'hard', 1); }
 // Luces: intensidad (y rasgo Intensa)
@@ -211,6 +231,9 @@ const BT_PANE = {
     if (MODES[P2.fam]) tips.push('Turbo/Máximo rinde más pero se calienta: si llega a 100 °, se para un rato. Un disipador ayuda.');
     if (P2.fam === 'home') tips.push('Pon varios adornos en una casa con NPC: cada uno abarata sus precios.');
     if (P2.fam === 'light') tips.push('Antorchas y lámparas descubren la roca oscura de la montaña.');
+    if (P2.fam === 'fire') tips.push('Quédate cerca cuando hace frío o vas mojado: a 3 casillas notas su calor.');
+    if (P2.fam === 'farm') tips.push('Ponlo entre la tierra de cultivo: su efecto llega a las casillas de alrededor.');
+    if (hasCond(P2.fam)) tips.push('La suciedad sube con el uso: por encima del 50 % va más lenta. Limpiar es gratis.');
     return h + (tips.length ? `<div class="cssub">Consejos</div><ul class="bttips">${tips.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : '');
   },
   notes(b) {
@@ -229,10 +252,11 @@ function btLive() {
     if (d.machine) rows.push(statRow('Progreso', prog, 1, '#e0b54c', pct(prog)));
     if (d.pw) rows.push(statRow('Energía', b.E || 0, d.pw.cap, '#7cc4ff', fmt(Math.round(b.E || 0)) + ' FE'));
     if (d.kin) rows.push(statRow('Rotación', b.rpm || 0, 256, '#c8a070', (b.rpm || 0) + ' RPM'));
-    if (hasCond(P2.fam)) { rows.push(statRow('Estado', b.cond ?? 100, 100, (b.cond ?? 100) > 50 ? '#7fd07a' : (b.cond ?? 100) > 20 ? '#e0b54c' : '#ff6b5b', Math.round(b.cond ?? 100) + ' %')); rows.push(statRow('Calor', b.heat || 0, 100, (b.heat || 0) > 75 ? '#ff6b5b' : '#ff9a4a', Math.round(b.heat || 0) + ' °')); }
+    if (hasCond(P2.fam)) { rows.push(statRow('Estado', b.cond ?? 100, 100, (b.cond ?? 100) > 50 ? '#7fd07a' : (b.cond ?? 100) > 20 ? '#e0b54c' : '#ff6b5b', Math.round(b.cond ?? 100) + ' %')); if (heatsUp(b)) rows.push(statRow('Calor', b.heat || 0, 100, (b.heat || 0) > 75 ? '#ff6b5b' : '#ff9a4a', Math.round(b.heat || 0) + ' °')); }
+    if (P2.fam === 'fire') { const lit = litOf(b), tmp = lit ? 520 + Math.sin(performance.now() / 300) * 25 : 20; rows.push(statRow('Llama', lit ? tmp - 20 : 0, 600, '#ff8a3a', lit ? Math.round(tmp) + ' °' : 'apagada')); }
     if (st.run) rows.push(`<div class="mut small">En marcha ${Math.floor(st.run / 60)} min${st.saved ? ` · ahorró material ${st.saved} veces` : ''}${st.extra ? ` · ${st.extra} piezas de regalo` : ''}${b.over > 0 ? ' · <span class="bad">enfriándose</span>' : ''}${b.jam ? ' · <span class="bad">atascada</span>' : ''}${b.batch ? ` · quedan ${b.batch} del lote` : ''}</div>`);
     const h = rows.join(''); if (live._h !== h) { live._h = h; live.innerHTML = h; } }
-  const mt = $('btMant'); if (mt) { const h = statRow('Estado', b.cond ?? 100, 100, (b.cond ?? 100) > 50 ? '#7fd07a' : '#ff6b5b', Math.round(b.cond ?? 100) + ' %') + statRow('Calor', b.heat || 0, 100, '#ff9a4a', Math.round(b.heat || 0) + ' °') + statRow('Suciedad', b.dirt || 0, 100, '#8a6a4a', Math.round(b.dirt || 0) + ' %'); if (mt._h !== h) { mt._h = h; mt.innerHTML = h; } }
+  const mt = $('btMant'); if (mt) { const h = statRow('Estado', b.cond ?? 100, 100, (b.cond ?? 100) > 50 ? '#7fd07a' : '#ff6b5b', Math.round(b.cond ?? 100) + ' %') + (heatsUp(b) ? statRow('Calor', b.heat || 0, 100, '#ff9a4a', Math.round(b.heat || 0) + ' °') : '') + statRow('Suciedad', b.dirt || 0, 100, '#8a6a4a', Math.round(b.dirt || 0) + ' %' + ((b.dirt || 0) > 50 ? ' · va más lenta' : '')); if (mt._h !== h) { mt._h = h; mt.innerHTML = h; } }
   btScene();
 }
 // Escena viva: el propio bloque en grande, animado según lo que hace
