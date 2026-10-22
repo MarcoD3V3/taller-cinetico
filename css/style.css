@@ -1229,3 +1229,11 @@ body.inmenu #ampBar, body.climbing #ampBar { display: none; }
 
 .invside .icard .icd { display: block; -webkit-line-clamp: unset; overflow: visible; }
 .invside .icard .icw, .invside .icard .icu li { white-space: normal; overflow: visible; }
+/* Inventario más grande: ranuras de 54 px y la mochila + ficha llenan el alto libre del panel */
+@media (min-width: 901px) {
+  #invLeft { display: flex; flex-direction: column; }
+  #invLeft > .invwrap { flex: 1 0 auto; }
+  #mInv:not(.blk) .modal-in.inv .invcol .invgrid { grid-template-columns: repeat(9, 54px); gap: 5px; }
+  #mInv:not(.blk) .modal-in.inv .invcol .invgrid .s { width: 54px; height: 54px; } #mInv:not(.blk) .modal-in.inv .invcol .invgrid .s .ic { width: 40px; height: 40px; }
+  #mInv:not(.blk) .invwrap .invside { width: 270px; }
+}

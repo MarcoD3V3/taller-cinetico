@@ -231,7 +231,7 @@ const BT_PANE = {
     if (MODES[P2.fam]) tips.push('Turbo/Máximo rinde más pero se calienta: si llega a 100 °, se para un rato. Un disipador ayuda.');
     if (P2.fam === 'home') tips.push('Pon varios adornos en una casa con NPC: cada uno abarata sus precios.');
     if (P2.fam === 'light') tips.push('Antorchas y lámparas descubren la roca oscura de la montaña.');
-    if (P2.fam === 'fire') tips.push('Quédate cerca cuando hace frío o vas mojado: a 3 casillas notas su calor.');
+    if (P2.fam === 'fire') tips.push('Más intensidad = más calor y llega más lejos (y gasta más). Al alejarte el calor baja poco a poco. Échale leña o carbón: F con ello en la mano.');
     if (P2.fam === 'farm') tips.push('Ponlo entre la tierra de cultivo: su efecto llega a las casillas de alrededor.');
     if (hasCond(P2.fam)) tips.push('La suciedad sube con el uso: por encima del 50 % va más lenta. Limpiar es gratis.');
     return h + (tips.length ? `<div class="cssub">Consejos</div><ul class="bttips">${tips.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : '');

@@ -58,7 +58,7 @@ function blockCard(b) {
   if (d.pw) h += hcbar((b.E || 0) / d.pw.cap, '#7cc4ff', `${fmt(b.E || 0)} / ${fmt(d.pw.cap)} FE`);
   if (b.tanks) for (const k in b.tanks) { const t = b.tanks[k]; h += hcbar(t.a / t.c, t.t && FLUIDS[t.t] ? FLUIDS[t.t].c : '#555', `${t.t ? esc(FLUIDS[t.t].n) : 'Vacío'} ${fmt(t.a)}/${fmt(t.c)}`); }
   if (d.machine && b.cur >= 0) h += hcbar(progressOf(b), '#e0b54c', 'Procesando ' + Math.round(progressOf(b) * 100) + ' %');
-  if (b.fuel > 0) h += `<div class="hcm">🔥 Combustible: ${b.type === 'furnace' ? Math.ceil(b.fuel) + ' piezas' : b.fuel.toFixed(1) + ' s'}</div>`;
+  if (b.fuel > 0) h += `<div class="hcm">🔥 Combustible: ${b.type === 'furnace' ? Math.ceil(b.fuel) + ' piezas' : (typeof fmtFuelT === 'function' ? fmtFuelT(b) : b.fuel.toFixed(1) + ' s')}</div>`;
   const inv = {}; for (const o of [b.inv, b.out]) for (const k in o || {}) if (o[k] > 0) inv[k] = (inv[k] || 0) + o[k];
   if (b.slots) for (const s of b.slots) if (s) inv[s.id] = (inv[s.id] || 0) + s.n;
   if (b.items) for (const i of b.items) inv[i.id] = (inv[i.id] || 0) + 1;

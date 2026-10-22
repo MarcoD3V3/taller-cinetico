@@ -120,7 +120,7 @@ function blockInfo(b, full) {
   if (d.cable) h += b.net ? `<div>Flujo: ${fmt(b.net.flow)} / ${fmt(b.net.cap)} FE/s · ${b.net.atts.length} aparatos</div>` : '<div class="bad">Cortado</div>';
   if (d.pipe) h += b.net ? `<div>Flujo: ${fmt(b.net.flow)} mB/s${b.net.ft ? ' · ' + FLUIDS[b.net.ft].n : ''}</div>` : '<div class="bad">Cerrada</div>';
   if (b.tanks) for (const k in b.tanks) { const t = b.tanks[k]; h += `<div class="mut">Tanque: ${t.t ? esc(FLUIDS[t.t].n) : 'vacío'} ${fmt(t.a)}/${fmt(t.c)} mB</div>`; }
-  if (b.fuel > 0) h += `<div class="mut">Combustible: ${b.type === 'furnace' ? Math.ceil(b.fuel) + ' piezas' : b.fuel.toFixed(1) + ' s'}</div>`;
+  if (b.fuel > 0) h += `<div class="mut">Combustible: ${b.type === 'furnace' ? Math.ceil(b.fuel) + ' piezas' : (typeof fmtFuelT === 'function' ? fmtFuelT(b) : b.fuel.toFixed(1) + ' s')}</div>`;
   if (d.cfg) for (const p of d.cfg) h += `<div>${PARAMS[p].n}: ${PARAMS[p].f(b[p])} <kbd>T</kbd></div>`;
   if (d.filter) h += `<div>Filtro: ${b.filter ? esc(ITEMS[b.filter].n) : 'cualquiera'}</div>`;
   if (d.rsin || d.rsable) h += b.powered ? `<div class="inf">Señal de redstone: ${b.pv}</div>` : '';
