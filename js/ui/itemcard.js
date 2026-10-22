@@ -27,7 +27,7 @@ function icMods(m) {
     return [IC_MOD[k], pct !== null ? (pct > 0 ? '+' : '') + pct + ' %' : (k === 'block' ? Math.round(v * 100) + ' %' : (v > 0 ? '+' : '') + v), good];
   });
 }
-const icIco = (id, sz = 18) => ITEMS[id] ? `<span class="icic" data-id="${id}" title="${esc(ITEMS[id].n)}">${itemImg(id, sz)}</span>` : '';
+const icIco = (id, sz = 18) => ITEMS[id] ? `<span class="icic" data-id="${id}">${itemImg(id, sz)}</span>` : '';
 function itemCardHTML(id, have) {
   const it = ITEMS[id]; if (!it) return '';
   const nums = [], X = icIndex(), d = BD[id];
@@ -75,12 +75,12 @@ function itemCardHTML(id, have) {
 let _icId = null, _icShown = null, _icPin = null;
 document.addEventListener('mouseover', e => {
   if (!S || ui.open !== 'inv') return; const t = e.target.closest && e.target.closest('#mInv [data-k], #mInv [data-id], #mInv [data-hv]'); if (!t) return;
-  if (t.closest('#iCard')) { const id = t.dataset.id; if (id && ITEMS[id]) _icPin = id; return; }
 });
 // Elegir un objeto para ver su ficha sin cogerlo: clic con la rueda o Alt + clic (pasar el ratón solo enseña el nombre)
 document.addEventListener('mousedown', e => {
   if (!S || ui.open !== 'inv' || !(e.button === 1 || (e.button === 0 && e.altKey))) return;
-  const t = e.target.closest && e.target.closest('#mInv [data-k], #mInv [data-id], #mInv [data-hv]'); if (!t || t.closest('#iCard')) return;
+  const t = e.target.closest && e.target.closest('#mInv [data-k], #mInv [data-id], #mInv [data-hv]'); if (!t) return;
+  if (t.closest('#iCard')) return; // dentro de la ficha se elige con un clic normal (abajo)
   let id = null; if (t.dataset.k) { const r = slotRef(t.dataset.k), s = r && r.get && r.get(); id = s && s.id; } else id = t.dataset.id || t.dataset.hv;
   if (!id || !ITEMS[id]) return; e.preventDefault(); e.stopPropagation();
   _icId = id; _icPin = null; _icShown = undefined;
@@ -108,3 +108,8 @@ document.addEventListener('scroll', e => { if (e.target && e.target.id === 'iCar
 setInterval(icMore, 300);
 // Al salir de la ficha, deja de enseñar el objeto que señalabas dentro de ella
 document.addEventListener('mouseout', e => { if (_icPin && e.target.closest && e.target.closest('#iCard') && !(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('#iCard'))) _icPin = null; });
+// Objetos dentro de la ficha (para qué sirve, cómo se consigue): al pasar, solo el nombre; con un clic, su ficha
+document.addEventListener('mousedown', e => {
+  if (!S || ui.open !== 'inv' || (e.button !== 0 && e.button !== 1)) return; const t = e.target.closest && e.target.closest('#iCard [data-id]'); if (!t) return;
+  const id = t.dataset.id; if (!ITEMS[id]) return; e.preventDefault(); e.stopPropagation(); _icId = id; _icPin = null; _icShown = undefined; tone(560, 0.03, 'sine', 0.02, 1.2);
+}, true);
