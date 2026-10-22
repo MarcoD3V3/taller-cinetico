@@ -71,10 +71,9 @@ document.addEventListener('mouseover', e => {
 });
 document.addEventListener('mouseout', e => { const el = e.target.closest && e.target.closest('.csmoo .csch, #moodles .moo'); if (!el || (e.relatedTarget && el.contains(e.relatedTarget))) return; const t = $('tip'); if (t.classList.contains('tiphelp')) { t.hidden = true; t.classList.remove('tiphelp'); } });
 // Salud: la vida general arriba, con lo que la está frenando
-setInterval(() => {
-  const w = document.querySelector('.cshr .csparts') || document.getElementById('chWounds'); if (!w || !S || !S.pc) return;
-  const pc = S.pc, f = pc.hp / maxHp(); let el = document.getElementById('chLife');
-  if (!el) { el = document.createElement('div'); el.id = 'chLife'; w.before(el); }
-  const sig = Math.round(f * 100) + '|' + mhRegen(); if (el._s === sig) return; el._s = sig;
-  el.innerHTML = f >= 0.999 ? '' : `<div class="chlife ${f < 0.25 ? 'bad' : f < 0.5 ? 'warn' : ''}"><div><b>❤ Vida general ${Math.round(pc.hp)} / ${Math.round(maxHp())}</b><span class="mut small">Es tu vida total (no la de cada parte). ${f < 0.25 ? 'Gravemente herido: ' : ''}así se recupera sola:</span></div>${mhRegen()}<span class="mut small">Más rápido: dormir en una cama o comida que cure. Pasa el ratón por «${f < 0.25 ? 'Gravemente herido' : f < 0.5 ? 'Herido' : 'Magullado'}» en Estado para ver todas las opciones.</span></div>`;
-}, 400);
+function mhLifeHTML() {
+  const pc = S.pc, f = pc.hp / maxHp(); if (f >= 0.999) return '';
+  return `<div class="chlife ${f < 0.25 ? 'bad' : f < 0.5 ? 'warn' : ''}"><div><b>❤ Vida general ${Math.round(pc.hp)} / ${Math.round(maxHp())}</b><span class="mut small">Es tu vida total (no la de cada parte). ${f < 0.25 ? 'Gravemente herido: ' : ''}así se recupera sola:</span></div>${mhRegen()}<span class="mut small">Más rápido: dormir en una cama o comida que cure. Pasa el ratón por «${f < 0.25 ? 'Gravemente herido' : f < 0.5 ? 'Herido' : 'Magullado'}» en Estado para ver todas las opciones.</span></div>`;
+}
+// Va dentro del propio HTML de la pestaña: así no desaparece (ni parpadea) al redibujarla
+CS_PANE.health = () => csHealth().replace('<div class="csparts">', `<div id="chLife">${S && S.pc ? mhLifeHTML() : ''}</div><div class="csparts">`);
