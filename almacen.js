@@ -23,7 +23,8 @@ async function pgStore(url) {
     CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, created TIMESTAMPTZ DEFAULT now(), expires TIMESTAMPTZ NOT NULL);
     CREATE TABLE IF NOT EXISTS saves (user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, id TEXT NOT NULL, name TEXT, data TEXT NOT NULL, meta JSONB, updated TIMESTAMPTZ DEFAULT now(), PRIMARY KEY (user_id, id));
     CREATE TABLE IF NOT EXISTS chars (user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, id TEXT NOT NULL, data TEXT NOT NULL, updated TIMESTAMPTZ DEFAULT now(), PRIMARY KEY (user_id, id));
-    CREATE TABLE IF NOT EXISTS bans (host TEXT NOT NULL, banned TEXT NOT NULL, created TIMESTAMPTZ DEFAULT now(), PRIMARY KEY (host, banned));`);
+    CREATE TABLE IF NOT EXISTS bans (host TEXT NOT NULL, banned TEXT NOT NULL, created TIMESTAMPTZ DEFAULT now(), PRIMARY KEY (host, banned));
+    CREATE TABLE IF NOT EXISTS logins (username TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, salt TEXT NOT NULL, hash TEXT NOT NULL, created TIMESTAMPTZ DEFAULT now());`);
   await q('DELETE FROM sessions WHERE expires < now()');
   return {
     kind: 'postgres',
@@ -41,12 +42,15 @@ async function pgStore(url) {
     async bans(host) { return new Set((await q('SELECT banned FROM bans WHERE host=$1', [host])).rows.map(r => r.banned)); },
     async addBan(host, who) { await q('INSERT INTO bans (host, banned) VALUES ($1,$2) ON CONFLICT DO NOTHING', [host, who]); },
     async delBan(host, who) { await q('DELETE FROM bans WHERE host=$1 AND banned=$2', [host, who]); },
+    // Cuentas propias (usuario y contraseña)
+    async loginGet(u) { return (await q('SELECT * FROM logins WHERE username=$1', [u])).rows[0] || null; },
+    async loginCreate(u, uid, salt, hash) { await q('INSERT INTO logins (username, user_id, salt, hash) VALUES ($1,$2,$3,$4)', [u, uid, salt, hash]); },
   };
 }
 // ---------- Archivo JSON (local) ----------
 function fileStore(dir) {
   fs.mkdirSync(dir, { recursive: true }); const file = path.join(dir, 'datos.json');
-  let D = { users: {}, sessions: {}, saves: {}, bans: {}, chars: {} }; try { D = { ...D, ...JSON.parse(fs.readFileSync(file, 'utf8')) }; } catch (e) { } D.chars = D.chars || {};
+  let D = { users: {}, sessions: {}, saves: {}, bans: {}, chars: {}, logins: {} }; try { D = { ...D, ...JSON.parse(fs.readFileSync(file, 'utf8')) }; } catch (e) { } D.chars = D.chars || {}; D.logins = D.logins || {};
   let tm = 0; const save = () => { clearTimeout(tm); tm = setTimeout(() => { try { fs.writeFileSync(file + '.tmp', JSON.stringify(D)); fs.renameSync(file + '.tmp', file); } catch (e) { console.error('No se pudo guardar', e.message); } }, 300); };
   for (const t in D.sessions) if (D.sessions[t].expires < Date.now()) delete D.sessions[t];
   return {
@@ -65,6 +69,8 @@ function fileStore(dir) {
     async bans(host) { return new Set(D.bans[host] || []); },
     async addBan(host, who) { const b = new Set(D.bans[host] || []); b.add(who); D.bans[host] = [...b]; save(); },
     async delBan(host, who) { D.bans[host] = (D.bans[host] || []).filter(x => x !== who); save(); },
+    async loginGet(u) { return D.logins[u] || null; },
+    async loginCreate(u, uid, salt, hash) { if (D.logins[u]) throw new Error('duplicate key'); D.logins[u] = { username: u, user_id: uid, salt, hash, created: Date.now() }; save(); },
   };
 }
 async function openStore(root) {

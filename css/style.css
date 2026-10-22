@@ -1123,3 +1123,21 @@ body.inmenu #ampBar, body.climbing #ampBar { display: none; }
 .icl { display: flex; flex-wrap: wrap; gap: 3px; } .icic { display: inline-flex; padding: 1px; border-radius: 5px; background: #ffffff0a; vertical-align: middle; cursor: help; } .icic:hover { background: #e0b54c33; }
 .icw { margin: 3px 0; } .icw b { color: #e8e4dc; margin-right: 4px; }
 .icard { max-height: 300px; } .invside .dropzone { min-height: 56px; flex-direction: row; gap: 8px; } .invside .dropzone small { display: none; } .invside .invtip { font-size: 11px; }
+/* Cuenta del juego: entrar o crear cuenta */
+.accf { width: 100%; text-align: left; margin-top: 6px; }
+.acctabs { display: flex; gap: 4px; padding: 3px; border-radius: 10px; background: #ffffff08; margin-bottom: 10px; }
+.acctabs button { flex: 1; border: 0; background: transparent; padding: 7px; border-radius: 8px; font-weight: 600; color: var(--muted); }
+.acctabs button.on { background: var(--brass); color: #1a1a1a; }
+#accForm { display: flex; flex-direction: column; gap: 8px; } #accForm label { display: flex; flex-direction: column; gap: 3px; font-size: 12.5px; } #accForm input { width: 100%; }
+#accForm .pri { margin-top: 2px; }
+.accor { display: flex; align-items: center; gap: 8px; width: 100%; margin: 6px 0; color: var(--muted); font-size: 12px; } .accor::before, .accor::after { content: ''; flex: 1; height: 1px; background: #ffffff14; }
+
+/* Inventario: ficha de tamaño fijo, soltar fuera del panel y tooltip mínimo */
+.invside .icard { height: 340px; max-height: none; overflow: hidden; position: relative; }
+.invside .icard .icd { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.invside .icard .icw { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.invside .icard .icu li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.invside .invtip { padding: 8px 10px; border: 1px dashed #ffffff1c; border-radius: 10px; }
+#mInv.candrop { cursor: copy; } #mInv.candrop .modal-in { cursor: default; }
+#tip.tipmini { padding: 3px 8px; font-size: 12px; max-width: 220px; }
+@media (max-width: 900px) { .invside .icard { height: 260px; } }

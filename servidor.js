@@ -30,7 +30,9 @@ const lanIPs = () => Object.values(os.networkInterfaces()).flat().filter(i => i 
 const server = http.createServer(async (req, res) => {
   let p, U; try { U = new URL(req.url, 'http://x'); p = decodeURIComponent(U.pathname); } catch (e) { res.writeHead(400); return res.end(); }
   // ---- Inicio de sesión con Discord hecho por el servidor ----
-  if (p === '/api/info') { res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); return res.end(JSON.stringify({ oauth: !!DC_SECRET, clientId: DC_ID, public: PUBLIC || null, db: DB ? DB.kind : null })); }
+  if (p === '/api/info') { res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); return res.end(JSON.stringify({ oauth: !!DC_SECRET, clientId: DC_ID, public: PUBLIC || null, db: DB ? DB.kind : null, accounts: !!DB })); }
+  // ---- Cuentas propias: crear cuenta e iniciar sesión con usuario y contraseña ----
+  if ((p === '/auth/register' || p === '/auth/login') && req.method === 'POST') return accountAuth(req, res, p.endsWith('register'));
   if (p === '/auth/discord') {
     if (!DC_SECRET) return redirect(res, '/#tcerr=' + encodeURIComponent('El servidor no tiene configurado DISCORD_CLIENT_SECRET'));
     const st = crypto.randomBytes(16).toString('hex'); oauthStates.set(st, Date.now() + 600000); for (const [k, t] of oauthStates) if (t < Date.now()) oauthStates.delete(k);
@@ -58,6 +60,37 @@ const server = http.createServer(async (req, res) => {
   if (!f.startsWith(ROOT + path.sep) || /(^|[\\/])\./.test(rel) || !MIME[ext] || (!/[\\/]/.test(rel) && rel !== 'index.html') || /^node_modules/.test(rel)) { res.writeHead(404); return res.end('No encontrado'); }
   fs.readFile(f, (err, data) => { if (err) { res.writeHead(404); return res.end('No encontrado'); } res.writeHead(200, { 'Content-Type': MIME[ext], 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff' }); res.end(data); });
 });
+// ---------- Cuentas propias ----------
+// La contraseña nunca se guarda: solo su huella con scrypt y una sal aleatoria por cuenta.
+// Tope de intentos por dirección (10 cada 10 minutos) para que nadie pruebe contraseñas a lo bruto.
+const AUTH_TRIES = new Map();
+const scryptP = (pw, salt) => new Promise((ok, ko) => crypto.scrypt(pw, salt, 64, { N: 16384, r: 8, p: 1 }, (e, k) => e ? ko(e) : ok(k)));
+function readJSON(req, max = 4096) { return new Promise(ok => { let b = ''; req.on('data', d => { b += d; if (b.length > max) req.destroy(); }); req.on('end', () => { try { ok(JSON.parse(b || '{}')); } catch (e) { ok({}); } }); req.on('error', () => ok({})); }); }
+async function accountAuth(req, res, isNew) {
+  const out = (code, o) => { res.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(o)); };
+  if (!DB) return out(503, { ok: false, err: 'El servidor no tiene base de datos.' });
+  const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim(), now = Date.now();
+  const t = (AUTH_TRIES.get(ip) || []).filter(x => now - x < 600000); if (t.length >= 10) return out(429, { ok: false, err: 'Demasiados intentos. Espera unos minutos.' });
+  t.push(now); AUTH_TRIES.set(ip, t); if (AUTH_TRIES.size > 5000) AUTH_TRIES.clear();
+  const b = await readJSON(req), user = String(b.user || '').trim().toLowerCase(), pass = String(b.pass || ''), name = clean(b.name, 20).trim();
+  if (!/^[a-z0-9_.]{3,20}$/.test(user)) return out(400, { ok: false, err: 'El usuario debe tener de 3 a 20 letras, números, «_» o «.».' });
+  if (pass.length < 6 || pass.length > 100) return out(400, { ok: false, err: 'La contraseña debe tener al menos 6 caracteres.' });
+  try {
+    if (isNew) {
+      if (await DB.loginGet(user)) return out(409, { ok: false, err: 'Ese usuario ya existe. Elige otro o inicia sesión.' });
+      const uid = 'ac:' + crypto.randomBytes(8).toString('hex'), salt = crypto.randomBytes(16).toString('hex'), hash = (await scryptP(pass, salt)).toString('hex');
+      await DB.upsertUser({ id: uid, name: name || user, username: user, avatar: '' });
+      try { await DB.loginCreate(user, uid, salt, hash); } catch (e) { return out(409, { ok: false, err: 'Ese usuario ya existe. Elige otro o inicia sesión.' }); }
+      AUTH_TRIES.set(ip, t.slice(0, -1));
+      return out(200, { ok: true, sess: await DB.newSession(uid), name: name || user });
+    }
+    const L = await DB.loginGet(user), fake = '0'.repeat(32);
+    const k = await scryptP(pass, L ? L.salt : fake), good = L && crypto.timingSafeEqual(k, Buffer.from(L.hash, 'hex'));
+    if (!good) return out(401, { ok: false, err: 'Usuario o contraseña incorrectos.' });
+    AUTH_TRIES.set(ip, []);
+    return out(200, { ok: true, sess: await DB.newSession(L.user_id) });
+  } catch (e) { console.error('cuentas', e.message); return out(500, { ok: false, err: 'La base de datos no responde. Inténtalo de nuevo.' }); }
+}
 // ---------- WebSocket mínimo (RFC 6455) ----------
 // Mientras un jugador se reconecta (c.gone), sus mensajes esperan en una cola y se le entregan al volver
 const GRACE = 45000, Q_MAX = 4000;
@@ -142,7 +175,7 @@ async function onMsg(c, m) {
       const old = rs.sock; clearTimeout(rs.gt); rs.gone = 0; rs.dead = false; rs.sock = c.sock; rs.seen = Date.now(); rs.hello = true;
       c.dead = true; c.rebind(rs); c.rebound = rs; if (old && old !== c.sock) try { old._tc = () => ({ seen: 0 }); old.destroy(); } catch (e) { }
       const q = rs.q, lost = !!rs.qLost; rs.q = []; rs.qLost = false;
-      wsSend(rs, { op: 'welcome', rid: m.rid, resumed: true, lost, peer: rs.id, rt: rs.rt, by: rs.by, name: rs.name, verified: !!rs.verified, avatar: rs.avatar || '', dcUser: rs.dcUser || '', lan: LOCAL_ONLY || PUBLIC ? [] : lanIPs(), port: PORT, public: PUBLIC || null, cloud: !!(DB && rs.verified), oauth: !!DC_SECRET });
+      wsSend(rs, { op: 'welcome', rid: m.rid, resumed: true, lost, peer: rs.id, rt: rs.rt, by: rs.by, name: rs.name, acct: rs.acct || null, accounts: !!DB, verified: !!rs.verified, avatar: rs.avatar || '', dcUser: rs.dcUser || '', lan: LOCAL_ONLY || PUBLIC ? [] : lanIPs(), port: PORT, public: PUBLIC || null, cloud: !!(DB && rs.verified), oauth: !!DC_SECRET });
       for (const o of q) wsSend(rs, o);
       for (const n of rs.rooms) { const r = rooms.get(n); if (r) sendPeers(r); }
       return;
@@ -154,10 +187,10 @@ async function onMsg(c, m) {
     if (m.sess && DB) { const t = String(m.sess); try { su = await DB.sessionUser(t); if (su) SESS_CACHE.set(t, su); else SESS_CACHE.delete(t); } catch (e) { su = SESS_CACHE.get(t) || null; if (!su) sessRetry = true; console.error('sesión', e.message); } }
     const dc = su ? { id: su.id.replace(/^dc:/, ''), name: su.name, user: su.username, avatar: su.avatar } : m.token ? await discordWho(String(m.token)) : null;
     if (dc && !su && DB) await DB.upsertUser({ id: 'dc:' + dc.id, name: dc.name, username: dc.user, avatar: dc.avatar }).catch(e => console.error('cuenta', e.message));
-    if (dc) Object.assign(c, { by: 'dc:' + dc.id, name: dc.name, verified: true, avatar: dc.avatar, dcUser: dc.user, sess: su ? String(m.sess) : null });
+    if (dc) Object.assign(c, { by: su ? su.id : 'dc:' + dc.id, acct: su && su.id.startsWith('ac:') ? 'local' : 'discord', name: dc.name, verified: true, avatar: dc.avatar, dcUser: dc.user, sess: su ? String(m.sess) : null });
     else Object.assign(c, { by: 'g:' + clean(m.gid, 24).replace(/[^a-z0-9]/gi, ''), name: clean(m.nick, 20) || 'Jugador', verified: false });
     clients.set(c.id, c); c.rooms.add('lobby'); room('lobby').peers.set(c.id, {});
-    rep({ op: 'welcome', peer: c.id, by: c.by, name: c.name, verified: !!c.verified, avatar: c.avatar || '', dcUser: c.dcUser || '', rt: c.rt, tokenBad: !!(m.token && !dc), sessBad: !!(m.sess && !su && !sessRetry), sessRetry, lan: LOCAL_ONLY || PUBLIC ? [] : lanIPs(), port: PORT, public: PUBLIC || null, cloud: !!(DB && c.verified), oauth: !!DC_SECRET });
+    rep({ op: 'welcome', peer: c.id, by: c.by, name: c.name, acct: c.acct || null, accounts: !!DB, verified: !!c.verified, avatar: c.avatar || '', dcUser: c.dcUser || '', rt: c.rt, tokenBad: !!(m.token && !dc), sessBad: !!(m.sess && !su && !sessRetry), sessRetry, lan: LOCAL_ONLY || PUBLIC ? [] : lanIPs(), port: PORT, public: PUBLIC || null, cloud: !!(DB && c.verified), oauth: !!DC_SECRET });
     sendPeers(room('lobby')); return;
   }
   if (!c.hello) return;

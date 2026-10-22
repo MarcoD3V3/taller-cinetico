@@ -3,7 +3,8 @@
 //  Objetos en el suelo: soltar, lanzar y recoger.
 //   · L: suelta 1 del objeto de la barra rápida (o de la ranura bajo el ratón en el inventario);
 //     Shift+L: la pila entera. Se lanza hacia el ratón (unas casillas) y rebota en las paredes.
-//   · En el inventario: suelta lo que llevas en la mano sobre «Soltar al suelo».
+//   · En el inventario (como en Minecraft): con una pila en la mano, haz clic fuera del panel.
+//     Clic izquierdo suelta la pila; clic derecho, solo 1.
 //   · Se recoge al pasar por encima (lo que lanzas tú, tras un momento). Los objetos cercanos
 //     se acercan solos cuando ya se pueden coger. Duran 10 minutos en el suelo.
 //   · En línea lo ve todo el mundo; el anfitrión decide quién lo coge (nadie lo duplica).
@@ -92,14 +93,21 @@ function drawGroundItems(c) {
 }; r.on('gi', onGi); r.on('mob', m => { if (m.data && m.data.t === 'gi') onGi(m); }); }; }
 // Lo recogido, minado o fabricado va primero a un hueco libre de la barra rápida; si no hay, a la mochila
 FILL_ORDER.length = 0; for (let i = 0; i < INV_N; i++) FILL_ORDER.push(i);
-// ---------- Inventario: zona para soltar al suelo ----------
+// ---------- Inventario: columna lateral (ficha del objeto y ayuda de soltar) ----------
 { const b0 = buildInvPanel; buildInvPanel = (...a) => {
   b0(...a); const left = $('invLeft'), g = left && left.querySelectorAll(':scope > .invgrid'); if (!g || g.length < 2) return;
   const wrap = document.createElement('div'); wrap.className = 'invwrap'; const col = document.createElement('div'); col.className = 'invcol';
   g[0].before(wrap); col.append(g[0], g[1]); wrap.append(col);
   wrap.insertAdjacentHTML('beforeend', `<aside class="invside">
-    <div class="dropzone" id="dropZone" title="Suelta aquí lo que llevas en la mano"><b>⬇</b><span>Soltar al suelo</span><small>Arrastra aquí una pila</small></div>
-    <div class="invtip"><kbd>L</kbd> suelta 1 · <kbd>Shift</kbd>+<kbd>L</kbd> la pila<br><span class="mut">Sobre una ranura, o con la barra rápida fuera del inventario. Lo que sueltas lo puede coger cualquiera.</span></div></aside>`);
+    <div class="invtip"><b>⬇ Soltar:</b> coge una pila y haz clic fuera del inventario (derecho: solo 1) · <kbd>L</kbd> suelta 1, <kbd>Shift</kbd>+<kbd>L</kbd> la pila</div></aside>`);
 }; }
-document.addEventListener('mousedown', e => { const z = e.target.closest && e.target.closest('#dropZone'); if (!z || !S || !ui.held) return; e.preventDefault(); e.stopPropagation(); const h = ui.held; ui.held = null; throwItem(h.id, h.n, P.faceA ?? Math.PI / 2); toast(`⬇ Soltado: ${h.n} × ${ITEMS[h.id].n}`); if (typeof done === 'function') done(); }, true);
-setInterval(() => { const z = document.getElementById('dropZone'); if (z) z.classList.toggle('on', !!(ui && ui.held)); }, 150);
+// Clic fuera del panel con algo en la mano: se suelta (izquierdo, la pila; derecho, 1)
+document.addEventListener('mousedown', e => {
+  if (!S || ui.open !== 'inv' || !ui.held || (e.button !== 0 && e.button !== 2)) return;
+  if (e.target.closest && e.target.closest('#mInv .modal-in')) return;
+  e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+  const h = ui.held, n = e.button === 2 ? 1 : h.n; throwItem(h.id, n, P.faceA ?? Math.PI / 2); h.n -= n; if (h.n <= 0) ui.held = null;
+  toast(`⬇ Soltado: ${n} × ${ITEMS[h.id].n}`); refreshInvUI(true);
+}, true);
+// Fuera del panel el cursor avisa de que se puede soltar
+setInterval(() => { const m = document.getElementById('mInv'); if (m) m.classList.toggle('candrop', !!(ui && ui.held && ui.open === 'inv')); }, 150);

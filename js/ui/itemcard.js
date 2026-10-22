@@ -65,11 +65,11 @@ function itemCardHTML(id, have) {
   if (!ways.length) ways.push('<div class="icw mut">Se encuentra explorando o comerciando.</div>');
   return `<div class="ich">${itemImg(id, 34)}<div><b>${esc(it.n)}</b><small>${esc(ICATS[it.cat] || '')}${have ? ' · tienes ' + fmt(have) : ''}</small></div></div>
     ${it.d ? `<p class="icd">${esc(it.d)}</p>` : ''}
-    ${nums.length ? `<div class="icn">${nums.map(([a, v]) => `<div>${a ? `<small>${esc(a)}</small>` : ''}<b>${esc(String(v))}</b></div>`).join('')}</div>` : ''}
+    ${nums.length ? `<div class="icn">${nums.slice(0, 6).map(([a, v]) => `<div>${a ? `<small>${esc(a)}</small>` : ''}<b>${esc(String(v))}</b></div>`).join('')}</div>` : ''}
     ${mods.length ? `<div class="icm">${mods.map(([a, v, g]) => `<span class="${g ? 'up' : 'down'}">${esc(a)} ${esc(v)}</span>`).join('')}</div>` : ''}
-    ${how.length ? `<div class="ics">Cómo se usa</div><ul class="icu">${how.map(h => `<li>${esc(h)}</li>`).join('')}</ul>` : ''}
-    ${uses.length ? `<div class="ics">Sirve para fabricar (${uses.length})</div><div class="icl">${uses.slice(0, 14).map(o => icIco(o, 20)).join('')}${uses.length > 14 ? `<span class="mut small">+${uses.length - 14}</span>` : ''}</div>` : ''}
-    <div class="ics">Cómo se consigue</div>${ways.join('')}`;
+    ${how.length ? `<div class="ics">Cómo se usa</div><ul class="icu">${how.slice(0, 2).map(h => `<li>${esc(h)}</li>`).join('')}</ul>` : ''}
+    ${uses.length ? `<div class="ics">Sirve para fabricar (${uses.length})</div><div class="icl">${uses.slice(0, 9).map(o => icIco(o, 20)).join('')}${uses.length > 9 ? `<span class="mut small">+${uses.length - 9}</span>` : ''}</div>` : ''}
+    <div class="ics">Cómo se consigue</div>${ways.slice(0, 2).join('')}`;
 }
 // Qué ranura (u objeto) está bajo el ratón dentro del inventario
 let _icId = null, _icShown = null, _icPin = null;
@@ -85,5 +85,12 @@ setInterval(() => {
   box.innerHTML = id ? itemCardHTML(id, invCount(id)) : '<p class="mut small">Pasa el ratón por un objeto para ver qué hace, sus números, para qué sirve y cómo se consigue.</p>';
   box.classList.toggle('pin', !!_icPin);
 }, 120);
-// La ficha va en la columna de la mochila, bajo «Soltar al suelo»
+// Con la ficha a la vista, el tooltip del inventario es mínimo (nombre, cantidad y desgaste) para no taparla
+{ const s0 = showTip; showTip = (id, x, y) => {
+  const t = $('tip'), mini = ui.open === 'inv' && document.getElementById('iCard') && _mvTarget && _mvTarget.closest && _mvTarget.closest('#mInv');
+  t.classList.toggle('tipmini', !!mini); if (!mini) return s0(id, x, y);
+  const du = durTip(id), key = 'm' + id + du; if (_tipId !== key) { t.innerHTML = `<b>${esc(ITEMS[id] ? ITEMS[id].n : id)}</b>${du}`; _tipId = key; _tipDu = du; }
+  if (t.hidden) t.hidden = false; t.style.transform = `translate(${x + 12}px,${y + 14}px)`;
+}; }
+// La ficha va arriba en la columna de la mochila
 { const b0 = buildInvPanel; buildInvPanel = (...a) => { b0(...a); const side = document.querySelector('#invLeft .invside'); if (side && !side.querySelector('#iCard')) { side.insertAdjacentHTML('afterbegin', '<div class="icard" id="iCard"></div>'); _icShown = undefined; } }; }
