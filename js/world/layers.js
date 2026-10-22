@@ -307,8 +307,8 @@ function layerHud(force) {
   const p = S.player, tx = Math.floor(p.x / T), ty = Math.floor((p.y + 5) / T), k = layerOf(ty), g = GI[gnd(tx, ty)];
   let h = '';
   const stuck = g.hole && typeof stuckInHole === 'function' && stuckInHole(tx, ty);
-  if (k) { const L = LAYERS[k]; h = `<b>${L.i} Capa ${k}</b><span>${esc(L.n)}</span><span class="lvd">${depthLabel(tx, ty)}</span>${shaftNear(tx, ty) && !at(tx, ty) ? `<span class="mut">Espacio: escalar por el pozo${g.liquid ? ' (desde el agua)' : ' · con una escalera, sin riesgo'}</span>` : stuck ? '<span class="mut">Espacio: escalar para salir del hoyo</span>' : ''}`; }
-  else if (g.hole && depthAt(tx, ty) >= 2) h = `<b>⛏ Hoyo</b><span class="lvd">${depthLabel(tx, ty)}</span><span class="mut">${g.key === 'PIT' ? 'Pica el fondo: se abrirá un pozo a las Cavernas' : ''}${stuck ? (g.key === 'PIT' ? ' · ' : '') + 'Espacio: escalar para salir' : ''}</span>`;
+  if (k) { const L = LAYERS[k]; h = `<b>${L.i} Capa ${k}</b><span>${esc(L.n)}</span><span class="lvd">${depthLabel(tx, ty)}</span>${shaftNear(tx, ty) && !at(tx, ty) ? `<span class="mut">Espacio (quieto): escalar por el pozo${g.liquid ? ' (desde el agua)' : ' · con una escalera, sin riesgo'}</span>` : stuck ? '<span class="mut">Espacio (quieto): escalar para salir del hoyo</span>' : ''}`; }
+  else if (g.hole && depthAt(tx, ty) >= 2) h = `<b>⛏ Hoyo</b><span class="lvd">${depthLabel(tx, ty)}</span><span class="mut">${g.key === 'PIT' ? 'Pica el fondo: se abrirá un pozo a las Cavernas' : ''}${stuck ? (g.key === 'PIT' ? ' · ' : '') + 'Espacio (quieto): escalar para salir' : ''}</span>`;
   if (h === _lhS && !force) return; _lhS = h; _lh.innerHTML = h; _lh.hidden = !h;
 }
 let _lbT = 0;

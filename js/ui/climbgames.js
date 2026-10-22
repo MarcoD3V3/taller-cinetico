@@ -248,7 +248,7 @@ function clWall(k) {
 // ---------- Marco común: abrir, bucle, dibujo, final ----------
 function climbStart(o) {
   if (CL) return;
-  const keys = Object.keys(CLIMB_GAMES), last = S._lastClimb; let g; do g = keys[(Math.random() * keys.length) | 0]; while (g === last && keys.length > 1); if (o.game && CLIMB_GAMES[o.game]) g = o.game; S._lastClimb = g;
+  const gks = Object.keys(CLIMB_GAMES), last = S._lastClimb; let g; do g = gks[(Math.random() * gks.length) | 0]; while (g === last && gks.length > 1); if (o.game && CLIMB_GAMES[o.game]) g = o.game; S._lastClimb = g;
   const k = clamp(o.k || 0, 0, CL_ENV.length - 1), env = CL_ENV[k];
   CL = { g, G: CLIMB_GAMES[g], k, env, d: clamp(o.d || 1, 1, 6), t: 0, prog: 0, grip: 1, phase: 'intro', fl: [], misses: 0, shake: 0, o, wall: clWall(k), parts: [] };
   CL.gm = clGripMul(); CL.G.init(CL);
@@ -256,7 +256,7 @@ function climbStart(o) {
   mClimb.innerHTML = `<div class="clin"><header><span class="cgi">${G.i}</span><div><b>${esc(o.title || 'Escalar')} · ${esc(G.n)}</b><small>${esc(CL.env.n)} · dificultad ${'●'.repeat(CL.d)}${'○'.repeat(6 - CL.d)}</small></div><button class="ghost sm" id="clQuit">Soltarse <kbd>Esc</kbd></button></header>
     <canvas id="clCv" width="${CL_W}" height="${CL_H}"></canvas>
     <div class="clfoot"><div class="clhow"><b>Cómo:</b> ${esc(G.how)}${CL.env.note ? `<br><span class="mut">${esc(CL.env.note)}</span>` : ''}</div><div class="cltip">💡 ${esc(G.tip)}</div></div></div>`;
-  mClimb.hidden = false; ui.open = 'climb'; document.body.classList.add('climbing');
+  mClimb.hidden = false; ui.open = 'climb'; document.body.classList.add('climbing'); keys.clear(); P.mvx = P.mvy = 0;
   $('clQuit').onclick = () => climbEnd(CL.prog > 0.1 ? 'fall' : 'cancel', 'Te sueltas');
   const cv = $('clCv'), pt = (ty, e) => { const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * CL_W / r.width, y = (e.clientY - r.top) * CL_H / r.height; clPtr(ty, x, y); };
   cv.addEventListener('pointerdown', e => { e.preventDefault(); cv.setPointerCapture && cv.setPointerCapture(e.pointerId); pt('down', e); });
@@ -272,7 +272,7 @@ addEventListener('keydown', e => {
   if (CL.phase === 'intro') { if (k === ' ' || k === 'enter') clGo(); return; }
   if (CL.phase === 'play') CL.G.key(CL, k, false);
 }, true);
-addEventListener('keyup', e => { if (!CL) return; e.stopImmediatePropagation(); if (CL.phase === 'play') CL.G.key(CL, e.key.toLowerCase(), true); }, true);
+addEventListener('keyup', e => { if (!CL) return; if (CL.phase === 'play') CL.G.key(CL, e.key.toLowerCase(), true); }, true);
 function clLoop(now) {
   if (!CL) return; const cv = $('clCv'); if (!cv) return;
   const dt = Math.min(0.05, (now - (CL.lt || now)) / 1000); CL.lt = now; CL.t += dt;
@@ -318,7 +318,7 @@ function climbEnd(res, why) {
   else if (res === 'fall') tone(110, 0.4, 'sawtooth', 0.05, 0.4);
   const wait = res === 'cancel' ? 0 : 2200;
   setTimeout(() => {
-    mClimb.hidden = true; document.body.classList.remove('climbing'); if (ui.open === 'climb') ui.open = null; CL = null;
+    mClimb.hidden = true; document.body.classList.remove('climbing'); if (ui.open === 'climb') ui.open = null; CL = null; keys.clear(); P.mvx = P.mvy = 0;
     if (res === 'win') { gainXP('fit', 3 + C.d * 2); C.o.onWin && C.o.onWin(C); }
     else if (res === 'fall') { clFallHurt(C); C.o.onFall && C.o.onFall(C); }
   }, wait);
@@ -354,6 +354,8 @@ function climbShaft(tx, ty, wet) {
 { const j0 = tryJump; tryJump = () => {
   if (!S || ui.open || CL) return j0();
   const p = S.player, tx = Math.floor(p.x / T), ty = Math.floor((p.y + 5) / T), g = GI[gnd(tx, ty)], k = layerOf(ty);
+  // Espacio sin moverte: escalar · Espacio mientras te mueves: saltar (por ejemplo, dentro de un pozo)
+  if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].some(kk => keys.has(kk))) return j0();
   const sh = k && shaftNear(tx, ty);
   if (sh) { const b = at(sh[0], sh[1]); if (b && b.type === 'ladder') { toast('Hay una escalera: úsala con clic derecho'); return; } climbShaft(sh[0], sh[1], !!g.liquid); return; }
   if (g.hole && stuckInHole(tx, ty)) {
