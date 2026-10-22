@@ -14,7 +14,7 @@ function charData() {
   if (!S.char) S.char = { name: 'Superviviente', look: { ...DEFAULT_LOOK }, prof: 'vagabond', traits: [], made: false };
   if (!S.equip) S.equip = {};
   for (const k of EQ_SLOTS) if (!(k in S.equip)) S.equip[k] = null;
-  while (S.inv.length < INV_N) S.inv.push(null); // partidas de antes: 36 → 54 huecos
+  while (S.inv.length < INV_N) S.inv.push(null); // partidas de antes: 36 / 54 → 72 huecos
   return S.char;
 }
 const hasTrait = t => !!(S && S.char && S.char.traits.includes(t));

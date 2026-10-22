@@ -1,6 +1,6 @@
 'use strict';
 // Estado del mundo, bloques, listas por tipo y marcas de "sucio" para recalcular solo lo necesario.
-const T = 32, DT = 0.05, STACK = 64, INV_N = 54, DAY_LEN = 600;
+const T = 32, DT = 0.05, STACK = 64, INV_N = 72, DAY_LEN = 600;
 // Los tipos de casilla (G, GI) y los biomas están en world/biomes.js
 
 let S = null, blocks = [];
