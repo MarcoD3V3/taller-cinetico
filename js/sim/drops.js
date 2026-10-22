@@ -10,11 +10,13 @@
 // =====================================================================================
 const GI_LIFE = 600, GI_PICK = 18, GI_PULL = 60;
 const giList = () => (S.gitems || (S.gitems = []));
+// En claude.ai las salas admiten 16 temas como mucho: los objetos del suelo viajan dentro de «mob»
+const giEmit = d => { if (typeof netEmit !== 'function') return; if (NET.kind === 'claude') netEmit('mob', { t: 'gi', ...d }); else netEmit('gi', d); };
 const giId = () => Math.random().toString(36).slice(2, 9);
 // Crear un objeto en el suelo (local) y avisar a los demás
 function giSpawn(id, n, x, y, vx = 0, vy = 0, own = true) {
   const o = { k: giId(), id, n, x, y, vx, vy, z: 6, vz: 70, t: 0, by: own && typeof NET !== 'undefined' && NET.room && NET.room.me ? NET.room.me.peer || 'me' : 'me', mine: own ? 1 : 0 };
-  giList().push(o); if (own && typeof netEmit === 'function') netEmit('gi', { a: 'add', o: giWire(o) });
+  giList().push(o); if (own && typeof netEmit === 'function') giEmit({ a: 'add', o: giWire(o) });
   return o;
 }
 const giWire = o => ({ k: o.k, id: o.id, n: o.n, x: Math.round(o.x), y: Math.round(o.y), vx: Math.round(o.vx), vy: Math.round(o.vy) });
@@ -42,17 +44,17 @@ addEventListener('keydown', e => {
 const _want = new Set();
 function giTake(o) {
   const L2 = giList(), i = L2.indexOf(o); if (i < 0) return;
-  if (typeof isGuest === 'function' && isGuest()) { if (_want.has(o.k)) return; _want.add(o.k); setTimeout(() => _want.delete(o.k), 2000); netEmit('gi', { a: 'want', k: o.k }); return; }
+  if (typeof isGuest === 'function' && isGuest()) { if (_want.has(o.k)) return; _want.add(o.k); setTimeout(() => _want.delete(o.k), 2000); giEmit({ a: 'want', k: o.k }); return; }
   const left = invAdd(o.id, o.n);
-  if (left > 0) { if (left === o.n) { if (!o._full) { o._full = 1; toastErr('Inventario lleno'); } return; } o.n = left; if (typeof netEmit === 'function') netEmit('gi', { a: 'set', k: o.k, n: left }); }
-  else { L2.splice(i, 1); if (typeof netEmit === 'function') netEmit('gi', { a: 'del', k: o.k }); }
+  if (left > 0) { if (left === o.n) { if (!o._full) { o._full = 1; toastErr('Inventario lleno'); } return; } o.n = left; if (typeof netEmit === 'function') giEmit({ a: 'set', k: o.k, n: left }); }
+  else { L2.splice(i, 1); if (typeof netEmit === 'function') giEmit({ a: 'del', k: o.k }); }
   tone(880, 0.05, 'sine', 0.03, 1.4); if (typeof fxBurst === 'function') fxBurst(o.x, o.y, 4, { col: ITEMS[o.id].c || '#fff', sp: 30, life: 0.3, size: 1.5, glow: 1 });
 }
 let _giT = 0;
 function giTick(dt) {
   if (!S || !S.gitems || !S.gitems.length) return; const L2 = S.gitems, p = S.player, host = !(typeof isGuest === 'function' && isGuest());
   for (let i = L2.length - 1; i >= 0; i--) { const o = L2[i]; o.t += dt;
-    if (o.t > GI_LIFE && host) { L2.splice(i, 1); if (typeof netEmit === 'function') netEmit('gi', { a: 'del', k: o.k }); continue; }
+    if (o.t > GI_LIFE && host) { L2.splice(i, 1); if (typeof netEmit === 'function') giEmit({ a: 'del', k: o.k }); continue; }
     // Vuelo: arco, rozamiento y rebote en lo que no se atraviesa
     if (o.z > 0 || o.vz > 0) { o.vz -= 420 * dt; o.z = Math.max(0, o.z + o.vz * dt); if (o.z === 0) o.vz = 0; }
     if (o.vx || o.vy) { const nx = o.x + o.vx * dt, ny = o.y + o.vy * dt;
@@ -64,7 +66,7 @@ function giTick(dt) {
     if (ready && d <= GI_PICK && !(o.z > 2)) giTake(o);
   }
   // Juntar en una sola pila lo mismo que está pegado (no se llena el suelo de iconos)
-  if ((_giT += dt) > 1 && host) { _giT = 0; for (let i = 0; i < L2.length; i++) for (let j = L2.length - 1; j > i; j--) { const a = L2[i], b = L2[j]; if (a.id === b.id && a.n + b.n <= STACK && !a.vx && !b.vx && Math.hypot(a.x - b.x, a.y - b.y) < 12) { a.n += b.n; L2.splice(j, 1); if (typeof netEmit === 'function') { netEmit('gi', { a: 'set', k: a.k, n: a.n }); netEmit('gi', { a: 'del', k: b.k }); } } } }
+  if ((_giT += dt) > 1 && host) { _giT = 0; for (let i = 0; i < L2.length; i++) for (let j = L2.length - 1; j > i; j--) { const a = L2[i], b = L2[j]; if (a.id === b.id && a.n + b.n <= STACK && !a.vx && !b.vx && Math.hypot(a.x - b.x, a.y - b.y) < 12) { a.n += b.n; L2.splice(j, 1); if (typeof netEmit === 'function') { giEmit({ a: 'set', k: a.k, n: a.n }); giEmit({ a: 'del', k: b.k }); } } } }
 }
 { const s0 = survTick; survTick = (dt, mv, sp) => { s0(dt, mv, sp); giTick(dt); }; }
 // Dibujo: con sombra, flotando un poco y con su número
@@ -80,14 +82,14 @@ function drawGroundItems(c) {
 }
 { const a0 = drawAnimals; drawAnimals = (c, k, ox, oy, x0, y0, x1, y1) => { a0(c, k, ox, oy, x0, y0, x1, y1); c.setTransform(k, 0, 0, k, ox, oy); drawGroundItems(c); }; }
 // En línea: todos ven lo mismo; el anfitrión reparte
-{ const w0 = wireGame; wireGame = r => { w0(r); r.on('gi', m => {
+{ const w0 = wireGame; wireGame = r => { w0(r); const onGi = m => {
   if (m.sameTab || !m.data || !S) return; const d = m.data, L2 = giList(), host = NET.game && NET.game.host;
   if (d.a === 'add' && d.o && ITEMS[d.o.id] && !L2.some(o => o.k === d.o.k)) L2.push({ ...d.o, z: 6, vz: 70, t: 0, by: m.peer, mine: 0 });
   else if (d.a === 'del') { const i = L2.findIndex(o => o.k === d.k); if (i >= 0) L2.splice(i, 1); }
   else if (d.a === 'set') { const o = L2.find(o => o.k === d.k); if (o) o.n = d.n; }
-  else if (d.a === 'want' && host) { const i = L2.findIndex(o => o.k === d.k); if (i < 0) return; const o = L2[i]; L2.splice(i, 1); netEmit('gi', { a: 'del', k: o.k }); netEmit('gi', { a: 'give', to: m.peer, id: o.id, n: o.n }); }
+  else if (d.a === 'want' && host) { const i = L2.findIndex(o => o.k === d.k); if (i < 0) return; const o = L2[i]; L2.splice(i, 1); giEmit({ a: 'del', k: o.k }); giEmit({ a: 'give', to: m.peer, id: o.id, n: o.n }); }
   else if (d.a === 'give' && d.to === myPeer(r) && ITEMS[d.id]) { const left = invAdd(d.id, d.n); if (left > 0) throwItem(d.id, left); tone(880, 0.05, 'sine', 0.03, 1.4); }
-}); }; }
+}; r.on('gi', onGi); r.on('mob', m => { if (m.data && m.data.t === 'gi') onGi(m); }); }; }
 // Lo recogido, minado o fabricado va primero a un hueco libre de la barra rápida; si no hay, a la mochila
 FILL_ORDER.length = 0; for (let i = 0; i < INV_N; i++) FILL_ORDER.push(i);
 // ---------- Inventario: zona para soltar al suelo ----------
