@@ -6,7 +6,7 @@
 const OPT_DEF = {
   master: 1, sfx: 1, music: 0.8, mute: false,
   bright: 1, contrast: 1, particles: 1, shake: true, wxScreen: true, illFx: true, uiScale: 1, fps: false, minimap: true, names: true, hover: true,
-  camFollow: 8, zoomSens: 1, wheelInvert: false, wheelHotbar: false,
+  camFollow: 8, zoomSens: 1, wheelInvert: false, wheelHotbar: false, wheelOld: false,
   autosave: 30, chatSize: 13, chatOpacity: 0.72, chatFade: 12, confirmQuit: true,
   keys: {},
 };
