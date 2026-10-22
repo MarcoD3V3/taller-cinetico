@@ -1109,3 +1109,17 @@ body.inmenu #ampBar, body.climbing #ampBar { display: none; }
 .invtip { font-size: 11.5px; line-height: 1.45; color: #d8d2c4; }
 .invwrap .invside { flex: none; width: 200px; min-width: 0; } /* columna fija: no aplasta la mesa de fabricar */
 @media (max-width: 900px) { .invwrap { flex-direction: column; } .invwrap .invside { width: 100%; } .dropzone { min-height: 60px; } }
+/* Ficha del objeto en la columna de la mochila */
+.invwrap .invside { width: 240px; }
+.dropzone { min-height: 74px; } .dropzone b { font-size: 18px; }
+.icard { border: 1px solid var(--line); border-radius: 12px; padding: 10px; background: #ffffff05; font-size: 12px; line-height: 1.4; max-height: 420px; overflow: auto; }
+.icard.pin { border-color: #e0b54c66; }
+.ich { display: flex; gap: 8px; align-items: center; } .ich b { display: block; font-family: var(--display); font-size: 14px; color: var(--brass); } .ich small { color: var(--muted); font-size: 11px; }
+.icd { margin: 6px 0; color: #d8d2c4; }
+.icn { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; margin: 6px 0; } .icn > div { background: #ffffff08; border-radius: 7px; padding: 3px 6px; } .icn small { display: block; color: var(--muted); font-size: 10px; } .icn b { font-size: 12px; }
+.icm { display: flex; flex-wrap: wrap; gap: 3px; margin: 4px 0; } .icm span { font-size: 11px; padding: 1px 6px; border-radius: 999px; } .icm .up { background: #7fd07a1f; color: var(--good); } .icm .down { background: #ff6b5b1f; color: #ff8a7a; }
+.ics { margin: 8px 0 3px; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.icu { margin: 0; padding-left: 16px; } .icu li { margin: 1px 0; }
+.icl { display: flex; flex-wrap: wrap; gap: 3px; } .icic { display: inline-flex; padding: 1px; border-radius: 5px; background: #ffffff0a; vertical-align: middle; cursor: help; } .icic:hover { background: #e0b54c33; }
+.icw { margin: 3px 0; } .icw b { color: #e8e4dc; margin-right: 4px; }
+.icard { max-height: 300px; } .invside .dropzone { min-height: 56px; flex-direction: row; gap: 8px; } .invside .dropzone small { display: none; } .invside .invtip { font-size: 11px; }

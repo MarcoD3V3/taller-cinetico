@@ -145,7 +145,7 @@ for (const [id, n, c, g, x, core, teeth, d] of F_BLOCKS) { XB(id, Object.assign(
 // El cultivo plantado: bloque sin objeto (lo dibuja sim/farming.js)
 XB('crop', { n: 'Cultivo', cat: -1, walk: 1, look: { c: '#5a8a3a', g: '' }, d: 'Lo que plantaste.' });
 // ---------- Herramientas del campo (31) ----------
-const F_TOOL_KIND_N = { hoe: 'Azada', can: 'Regadera', harvest: 'Hoz de cosecha', seedbag: 'Sembradora', rake: 'Rastrillo', shears: 'Tijeras de podar', machete: 'Machete', lens: 'Lupa', spreader: 'Abonadora', trowel: 'Desplantador', pan: 'Batea', dowse: 'Varilla de zahorí' };
+const F_TOOL_KIND_N = { hoe: 'Azada', can: 'Regadera', harvest: 'Hoz de cosecha', seedbag: 'Sembradora', rake: 'Rastrillo', shears: 'Tijeras de podar', machete: 'Machete', lens: 'Lupa', spreader: 'Abonadora', trowel: 'Desplantador', pan: 'Batea', dowse: 'Varilla de zahorí', shoo: 'Espantapájaros de mano' };
 // [id, nombre, color, forma, {kind, area, ...}, núcleo, dientes, descripción]
 const F_TOOLS = [
   ['woodHoe', 'Azada de madera', '#a07848', 'hoe', { kind: 'hoe', area: 0 }, 'stick', 'planks,planks', 'Clic en hierba o tierra: la convierte en tierra de cultivo.'],
@@ -184,6 +184,6 @@ const FTOOLS = {};
 for (const [id, n, c, s, st, core, teeth, d] of F_TOOLS) {
   if (ITEMS[id]) continue; FTOOLS[id] = st;
   TOOLS[id] = { kind: 'util', mult: 1, lv: 1, ftool: st };
-  ITEMS[id] = { n, c, s: s === 'hoe' ? 'pick' : s === 'shears' ? 'sickle' : s, cat: FARM_CAT, tool: TOOLS[id], d: `${F_TOOL_KIND_N[st.kind]}. ${d}` };
+  ITEMS[id] = { n, c, s: s === 'hoe' ? 'pick' : s === 'shears' ? 'sickle' : s, cat: FARM_CAT, tool: TOOLS[id], d: F_TOOL_KIND_N[st.kind] ? `${F_TOOL_KIND_N[st.kind]}. ${d}` : d };
   RR(id, 1, core, teeth);
 }
