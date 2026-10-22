@@ -174,7 +174,10 @@ async function onMsg(c, m) {
     case 'join': {
       const r = rooms.get(rn);
       if (rn !== 'lobby' && (!r || !r.meta)) return rep({ op: 'err', code: 'not_found' });
-      if (r.meta) { if (r.meta.bans.has(c.by)) return rep({ op: 'err', code: 'banned' }); if (r.meta.pass && clean(m.pass, 40) !== r.meta.pass) return rep({ op: 'err', code: 'bad_pass' }); if (r.peers.size >= r.meta.max) return rep({ op: 'err', code: 'full' }); if (r.meta.requireDc && !c.verified) return rep({ op: 'err', code: 'need_discord' }); }
+      if (r.meta) { if (r.meta.bans.has(c.by)) return rep({ op: 'err', code: 'banned' }); if (r.meta.pass && clean(m.pass, 40) !== r.meta.pass) return rep({ op: 'err', code: 'bad_pass' }); if (r.peers.size >= r.meta.max) return rep({ op: 'err', code: 'full' }); if (r.meta.requireDc && !c.verified) return rep({ op: 'err', code: 'need_discord' });
+        // Una cuenta, un jugador: si ya estás dentro (otra pestaña u otro dispositivo), no se entra dos veces.
+        // Si lo que queda es un hueco de una conexión caída, se libera para ti.
+        for (const id of [...r.peers.keys()]) { const o = clients.get(id); if (!o || o === c || o.by !== c.by) continue; if (o.gone) bye(o); else return rep({ op: 'err', code: 'same_account' }); } }
       r.peers.set(c.id, {}); c.rooms.add(rn); sendPeers(r); return rep({ op: 'joined', room: rn });
     }
     case 'leave': leaveRoom(c, rn); return rep({ op: 'left', room: rn });
