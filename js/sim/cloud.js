@@ -34,6 +34,7 @@ async function cloudDownload(id) {
 { const s0 = saveGame; saveGame = quiet => { const ok = s0(quiet); if (ok && S && currentWorld && !String(currentWorld).startsWith('mp-') && cloudOn() && Date.now() - _cloudLast > 120000) { _cloudLast = Date.now(); cloudUpload(currentWorld, true); } return ok; }; }
 // ---------- En la lista de mundos ----------
 let _cloudList = null;
+const cldAgo = t => { const m = (Date.now() - t) / 60000; return m < 1 ? 'ahora' : m < 60 ? `hace ${Math.round(m)} min` : m < 1440 ? `hace ${Math.round(m / 60)} h` : m < 2880 ? 'ayer' : `hace ${Math.round(m / 1440)} días`; };
 async function cloudRender(refetch) {
   const box = $('cloudBox'); if (!box) return;
   if (!cloudOn()) {
@@ -43,8 +44,16 @@ async function cloudRender(refetch) {
   }
   if (refetch || !_cloudList) { try { _cloudList = await NET.room.saves(); } catch (e) { _cloudList = []; } }
   const loc = new Map(worldIndex().map(w => [w.id, w]));
-  box.innerHTML = `<div class="cssub">☁ En la nube (${_cloudList.length}/20)${_cloudBusy ? ' <span class="mpspin"></span>' : ''}</div><div class="cldl">${_cloudList.length ? _cloudList.map(s => { const l = loc.get(s.id), t = new Date(s.updated).getTime(), state = !l ? 'Solo en la nube' : Math.abs((l.played || 0) - t) < 60000 ? 'Al día' : (l.played || 0) > t ? 'Tienes cambios sin subir' : 'Hay una versión más nueva en la nube';
-    return `<div class="cldc"><span><b>${esc(s.name || 'Mundo')}</b><span class="mut small">${esc(state)} · ${Math.round((s.size || 0) / 1024)} KB · ${fmtDate(t)}</span></span><span class="row gap">${l && (l.played || 0) > t ? `<button data-cl="up:${esc(s.id)}">Subir</button>` : ''}<button data-cl="down:${esc(s.id)}">${l ? 'Bajar' : 'Descargar'}</button><button class="danger" data-cl="del:${esc(s.id)}" aria-label="Borrar de la nube">✕</button></span></div>`; }).join('') : '<p class="mut small">Todavía no hay nada. Usa «☁ Subir» en un mundo, o se subirá solo mientras juegas.</p>'}</div>`;
+  // Tarjetas pequeñas: el punto de color dice cómo está cada copia y el botón, qué hacer
+  const ST = { ok: ['Al día', 'Igual que en este ordenador', ''], up: ['Cambios sin subir', 'Lo jugado aquí es más nuevo', 'up'], down: ['Más nuevo en la nube', 'Lo jugaste en otro ordenador', 'down'], cloud: ['Solo en la nube', 'No está en este ordenador', 'down'] };
+  const rows = _cloudList.map(s => { const l = loc.get(s.id), t = new Date(s.updated).getTime(), k = !l ? 'cloud' : Math.abs((l.played || 0) - t) < 60000 ? 'ok' : (l.played || 0) > t ? 'up' : 'down'; return { s, l, t, k }; });
+  const only = rows.filter(r => r.k === 'cloud').length;
+  box.innerHTML = `<section class="cldp"><header><span class="cldi">☁</span><div><b>Copia en la nube</b><small>${_cloudList.length} de 20 mundos${_cloudBusy ? ' · <span class="mpspin"></span>' : ''}</small></div>${only > 1 ? `<button class="cldall" data-cl="all:">Bajar los ${only}</button>` : ''}</header>
+    <p class="cldhelp">Tus mundos se guardan en tu cuenta para seguir en <b>cualquier ordenador</b>. Mientras juegas se suben solos cada 2 minutos.</p>
+    ${rows.length ? `<div class="cldg">${rows.map(({ s, l, t, k }) => { const [n, why, act] = ST[k]; return `<div class="cldt k-${k}" title="${esc(why)}"><i class="clddot"></i><span class="cldn"><b>${esc(s.name || 'Mundo')}</b><small>${esc(n)} · ${cldAgo(t)} · ${Math.round((s.size || 0) / 1024)} KB</small></span>
+      ${act === 'up' ? `<button class="cldb pri" data-cl="up:${esc(s.id)}" title="Subir lo de este ordenador">↑</button>` : act === 'down' ? `<button class="cldb pri" data-cl="down:${esc(s.id)}" title="${l ? 'Traer la versión de la nube' : 'Bajar a este ordenador'}">↓</button>` : '<span class="cldok" title="Al día">✓</span>'}
+      <button class="cldb del" data-cl="del:${esc(s.id)}" title="Borrar de la nube (no toca este ordenador)">🗑</button></div>`; }).join('')}</div>` : '<p class="cldhelp mut">Aún no hay nada. Pulsa «☁ Subir» en un mundo o juega un rato y se subirá solo.</p>'}
+    <div class="cldleg"><span class="k-ok"><i class="clddot"></i>Al día</span><span class="k-up"><i class="clddot"></i>Sin subir</span><span class="k-down"><i class="clddot"></i>Más nuevo en la nube</span><span class="k-cloud"><i class="clddot"></i>Solo en la nube</span></div></section>`;
 }
 { const s0 = showList; showList = () => { s0(); const ex = $('tExtra'); if (ex && !$('cloudBox')) ex.insertAdjacentHTML('beforebegin', '<div id="cloudBox"></div>');
   if (cloudOn()) document.querySelectorAll('#tBody .wcard').forEach(c => { const id = c.dataset.idW, b = c.querySelector('.wbtns'); if (id && b && !b.querySelector('[data-cl]')) b.insertAdjacentHTML('afterbegin', `<button data-cl="up:${esc(id)}" title="Guardar una copia en la nube">☁ Subir</button>`); });
@@ -52,6 +61,7 @@ async function cloudRender(refetch) {
 document.addEventListener('click', async e => { const b = e.target.closest('[data-cl]'); if (!b) return; const [a, id] = b.dataset.cl.split(':');
   if (a === 'up') { b.disabled = true; if (await cloudUpload(id)) { _cloudList = null; cloudRender(true); } b.disabled = false; }
   if (a === 'down') cloudDownload(id);
+  if (a === 'all') { const loc = new Set(worldIndex().map(w => w.id)); b.disabled = true; const sl = showList; showList = () => { }; try { for (const s of _cloudList || []) if (!loc.has(s.id)) await cloudDownload(s.id); } finally { showList = sl; } toast('☁ Mundos bajados a este ordenador'); showList(); }
   if (a === 'del' && confirm('¿Borrar este mundo de la nube? La copia de este navegador no se toca.')) { try { await NET.room.saveDel(id); toast('Borrado de la nube'); } catch (er) { toastErr(er.message || er.code); } cloudRender(true); } });
 // Al salir al menú, copia en la nube sin esperar a los 2 minutos
 { const q0 = quitToMenu; quitToMenu = async () => { _cloudLast = 0; return q0(); }; }

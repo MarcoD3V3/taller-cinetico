@@ -48,7 +48,7 @@ document.addEventListener('keydown', e => { if (e.target && e.target.closest && 
 { const a0 = accHTML; accHTML = inPause => {
   let h = a0(inPause);
   if (NET.kind === 'ws' && NET.me.verified && NET.room && NET.room.me && NET.room.me.acct === 'local') h = h.replace('✓ Sesión iniciada con Discord', '✓ Sesión iniciada con tu cuenta del juego');
-  if (accAvailable() && !NET.me.verified) h = h.replace('<b>Inicia sesión con Discord</b>', '<b>Inicia sesión o crea tu cuenta</b>').replace(/(<\/ul>)([\s\S]*?)(<\/div>\s*)$/, (m, ul, rest, end) => `${ul}${accFormHTML()}<div class="accor"><span>o</span></div>${rest}${end}`);
+  if (accAvailable() && !NET.me.verified) h = h.replace(/<div class="dclogo">[\s\S]*?<\/svg><\/div>/, `<div class="acclogo">${svgI('M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21c0-4 4-6 8-6s8 2 8 6', 30)}</div>`).replace('<b>Inicia sesión con Discord</b>', '<b>Inicia sesión o crea tu cuenta</b>').replace(/(<\/ul>)([\s\S]*?)(<\/div>\s*)$/, (m, ul, rest, end) => `${ul}${accFormHTML()}<div class="accor"><span>o</span></div>${rest}${end}`);
   return h;
 }; }
 // Textos que antes solo hablaban de Discord
