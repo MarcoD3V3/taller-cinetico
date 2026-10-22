@@ -185,7 +185,7 @@ function render(fdt) {
     darkX.globalCompositeOperation = 'destination-out';
     const lk = k / 4 / dpr;
     const light = (wx, wy, r) => { const sx = (ox / dpr + wx * z) / 4, sy = (oy / dpr + wy * z) / 4, rs = r * T * z / 4; if (sx + rs < 0 || sy + rs < 0 || sx - rs > dw || sy - rs > dh) return; darkX.drawImage(glowSprite, sx - rs, sy - rs, rs * 2, rs * 2); };
-    { const h = heldId(); light(p.x, p.y, h === 'lightWand' ? 12 : h === 'lantern' ? 8 : buff('night') ? 9 : 3); }
+    { const h = heldId(); light(p.x, p.y, Math.max(h === 'lightWand' ? 12 : h === 'lantern' ? 8 : buff('night') ? 9 : 3, typeof kitLight === 'function' ? kitLight() : 0)); }
     for (const b of L.light) if (litOf(b)) light(b.x * T + 16, b.y * T + 16, typeof lightOf === 'function' ? lightOf(b) : BD[b.type].light);
     for (let cy = Math.floor(y0 / CH); cy <= Math.floor(y1 / CH); cy++) for (let cx = Math.floor(x0 / CH); cx <= Math.floor(x1 / CH); cx++) { const ls = tileLights.get(chunkKey(cx, cy)); if (ls) for (let i = 0; i < ls.length; i += 3) light(ls[i] * T + 16, ls[i + 1] * T + 16, ls[i + 2]); }
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.imageSmoothingEnabled = true; ctx.drawImage(darkC, 0, 0, cv.width, cv.height);

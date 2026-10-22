@@ -1074,3 +1074,21 @@ body.climbing #layerHud, body.climbing #layerBanner { display: none; }
 /* En línea con una ventana abierta el mundo sigue dibujándose a 60 FPS: sin desenfoques encima (son muy caros) */
 body.livebg *, body.livebg .modal { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
 body.livebg .modal, body.livebg .pausem { background: rgba(6,7,9,.62); }
+/* Kit del personaje: ampollas, suplementos, foco, luz y papelera (mismo estilo que el equipo) */
+.kit { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: flex-start; padding-top: 6px; border-top: 1px dashed #ffffff14; }
+.kitg { display: flex; flex-direction: column; gap: 3px; } .kitg small { font-size: 10.5px; color: var(--muted); letter-spacing: .02em; white-space: nowrap; cursor: help; } .kitg kbd { font-size: 9px; padding: 0 3px; }
+.kitrow { display: flex; gap: 3px; } .kit .s.eq { width: 38px; height: 38px; } .kit .s.eq .ic { width: 28px; height: 28px; }
+.kit .s.bt.amp { border-color: #4a7a9a; } .kit .s.bt.amp.has { border-color: #6ab0e0; background: #1f2a33; }
+.kit .s.bt.supp { border-color: #4a8a5a; } .kit .s.bt.supp.has { border-color: #7fd07a; background: #1f2b22; }
+.kit .s.bt.focus { border-color: #6a4a9a; border-radius: 50%; } .kit .s.bt.focus.has { border-color: #b08aff; background: #26203a; box-shadow: 0 0 10px #b08aff33; }
+.kit .s.bt.light { border-color: #8a7a3a; } .kit .s.bt.light.has { border-color: #ffd36a; background: #2e2a1c; box-shadow: 0 0 10px #ffd36a33; }
+.kit .s.bt.trash { border-color: #6a3a3a; } .kit .s.bt.trash.has { border-color: #e06a5a; background: #2e1f1d; }
+.kit .s.bt.pulse { animation: kitp 1s ease-in-out infinite; } @keyframes kitp { 50% { box-shadow: 0 0 0 2px #e0b54c88; } }
+.kitinfo { flex-basis: 100%; font-size: 11.5px; line-height: 1.45; color: #d8d2c4; }
+#ampBar { position: fixed; left: 50%; bottom: 74px; transform: translateX(calc(-50% - 290px)); z-index: 6; display: flex; gap: 4px; }
+#ampBar .abs { position: relative; width: 36px; height: 36px; border-radius: 9px; background: rgba(20,28,34,.85); border: 1px solid #6ab0e055; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+#ampBar .abs:hover { border-color: #6ab0e0; transform: translateY(-2px); } #ampBar .n { position: absolute; right: 2px; bottom: 0; font-size: 10px; font-weight: 700; text-shadow: 0 1px 2px #000; }
+#ampBar kbd { position: absolute; left: 2px; top: 1px; font-size: 8.5px; padding: 0 2px; opacity: .75; }
+body.inmenu #ampBar, body.climbing #ampBar { display: none; }
+@media (max-width: 760px) { #ampBar { transform: translateX(-50%); bottom: 132px; } }
+.kit { width: 0; min-width: 100%; } /* se reparte en el hueco que hay, sin ensanchar el inventario */
