@@ -11,6 +11,20 @@ const enemiesOn = () => foeMult() > 0;
 const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
 function fxText(x, y, txt, c = '#fff', big) { FX.push({ x, y, txt: String(txt), c, t: big ? 1.6 : 0.9, big }); if (FX.length > 80) FX.shift(); }
 // ¿Se puede pisar? Los fantasmas atraviesan paredes; los voladores, el agua
+// ¿Hay una pared (bloque que no se pisa, puerta cerrada o roca) entre dos puntos? Las casillas de los extremos no cuentan
+function losClear(x1, y1, x2, y2) {
+  const t1 = Math.floor(x1 / T) + ',' + Math.floor(y1 / T), t2 = Math.floor(x2 / T) + ',' + Math.floor(y2 / T), n = Math.ceil(Math.hypot(x2 - x1, y2 - y1) / 8);
+  for (let i = 1; i < n; i++) { const x = x1 + (x2 - x1) * i / n, y = y1 + (y2 - y1) * i / n, tx = Math.floor(x / T), ty = Math.floor(y / T), k = tx + ',' + ty; if (k === t1 || k === t2) continue;
+    const b = at(tx, ty); if (b && (!BD[b.type].walk || BD[b.type].door)) return false; const g = GI[gnd(tx, ty)]; if (g.solid && !g.flora && !g.tree) return false; }
+  return true;
+}
+// Mover un enemigo sin atravesar paredes: si no cabe, prueba solo en horizontal o solo en vertical
+function fStep(f, nx, ny) {
+  const who = typeof foeWho === 'function' ? foeWho(f.D) : null;
+  if (passable(nx, ny, who)) { f.x = nx; f.y = ny; return true; }
+  if (passable(nx, f.y, who)) { f.x = nx; return false; } if (passable(f.x, ny, who)) { f.y = ny; return false; }
+  return false;
+}
 function passable(x, y, who) {
   const tx = Math.floor(x / T), ty = Math.floor(y / T), c = peekChunk(tx >> CSH, ty >> CSH); if (!c) return false;
   const i = ((ty & CMASK) << CSH) | (tx & CMASK), gi = GI[c.g[i]], o = who && typeof who === 'object' ? who : null;
@@ -172,7 +186,7 @@ function stepFoe(f, dt) {
       if (D.ai === 'summoner' && (f.st = (f.st || 4) - dt) <= 0) { f.st = 7; if (FOES.filter(o => o.owner === f).length < 5) for (let i = 0; i < 2; i++) spawnFoe(D.summon, f.x + (i ? 18 : -18), f.y + 10, { owner: f, minion: 1 }); }
       break;
     case 'charger':
-      if (f.charge > 0) { f.charge -= dt; f.x += f.vx * dt; f.y += f.vy * dt; if (td < D.s + 14) contactHit(f, tgt, 1.4); return; }
+      if (f.charge > 0) { f.charge -= dt; if (!fStep(f, f.x + f.vx * dt, f.y + f.vy * dt)) f.charge = 0; if (td < D.s + 14) contactHit(f, tgt, 1.4); return; }
       if (f.tele > 0) { f.tele -= dt; if (f.tele <= 0) { const a = Math.atan2(ty - f.y, tx - f.x); f.vx = Math.cos(a) * sp * 3.2; f.vy = Math.sin(a) * sp * 3.2; f.charge = 0.55; } return; }
       want = 1; if (td < 6 * T && td > 2 * T && f.cd <= 0) { f.cd = 2.5; f.tele = 0.45; return; }
       break;
@@ -182,7 +196,7 @@ function stepFoe(f, dt) {
       break;
     default: want = 1;
   }
-  if (D.blink && (f.bt = (f.bt || 3) - dt) <= 0) { f.bt = 4 + Math.random() * 2; const a = Math.random() * 7; f.x = tx + Math.cos(a) * 2.5 * T; f.y = ty + Math.sin(a) * 2.5 * T; fxText(f.x, f.y, '✦', '#a060ff'); }
+  if (D.blink && (f.bt = (f.bt || 3) - dt) <= 0) { f.bt = 4 + Math.random() * 2; const a = Math.random() * 7, nx = tx + Math.cos(a) * 2.5 * T, ny = ty + Math.sin(a) * 2.5 * T; if (passable(nx, ny, foeWho(D)) && losClear(nx, ny, tx, ty)) { f.x = nx; f.y = ny; fxText(f.x, f.y, '✦', '#a060ff'); } }
   if (D.ai !== 'ranged' && D.ai !== 'caster' && D.ai !== 'summoner' && td < D.s + 14 && f.cd <= 0) { f.cd = 1.3; contactHit(f, tgt, 1); }
   // Movimiento con esquiva, separación y flanqueo (sim/mobai.js)
   if (f.root <= 0 && (want ? td > D.s + 8 : D.ai === 'ranged' || D.ai === 'caster' || D.ai === 'summoner')) foeMove(f, tx, ty, td, want, sp, dt);
@@ -191,6 +205,7 @@ function stepFoe(f, dt) {
 }
 function contactHit(f, tgt, mult) {
   const D = f.D;
+  if (tgt === 'player' && !losClear(f.x, f.y, S.player.x, S.player.y)) return; // con una pared en medio no llega el golpe
   if (tgt === 'player') { hitPlayer(D.dmg * mult, D.wound, 'Atacado por: ' + D.n, D.venom ? 'poison' : D.el); if (D.drain) f.hp = Math.min(f.mhp, f.hp + D.dmg); }
   else if (tgt && tgt.hp !== undefined) { tgt.hp -= D.dmg * mult * scaleDmg(); tgt.flash = 0.15; }
 }
@@ -219,12 +234,12 @@ function bossAI(f, dt) {
   const phase = hpF < 0.25 ? 3 : hpF < 0.5 ? 2 : 1;
   if (phase !== f.phase) { if (f.phase) { fxText(f.x, f.y - D.s - 10, phase === 3 ? '¡FURIA!' : '¡Se enfurece!', '#ff3a2a', true); bossRoar(); if (D.ab.some(a => a[0] === 'summon')) doAbility(f, D.ab.find(a => a[0] === 'summon')); } f.phase = phase; }
   if (f.shieldT > 0) { f.shieldT -= dt; if (!FOES.some(o => o.owner === f)) f.shieldT = 0; }
-  if (f.charge > 0) { f.charge -= dt; f.x += f.vx * dt; f.y += f.vy * dt; if (td < D.s + 14 && f.cd <= 0) { f.cd = 0.6; hitPlayer(D.dmg * 1.5, D.ab.some(a => a[0] === 'charge') ? 'fracture' : 'cut', D.n, D.el); } return; }
+  if (f.charge > 0) { f.charge -= dt; if (!fStep(f, f.x + f.vx * dt, f.y + f.vy * dt)) f.charge = 0; if (td < D.s + 14 && f.cd <= 0) { f.cd = 0.6; hitPlayer(D.dmg * 1.5, D.ab.some(a => a[0] === 'charge') ? 'fracture' : 'cut', D.n, D.el); } return; }
   if (f.tele > 0) { f.tele -= dt; if (f.tele <= 0) { const a = f.ta; f.vx = Math.cos(a) * D.v * T * 4.5; f.vy = Math.sin(a) * D.v * T * 4.5; f.charge = 0.7; } return; }
   if (f.spiral > 0) { f.spiral -= dt; f.sa = (f.sa || 0) + dt * 4; if ((f.sT = (f.sT || 0) - dt) <= 0) { f.sT = phase > 1 ? 0.06 : 0.09; for (let i = 0; i < (D.heads || 1) + (phase > 2 ? 1 : 0); i++) { const a = f.sa + i * Math.PI * 2 / ((D.heads || 1) + (phase > 2 ? 1 : 0)); PROJ.push({ x: f.x, y: f.y, vx: Math.cos(a) * 7 * T, vy: Math.sin(a) * 7 * T, r: 6, dmg: D.dmg * 0.45, c: D.c2, team: 'e', life: 3, el: D.el, wound: 'burn', src: D.n }); } } }
   if (f.pullT > 0) { f.pullT -= dt; const a = Math.atan2(f.y - S.player.y, f.x - S.player.x); movePlayer(Math.cos(a) * 3.2 * T * dt, Math.sin(a) * 3.2 * T * dt); }
   // Moverse hacia el jugador
-  if (td > D.s + 20 && f.root <= 0) { const a = Math.atan2(S.player.y - f.y, S.player.x - f.x), sp = D.v * T * (phase === 3 ? 1.35 : 1) * (f.slow > 0 ? 0.6 : 1) * dt; f.x += Math.cos(a) * sp; f.y += Math.sin(a) * sp; f.face = Math.cos(a) > 0 ? 1 : -1; }
+  if (td > D.s + 20 && f.root <= 0) { const a = Math.atan2(S.player.y - f.y, S.player.x - f.x), sp = D.v * T * (phase === 3 ? 1.35 : 1) * (f.slow > 0 ? 0.6 : 1) * dt; fStep(f, f.x + Math.cos(a) * sp, f.y + Math.sin(a) * sp); f.face = Math.cos(a) > 0 ? 1 : -1; }
   f.cd -= dt;
   if (td < D.s + 16 && f.cd <= 0) { f.cd = 1.2; hitPlayer(D.dmg, 'cut', D.n, D.el); if (D.drain) f.hp = Math.min(f.mhp, f.hp + D.dmg); }
   f.abT -= dt * (phase === 3 ? 1.6 : phase === 2 ? 1.25 : 1);
@@ -239,7 +254,7 @@ function doAbility(f, ab) {
     case 'charge': f.ta = Math.atan2(py - f.y, px - f.x); f.tele = 0.65; HAZ.push({ x: f.x, y: f.y, ang: f.ta, len: D.v * T * 4.5 * 0.7, w: D.s * 1.4, t: 0.65, dl: 0.65, kind: 'line', c: '#ff3a2a' }); break;
     case 'slam': HAZ.push({ x: f.x, y: f.y, r: D.s * 2.8, t: 0.9, dl: 0.9, kind: 'warn', dmg: D.dmg * 1.3, wound: 'fracture', team: 'e', src: D.n, c: '#ff3a2a', shake: 1, follow: f }); break;
     case 'meteor': { const n = ab[1] + (ph > 1 ? 2 : 0); for (let i = 0; i < n; i++) { const ox = i ? (Math.random() - 0.5) * 8 * T : 0, oy = i ? (Math.random() - 0.5) * 8 * T : 0; HAZ.push({ x: px + ox, y: py + oy, r: 46, t: 1.1 + i * 0.12, dl: 1.1 + i * 0.12, kind: 'warn', dmg: D.dmg, wound: 'burn', team: 'e', src: D.n, c: D.el === 'frost' ? '#8ad8ff' : D.el === 'storm' ? '#f0f05a' : '#ff6a2a', el: D.el }); } break; }
-    case 'teleport': { const a = Math.random() * 7; FX.push({ x: f.x, y: f.y, ring: D.s, t: 0.4, c: '#a060ff' }); f.x = px + Math.cos(a) * 5 * T; f.y = py + Math.sin(a) * 5 * T; break; }
+    case 'teleport': { const a = Math.random() * 7; FX.push({ x: f.x, y: f.y, ring: D.s, t: 0.4, c: '#a060ff' }); const nx = px + Math.cos(a) * 5 * T, ny = py + Math.sin(a) * 5 * T; if (passable(nx, ny, foeWho(D)) && losClear(nx, ny, px, py)) { f.x = nx; f.y = ny; } break; }
     case 'heal': f.hp = Math.min(f.mhp, f.hp + f.mhp * 0.08); fxText(f.x, f.y - D.s - 10, '+' + Math.round(f.mhp * 0.08), '#7ae05a', true); break;
     case 'beam': { const a = Math.atan2(py - f.y, px - f.x); HAZ.push({ x: f.x, y: f.y, ang: a, len: 14 * T, w: 26, t: 0.85, dl: 0.85, kind: 'line', dmg: D.dmg * 1.4, wound: 'burn', team: 'e', src: D.n, c: D.c2, beam: 1 }); break; }
     case 'pull': f.pullT = 2.5; fxText(f.x, f.y - D.s - 10, '¡Te arrastra!', '#a060ff', true); break;

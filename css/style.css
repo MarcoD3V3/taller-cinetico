@@ -1251,3 +1251,6 @@ body.inmenu #ampBar, body.climbing #ampBar { display: none; }
 #hbPop b { font: 700 13px var(--display); color: var(--text); } #hbPop small { font-size: 11px; color: var(--muted); }
 .hbchips { display: flex; gap: 4px; } .hbchips:empty { display: none; } .hbchips i { font-style: normal; font-size: 10.5px; padding: 1px 7px; border-radius: 999px; background: #ffffff10; color: #d8d2c4; } .hbchips i.bad { color: #ff8a7a; background: #ff6b5b1c; }
 #hotbar { overflow: visible; }
+/* Ficha: el objeto elegido queda marcado; sin elegir, una ayuda corta */
+#mInv .s.icsel { box-shadow: inset 0 0 0 2px #6ab8ff, 0 0 10px #6ab8ff55; }
+.icempty { display: flex; flex-direction: column; gap: 6px; padding: 6px 2px; color: #d8d2c4; font-size: 12.5px; line-height: 1.45; } .icempty b { font-family: var(--display); color: var(--brass); } .icempty p { margin: 0; }

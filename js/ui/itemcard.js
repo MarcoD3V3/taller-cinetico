@@ -76,13 +76,21 @@ let _icId = null, _icShown = null, _icPin = null;
 document.addEventListener('mouseover', e => {
   if (!S || ui.open !== 'inv') return; const t = e.target.closest && e.target.closest('#mInv [data-k], #mInv [data-id], #mInv [data-hv]'); if (!t) return;
   if (t.closest('#iCard')) { const id = t.dataset.id; if (id && ITEMS[id]) _icPin = id; return; }
-  let id = null; if (t.dataset.k) { const r = slotRef(t.dataset.k), s = r && r.get && r.get(); id = s && s.id; } else id = t.dataset.id || t.dataset.hv;
-  if (id && ITEMS[id]) { _icId = id; _icPin = null; }
 });
+// Elegir un objeto para ver su ficha sin cogerlo: clic con la rueda o Alt + clic (pasar el ratón solo enseña el nombre)
+document.addEventListener('mousedown', e => {
+  if (!S || ui.open !== 'inv' || !(e.button === 1 || (e.button === 0 && e.altKey))) return;
+  const t = e.target.closest && e.target.closest('#mInv [data-k], #mInv [data-id], #mInv [data-hv]'); if (!t || t.closest('#iCard')) return;
+  let id = null; if (t.dataset.k) { const r = slotRef(t.dataset.k), s = r && r.get && r.get(); id = s && s.id; } else id = t.dataset.id || t.dataset.hv;
+  if (!id || !ITEMS[id]) return; e.preventDefault(); e.stopPropagation();
+  _icId = id; _icPin = null; _icShown = undefined;
+  document.querySelectorAll('#mInv .s.icsel').forEach(x => x.classList.remove('icsel')); t.classList.add('icsel');
+  tone(560, 0.03, 'sine', 0.02, 1.2);
+}, true);
 setInterval(() => {
   const box = document.getElementById('iCard'); if (!box || ui.open !== 'inv') return;
   const id = _icPin || _icId; if (id === _icShown && box._v === invVersion) return; const newId = id !== _icShown; _icShown = id; box._v = invVersion;
-  box.innerHTML = id ? itemCardHTML(id, invCount(id)) : '<p class="mut small">Pasa el ratón por un objeto para ver qué hace, sus números, para qué sirve y cómo se consigue.</p>';
+  box.innerHTML = id ? itemCardHTML(id, invCount(id)) : '<div class="icempty"><b>🔎 Ficha del objeto</b><p>Haz <kbd>clic con la rueda</kbd> (o <kbd>Alt</kbd> + clic) en un objeto para ver qué hace, sus números, para qué sirve y cómo se consigue.</p><p class="mut small">Pasar el ratón solo enseña el nombre.</p></div>';
   box.classList.toggle('pin', !!_icPin); if (newId) box.scrollTop = 0;
 }, 120);
 // Con la ficha a la vista, el tooltip del inventario es mínimo (nombre, cantidad y desgaste) para no taparla
@@ -98,3 +106,5 @@ setInterval(() => {
 const icMore = () => { const b = document.getElementById('iCard'); if (b) b.classList.toggle('more', b.scrollTop + b.clientHeight < b.scrollHeight - 4); };
 document.addEventListener('scroll', e => { if (e.target && e.target.id === 'iCard') icMore(); }, true);
 setInterval(icMore, 300);
+// Al salir de la ficha, deja de enseñar el objeto que señalabas dentro de ella
+document.addEventListener('mouseout', e => { if (_icPin && e.target.closest && e.target.closest('#iCard') && !(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('#iCard'))) _icPin = null; });
