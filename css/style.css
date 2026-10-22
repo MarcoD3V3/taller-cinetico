@@ -1071,3 +1071,6 @@ body.climbing #layerHud, body.climbing #layerBanner { display: none; }
 #mJoinPass[hidden] { display: none; }
 .jpin { width: min(360px, calc(100vw - 32px)); background: var(--panel-solid); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 20px 60px #000a; }
 .jpin b { font-family: var(--display); font-size: 17px; } .jpin small { color: var(--muted); margin-top: -6px; } .jpin label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; } .jpin .row { justify-content: flex-end; }
+/* En línea con una ventana abierta el mundo sigue dibujándose a 60 FPS: sin desenfoques encima (son muy caros) */
+body.livebg *, body.livebg .modal { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+body.livebg .modal, body.livebg .pausem { background: rgba(6,7,9,.62); }

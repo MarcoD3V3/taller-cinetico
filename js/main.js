@@ -220,7 +220,11 @@ function frame(now) {
   { const pcx = Math.floor(S.player.x / T / CS), pcy = Math.floor(S.player.y / T / CS); for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const c = peekChunk(pcx + dx, pcy + dy); if (c && !c.faunaDone) spawnFauna(c); } }
   // Con una ventana abierta el mundo se ve detrás: no hace falta dibujarlo a 60 FPS
   _rT -= fdt;
-  if (ui.open !== 'map' && (!ui.open || _rT <= 0)) { _rT = ui.open === 'inv' || ui.open === 'pause' ? 1 / 30 : ui.open ? 0.25 : 0; render(ui.open ? 0 : fdt); }
+  // En línea (o con tu mundo abierto en red) el mundo sigue vivo detrás de las ventanas: se dibuja a ritmo
+  // completo y con su tiempo real, para que los demás jugadores, criaturas y máquinas se vean fluidos
+  const live = typeof inGame === 'function' && inGame(), lb = live && !!ui.open && ui.open !== 'title';
+  if (lb !== frame._lb) { frame._lb = lb; document.body.classList.toggle('livebg', lb); } // sin desenfoques caros detrás de la ventana
+  if (ui.open !== 'map' && (!ui.open || live || _rT <= 0)) { _rT = live || !ui.open ? 0 : ui.open === 'inv' || ui.open === 'pause' ? 1 / 30 : 0.25; render(ui.open && !live ? 0 : fdt); }
   hoverFrame(fdt);
   uiT -= fdt; if (uiT <= 0) {
     uiT = 0.15;
