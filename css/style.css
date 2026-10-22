@@ -1092,3 +1092,20 @@ body.livebg .modal, body.livebg .pausem { background: rgba(6,7,9,.62); }
 body.inmenu #ampBar, body.climbing #ampBar { display: none; }
 @media (max-width: 760px) { #ampBar { transform: translateX(-50%); bottom: 132px; } }
 .kit { width: 0; min-width: 100%; } /* se reparte en el hueco que hay, sin ensanchar el inventario */
+/* Cabecera del inventario compacta: buscar (se abre al pulsar), ordenar y cerrar como iconos */
+.invhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.invtools { display: flex; align-items: center; gap: 6px; }
+.invsearch { display: flex; align-items: center; gap: 4px; height: 32px; padding: 0 8px; border-radius: 9px; border: 1px solid var(--line); background: #ffffff06; cursor: text; transition: border-color .15s; }
+.invsearch span { font-size: 13px; opacity: .7; } .invsearch input { width: 70px; border: 0 !important; background: transparent !important; padding: 0 !important; height: 28px; outline: none; box-shadow: none !important; transition: width .2s ease; }
+.invsearch:focus-within, .invsearch.on { border-color: var(--brass); } .invsearch:focus-within input, .invsearch.on input { width: 170px; }
+.invtools .ico { width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 15px; border-radius: 9px; }
+.hints > .chk { display: flex; gap: 6px; align-items: center; margin: 6px 0 2px; font-size: 12.5px; }
+/* Mochila con una columna al lado para soltar objetos */
+.invwrap { display: flex; gap: 12px; align-items: flex-start; } .invcol { flex: none; }
+.invside { flex: 1; min-width: 120px; display: flex; flex-direction: column; gap: 8px; }
+.dropzone { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 120px; border: 2px dashed #ffffff22; border-radius: 12px; color: var(--muted); text-align: center; transition: all .15s; padding: 8px; }
+.dropzone b { font-size: 24px; } .dropzone span { font-weight: 700; color: var(--text); font-size: 13px; } .dropzone small { font-size: 11px; }
+.dropzone.on { border-color: var(--brass); background: #e0b54c12; color: var(--brass); cursor: pointer; animation: kitp 1s ease-in-out infinite; }
+.invtip { font-size: 11.5px; line-height: 1.45; color: #d8d2c4; }
+.invwrap .invside { flex: none; width: 200px; min-width: 0; } /* columna fija: no aplasta la mesa de fabricar */
+@media (max-width: 900px) { .invwrap { flex-direction: column; } .invwrap .invside { width: 100%; } .dropzone { min-height: 60px; } }

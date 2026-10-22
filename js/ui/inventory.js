@@ -193,15 +193,17 @@ function closeInventory() {
   ui.panel = null; refreshHeld(); hideTip();
 }
 function buildInvPanel() {
-  let h = `<header><h2>Inventario</h2><div class="row gap"><input type="search" id="invQ" placeholder="Buscar…" aria-label="Buscar en el inventario" value="${esc(ui.invQ || '')}"><label class="chk" title="Ordena la mochila al recoger un objeto nuevo (nunca mientras la tienes abierta)"><input type="checkbox" id="autoSort" ${S.autoSort ? 'checked' : ''}> Ordenar al recoger</label><button id="bSort">Ordenar <kbd>O</kbd></button><button data-close>Cerrar <kbd>Esc</kbd></button></div></header>`;
+  let h = `<header class="invhead"><h2>Inventario</h2><div class="invtools"><label class="invsearch ${ui.invQ ? 'on' : ''}" title="Buscar en la mochila"><span>🔎</span><input type="search" id="invQ" placeholder="Buscar…" aria-label="Buscar en el inventario" value="${esc(ui.invQ || '')}"></label><button id="bSort" class="ico" title="Ordenar la mochila (O)">⇅</button><button data-close class="ico" title="Cerrar (Esc)">✕</button></div></header>`;
   h += equipPanelHTML();
   h += `<div class="invgrid">`; for (let i = 9; i < INV_N; i++) h += slotHTML('inv:' + i); h += `</div><div class="invgrid hot">`; for (let i = 0; i < 9; i++) h += slotHTML('inv:' + i); h += `</div>`;
-  h += `<details class="hints"><summary>Controles de ranuras</summary><ul>
+  h += `<details class="hints"><summary>Opciones y controles</summary><label class="chk" title="Ordena la mochila al recoger un objeto nuevo (nunca mientras la tienes abierta)"><input type="checkbox" id="autoSort" ${S.autoSort ? 'checked' : ''}> Ordenar la mochila al recoger</label><ul>
     <li><b>Clic</b>: coger / soltar / juntar / intercambiar · <b>Clic derecho</b>: coger la mitad / soltar uno</li>
     <li><b>Arrastrar</b> con una pila: reparte a partes iguales · <b>con clic derecho</b>: deja 1 en cada ranura</li>
     <li><b>Doble clic</b>: junta en la mano todas las del mismo tipo</li>
     <li><b>Shift+clic</b>: mover al otro lado · <b>Shift+arrastrar</b>: mover varias · <b>Ctrl+clic</b>: mover todas las de ese tipo</li>
     <li><b>Rueda</b> sobre una ranura: abajo manda 1 al otro lado, arriba trae 1 · <b>1–9</b> sobre una ranura: intercambia con la barra</li>
+    <li><b>L</b> sobre una ranura: suelta 1 al suelo · <b>Shift+L</b>: la pila entera · o arrástrala a «Soltar al suelo»</li>
+    <li>Lo que recoges va primero a un hueco libre de la barra rápida · <b>O</b>: ordenar la mochila</li>
     <li>Clic fuera de las ventanas: devuelve lo que llevas en la mano</li></ul></details>`;
   $('invLeft').innerHTML = h;
   $('invRight').innerHTML = ui.panel ? blockPanelHTML(ui.panel) : pocketHTML();
