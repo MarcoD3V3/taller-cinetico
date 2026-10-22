@@ -99,7 +99,7 @@ FILL_ORDER.length = 0; for (let i = 0; i < INV_N; i++) FILL_ORDER.push(i);
   const wrap = document.createElement('div'); wrap.className = 'invwrap'; const col = document.createElement('div'); col.className = 'invcol';
   g[0].before(wrap); col.append(g[0], g[1]); wrap.append(col);
   wrap.insertAdjacentHTML('beforeend', `<aside class="invside">
-    <div class="invtip"><b>⬇ Soltar:</b> coge una pila y haz clic fuera del inventario (derecho: solo 1) · <kbd>L</kbd> suelta 1, <kbd>Shift</kbd>+<kbd>L</kbd> la pila</div></aside>`);
+    <div class="invtip"><b>⬇ Soltar:</b> clic fuera con una pila · <kbd>L</kbd> / <kbd>Shift</kbd>+<kbd>L</kbd></div></aside>`);
 }; }
 // Clic fuera del panel con algo en la mano: se suelta (izquierdo, la pila; derecho, 1)
 document.addEventListener('mousedown', e => {
