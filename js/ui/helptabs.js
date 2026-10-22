@@ -22,6 +22,14 @@
     ['⚙ Sistemas', sys.slice(0, half)],
     ['⚔ Mundo y combate', sys.slice(half)],
     ['🎣 Movimiento y pesca', move],
+    ['🌾 Huerto', [
+      '<b>1 · Semillas:</b> rompe <i>hierba alta</i>, flores o hierbas del campo: a veces sueltan semillas (casi siempre de trigo, y a veces de lo que crece en ese bioma). Las plantas silvestres de cada cultivo (trigo silvestre, zanahoria silvestre…) siempre dan semillas.',
+      '<b>2 · Azada:</b> fabrica una <i>Azada de madera</i> (palos y tablones) y haz clic en hierba o tierra: queda <i>tierra de cultivo</i>.',
+      '<b>3 · Agua:</b> la tierra de cultivo a 4 casillas o menos de agua se riega sola, como en Minecraft. Lejos del agua usa una <i>Regadera</i> o espera a que llueva. Seca crece a ¼ (el arroz no crece seco).',
+      '<b>4 · Sembrar:</b> lleva las semillas en la mano y haz clic en la tierra de cultivo. Crece en 4 etapas: semilla, brote, creciendo y madura (con frutos de color).',
+      '<b>5 · Cosechar:</b> cuando esté madura, pulsa <kbd>F</kbd> encima o rómpela: te da la cosecha y 1–2 semillas para volver a sembrar. Tomate, fresa, uva, pimiento… rebrotan solos.',
+      '<b>Más rápido:</b> <i>Harina de hueso</i> sube una etapa al momento; el <i>Compost</i> ×1,5 y el <i>Superabono</i> ×2. La <i>Lámpara de cultivo</i> hace crecer también de noche. Cada cultivo crece algo mejor en su bioma.',
+    ]],
     ['🕳 Profundidades', [
       '<b>Bajar:</b> cava un hoyo hasta el fondo y pica ese fondo: se abre un <i>pozo</i>. Salta dentro con <kbd>Espacio</kbd> y caes a la capa de abajo (con una <i>Cuerda</i> en el inventario, sin hacerte daño). Con una <i>Escalera de mano</i> sobre el pozo bajas tranquilo y la escalera llega hasta el fondo.',
       '<b>Subir:</b> pon una <i>Escalera de mano</i> bajo tierra y úsala (clic derecho): abres un hueco en el techo y sales a la capa de arriba. También puedes volver por donde bajaste. Si arriba hay agua, ácido o lava, primero lo notas (te avisa) y, si insistes, te cae encima.',
