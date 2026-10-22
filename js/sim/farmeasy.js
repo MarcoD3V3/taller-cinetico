@@ -26,13 +26,13 @@ function grassSeed(x, y) {
 }; }
 // Agua cerca: la tierra de cultivo se riega sola
 const _nw = new Map();
-function nearWater(x, y) {
+function farmNearWater(x, y) {
   const k = x + ',' + y, c = _nw.get(k); if (c && c.t > S.time) return c.v;
   let v = false; for (let dy = -NEAR_WATER; dy <= NEAR_WATER && !v; dy++) for (let dx = -NEAR_WATER; dx <= NEAR_WATER && !v; dx++) { const g = GI[gnd(x + dx, y + dy)]; if (g && g.liquid === 'water') v = true; }
   _nw.set(k, { v, t: S.time + 20 }); if (_nw.size > 4000) _nw.clear(); return v;
 }
-{ const f0 = farmTick; farmTick = dt => { if (S) for (const b of L.crop || []) if (gnd(b.x, b.y) === G.FARMLAND && nearWater(b.x, b.y)) waterTile(b.x, b.y, 60); f0(dt); }; }
-{ const t0 = tillTile; tillTile = (x, y, wet) => { const ok = t0(x, y, wet); if (ok && !wet && nearWater(x, y)) waterTile(x, y, 60); return ok; }; }
+{ const f0 = farmTick; farmTick = dt => { if (S) for (const b of L.crop || []) if (gnd(b.x, b.y) === G.FARMLAND && farmNearWater(b.x, b.y)) waterTile(b.x, b.y, 60); f0(dt); }; }
+{ const t0 = tillTile; tillTile = (x, y, wet) => { const ok = t0(x, y, wet); if (ok && !wet && farmNearWater(x, y)) waterTile(x, y, 60); return ok; }; }
 // Primera semilla: los pasos, una sola vez por partida
 function seedTutorial() {
   if (!S || S.seedTut) return; S.seedTut = 1;
@@ -42,6 +42,6 @@ function seedTutorial() {
 // Las semillas dicen cómo conseguirlas
 for (const k in CROP) { const it = ITEMS[CROP[k].seed]; if (it && !/hierba alta/.test(it.d)) it.d = `Salen de ${CROP[k].n.toLowerCase()} silvestre y, a veces, al romper hierba alta o flores${k === 'wheat' ? ' (las más comunes)' : ' en su bioma'}. ` + it.d; }
 // La lupa y la tarjeta del cultivo avisan del riego automático
-{ const c0 = cropInfo; cropInfo = b => c0(b) + (nearWater(b.x, b.y) ? ' · 💧 agua cerca: se riega sola y crece +25 %' : ''); }
+{ const c0 = cropInfo; cropInfo = b => c0(b) + (farmNearWater(b.x, b.y) ? ' · 💧 agua cerca: se riega sola y crece +25 %' : ''); }
 // Junto al agua (4 casillas, como en Minecraft) los cultivos crecen además un 25 % más rápido
-{ const r0 = cropRate; cropRate = b => r0(b) * (nearWater(b.x, b.y) ? 1.25 : 1); }
+{ const r0 = cropRate; cropRate = b => r0(b) * (farmNearWater(b.x, b.y) ? 1.25 : 1); }
