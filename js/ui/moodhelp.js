@@ -60,16 +60,7 @@ function moodHelp(x) {
 }
 let _moodLast = [];
 { const m0 = moodles; moodles = () => { const out = m0(); _moodLast = out; return out; }; }
-// Al pasar el ratón por un estado (ficha o HUD)
-document.addEventListener('mouseover', e => {
-  const el = e.target.closest && e.target.closest('.csmoo .csch, #moodles .moo'); if (!el || !S || !S.pc) return;
-  const box = el.parentNode, i = [...box.children].indexOf(el), m = moodles()[i]; if (!m || m.good) return;
-  el.removeAttribute('title'); const h = moodHelp(m); if (!h) return;
-  const t = $('tip'); t.innerHTML = h; t.classList.add('tiphelp'); t.classList.remove('tipmini'); t.hidden = false;
-  const r = el.getBoundingClientRect(), right = r.left > innerWidth - 380, below = r.top < 340;
-  t.style.transform = `translate(${right ? r.right : r.left}px,${below ? r.bottom + 8 : r.top - 8}px) translate(${right ? '-100%' : '0'},${below ? '0' : '-100%'})`;
-});
-document.addEventListener('mouseout', e => { const el = e.target.closest && e.target.closest('.csmoo .csch, #moodles .moo'); if (!el || (e.relatedTarget && el.contains(e.relatedTarget))) return; const t = $('tip'); if (t.classList.contains('tiphelp')) { t.hidden = true; t.classList.remove('tiphelp'); } });
+// La tarjeta que sale al pasar el ratón está en ui/moodcard.js
 // Salud: la vida general arriba, con lo que la está frenando
 function mhLifeHTML() {
   const pc = S.pc, f = pc.hp / maxHp(); if (f >= 0.999) return '';
