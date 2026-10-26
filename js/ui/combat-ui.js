@@ -127,7 +127,7 @@ function drawCombat(ctx, k, ox, oy, x0, y0, x1, y1) {
     else { ctx.globalAlpha = Math.min(1, h.t) * (h.kind === 'hole' ? 0.85 : 0.45); ctx.fillStyle = h.c; ctx.beginPath(); ctx.arc(h.x, h.y, h.r * (h.kind === 'hole' ? 0.5 + 0.1 * Math.sin(S.time * 8) : 1), 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
   }
   // Mascotas y NPC
-  for (const pt of S.pets || []) { if (pt.ride || !inView(pt.x, pt.y, 30)) continue; const spr = animalSprite(pt.sp), s = spr.size; ctx.save(); ctx.translate(pt.x, pt.y + Math.sin(pt.ph || 0) * 1); if ((pt.face || 1) < 0) ctx.scale(-1, 1); ctx.drawImage(spr.f[0], -s / 2, s / 2 - spr.h, s, spr.h); ctx.restore(); ctx.font = '9px system-ui'; ctx.textAlign = 'center'; ctx.fillStyle = pt.mode === 'stay' ? '#aaa' : '#ff6a8a'; ctx.fillText(pt.mode === 'stay' ? '■' : '❤', pt.x, pt.y - SPECIES[pt.sp].s - 6); if (pt.hp < pt.mhp) bar(ctx, pt.x, pt.y - SPECIES[pt.sp].s - 3, 18, pt.hp / pt.mhp, '#7fd07a'); }
+  for (const pt of S.pets || []) { if (pt.ride || !inView(pt.x, pt.y, 30)) continue; const spr = animalSprite(pt.sp), s = spr.size; ctx.save(); ctx.translate(pt.x, pt.y + Math.sin(pt.ph || 0) * 1); if ((pt.face || 1) < 0) ctx.scale(-1, 1); ctx.drawImage(spr.f[0], -s / 2, s / 2 - spr.h, s, spr.h); ctx.restore(); ctx.font = '9px system-ui'; ctx.textAlign = 'center'; ctx.fillStyle = pt.mode === 'stay' ? '#aaa' : '#ff6a8a'; ctx.fillText(pt.mode === 'stay' ? '■' : '❤', pt.x, pt.y - SPECIES[pt.sp].s - 6); if (pt.hp < pt.mhp) hpBar(ctx, pt.x, pt.y - SPECIES[pt.sp].s - 3, 18, pt.hp / pt.mhp, '#7fd07a'); }
   for (const s of SUMMONS) { const spr = animalSprite(s.sp), z = spr.size; ctx.globalAlpha = 0.7; ctx.save(); ctx.translate(s.x, s.y); if ((s.face || 1) < 0) ctx.scale(-1, 1); ctx.drawImage(spr.f[0], -z / 2, z / 2 - spr.h, z, spr.h); ctx.restore(); ctx.globalAlpha = 1; }
   for (const n of S.npcs || []) { if (!inView(n.x, n.y, 20)) continue; drawNpc(ctx, n); }
   // Enemigos
@@ -143,7 +143,7 @@ function drawCombat(ctx, k, ox, oy, x0, y0, x1, y1) {
     if (f.frz > 0) { ctx.strokeStyle = '#bff0ff'; ctx.lineWidth = 2; ctx.strokeRect(f.x - D.s, f.y - D.s, D.s * 2, D.s * 2); }
     if (f.tele > 0 || f.fuse > 0) { ctx.strokeStyle = '#ff3a2a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(f.x, f.y, D.s + 4 + Math.sin(S.time * 30) * 2, 0, 7); ctx.stroke(); }
     if (f.shieldT > 0) { ctx.strokeStyle = 'rgba(200,168,255,.8)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(f.x, f.y, D.s * 1.3, 0, 7); ctx.stroke(); }
-    if (!f.boss && f.hp < f.mhp) bar(ctx, f.x, f.y - D.s - 6, Math.max(18, D.s * 1.6), f.hp / f.mhp, D.elite ? '#ffd34a' : '#e05050');
+    if (!f.boss && f.hp < f.mhp) hpBar(ctx, f.x, f.y - D.s - 6, Math.max(18, D.s * 1.6), f.hp / f.mhp, D.elite ? '#ffd34a' : '#e05050');
     if (D.elite && !f.boss) { ctx.font = 'bold 8px system-ui'; ctx.textAlign = 'center'; ctx.fillStyle = '#ffd34a'; ctx.fillText('★', f.x, f.y - D.s - 10); }
   }
   // Proyectiles
@@ -168,7 +168,8 @@ function drawCombat(ctx, k, ox, oy, x0, y0, x1, y1) {
   if (L.display) { ctx.font = 'bold 14px "Chakra Petch",monospace'; ctx.textAlign = 'center'; for (const b of L.display) { if (b.x < x0 || b.x > x1 || b.y < y0 || b.y > y1) continue; const v = b.num !== undefined && b.num !== '' ? b.num : (b.pv || 0); ctx.fillStyle = '#7fff8a'; ctx.fillText(String(typeof v === 'number' ? Math.round(v * 10) / 10 : v).slice(0, 5), b.x * T + 16, b.y * T + 21); } }
   if (L.turret) for (const b of L.turret) { if (b.aim === undefined) continue; ctx.strokeStyle = '#2a3a4a'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(b.x * T + 16, b.y * T + 16); ctx.lineTo(b.x * T + 16 + Math.cos(b.aim) * 13, b.y * T + 16 + Math.sin(b.aim) * 13); ctx.stroke(); }
 }
-function bar(ctx, x, y, w, f, c) { ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(x - w / 2, y, w, 3); ctx.fillStyle = c; ctx.fillRect(x - w / 2, y, w * clamp(f, 0, 1), 3); }
+// Barra de vida flotante (pets y enemigos). Nombre propio para no tapar `bar` de render/blocks.js.
+function hpBar(ctx, x, y, w, f, c) { ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(x - w / 2, y, w, 3); ctx.fillStyle = c; ctx.fillRect(x - w / 2, y, w * clamp(f, 0, 1), 3); }
 function drawNpc(ctx, n) {
   const N = NPCS[n.type], L3 = npcLook(n.type), moving = n.tx !== undefined && Math.hypot(n.tx - n.x, n.ty - n.y) > 2;
   ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(n.x, n.y + 8, 9, 4, 0, 0, 7); ctx.fill();

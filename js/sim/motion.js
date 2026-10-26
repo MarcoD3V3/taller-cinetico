@@ -147,8 +147,9 @@ function paintCliffs(u, W, x0, y0) {
     if (l && l <= LV_FOOT) { const f = Math.max(0.55, 1 + l * 0.04); for (let y = 0; y < T; y++) { let i = (by + y) * W + bx; for (let x = 0; x < T; x++, i++) { const v = u[i]; u[i] = (0xff000000 | Math.min(255, ((v >> 16) & 255) * f) << 16 | Math.min(255, ((v >> 8) & 255) * f) << 8 | Math.min(255, (v & 255) * f)) >>> 0; } } }
     // Paredes laterales: franja de roca irregular en el lado bajo (la de la izquierda en sombra,
     // la de la derecha iluminada) y canto claro en la terraza alta
+    const meLiq = GI[gnd(gx, gy)].liquid;
     for (const [side, hi] of [[-1, lf], [1, rt]]) {
-      if (hi <= l) continue;
+      if (hi <= l || (meLiq && GI[gnd(gx + side, gy)].liquid)) continue; // agua junto a agua: misma superficie
       const wmax = Math.min(7, 3 + (hi - l) * 2), rk = rockOf(gnd(gx + side, gy), rawLv(gx + side, gy) > LV_FOOT), sh = side < 0 ? 0.72 : 0.95;
       for (let y = 0; y < T; y++) {
         const wy = gy * T + y, w = wmax - ((ihash(wy >> 2, gx * 17 + side) * 3) | 0);
@@ -165,14 +166,16 @@ function paintCliffs(u, W, x0, y0) {
     // Pared bajo la terraza de arriba: canto con hierba que cuelga, roca con estratos y grietas
     // (luz desde arriba), borde inferior irregular, sombra y cascada si arriba hay agua
     const fh = faceH(up - l), ut = gnd(gx, gy - 1), ug = GI[ut], wet = ug.liquid === 'water';
+    if (ug.liquid && meLiq) continue; // agua sobre agua: el agua se iguala, no hay salto
     const top = ug.flora ? GI[ug.u >= 0 ? ug.u : G.GRASS].c : (ug.c || [110, 140, 80]), c0 = ug.c || [110, 100, 80];
     const rock = rockOf(ut, rawLv(gx, gy - 1) > LV_FOOT);
     for (let x = 0; x < T; x++) {
       const wx = gx * T + x, hx = fh + (((ihash(wx >> 2, gy * 5 + 1) * 5) | 0) - 2), lipH = 2 + ((ihash(wx >> 1, gy * 7 + 3) * 4) | 0);
       for (let y = 0; y < Math.min(T, hx + 7); y++) {
         const i = (by + y) * W + bx + x;
+        if (wet && y >= hx) { const fz = 1 - (y - hx) / 7, b = ihash(wx >> 2, gy * 3 + ((y - hx) >> 1)) > 0.45; if (b) u[i] = px32(225 + 25 * fz, 238 + 14 * fz, 255); continue; } // espuma al pie
         if (y >= hx) { u[i] = scale(u[i], y === hx ? 0.45 : 0.6 + (y - hx) * 0.06); continue; } // sombra al pie
-        if (wet) { const st = ihash(wx >> 1, ((gy * T + y) >> 3) + wx * 3), fo = st > 0.7 ? 1.25 : st > 0.35 ? 1.05 : 0.9; u[i] = px32((150 + 70 * (st > 0.82)) * fo, (190 + 50 * (st > 0.82)) * fo, 235 * fo); continue; }
+        if (wet) { const col = ihash(wx >> 1, gy * 7 + 2), t = y / Math.max(1, hx), hi = col > 0.78, f = 0.88 + col * 0.18 + t * 0.12; u[i] = hi ? px32(205 + 40 * t, 228 + 22 * t, 255) : px32((96 + 70 * t) * f, (150 + 60 * t) * f, (205 + 30 * t) * f); continue; }
         if (y < lipH) { const f = y === 0 ? 1.18 : y === lipH - 1 ? 0.62 : 0.92; u[i] = px32(top[0] * f, top[1] * f, top[2] * f); continue; }
         const k = (y - lipH) / Math.max(1, hx - lipH), band = ((y + ((ihash(wx >> 3, gy * 13) * 3) | 0)) >> 2) & 1;
         const crack = ihash(wx >> 1, gy * 31 + (y >> 2)) > 0.92, peb = ihash(wx, gy * T + y) > 0.95;
@@ -180,7 +183,6 @@ function paintCliffs(u, W, x0, y0) {
         u[i] = px32(rock[0] * f, rock[1] * f, rock[2] * f);
       }
     }
-    if (wet) for (let y = fh; y < Math.min(T, fh + 4); y++) for (let x = 0; x < T; x++) if (ihash(gx * T + x, gy * T + y) > 0.45) u[(by + y) * W + bx + x] = px32(235, 245, 255);
     void dn;
   }
 }
@@ -189,6 +191,6 @@ function paintCliffsLo(c, x0, y0) {
   for (let ty = 0; ty < CH; ty++) for (let tx = 0; tx < CH; tx++) {
     const gx = x0 + tx, gy = y0 + ty, l = lvAt(gx, gy), up = lvAt(gx, gy - 1);
     if (l) { c.fillStyle = l > 0 ? `rgba(255,255,255,${l * 0.04})` : `rgba(0,0,0,${Math.min(0.45, -l * 0.12)})`; c.fillRect(tx * T, ty * T, T, T); }
-    if (up > l) { const fh = faceH(up - l); c.fillStyle = GI[gnd(gx, gy - 1)].liquid === 'water' ? '#a8d0f0' : '#5a4a3a'; c.fillRect(tx * T, ty * T, T, fh); c.fillStyle = 'rgba(0,0,0,.25)'; c.fillRect(tx * T, ty * T + fh, T, 5); }
+    if (up > l && !(GI[gnd(gx, gy - 1)].liquid && GI[gnd(gx, gy)].liquid)) { const fh = faceH(up - l); c.fillStyle = GI[gnd(gx, gy - 1)].liquid === 'water' ? '#a8d0f0' : '#5a4a3a'; c.fillRect(tx * T, ty * T, T, fh); c.fillStyle = 'rgba(0,0,0,.25)'; c.fillRect(tx * T, ty * T + fh, T, 5); }
   }
 }

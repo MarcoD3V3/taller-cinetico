@@ -40,14 +40,23 @@ const newWorldId = () => Date.now().toString(36) + Math.random().toString(36).sl
 function indexEntry(id, data) {
   return { id, name: S.name, seed: S.gen.seed, created: S.created || Date.now(), played: Date.now(), tier: S.tier, sandbox: !!S.sandbox, blocks: blocks.length, kb: Math.round(data.length / 1024) };
 }
+let _saveFailAt = 0;
 function saveGame(quiet) {
   if (!S || !currentWorld) return false;
   const data = serialize(), ok = lsSet(WKEY(currentWorld), data);
+  if (!ok) {
+    // No se toca el índice: si los datos no se guardaron, el mundo no debe figurar como guardado.
+    // El autoguardado avisa una vez por minuto (no cada 30 s) para no ser molesto.
+    console.warn('No se pudo guardar la partida: almacenamiento lleno o bloqueado');
+    if (!quiet) toast('No se pudo guardar: el navegador no permite guardar o está lleno');
+    else if (Date.now() - _saveFailAt > 60000) { _saveFailAt = Date.now(); toast('No se pudo guardar automáticamente: el almacenamiento del navegador está lleno', true); }
+    return false;
+  }
   const list = worldIndex(), i = list.findIndex(w => w.id === currentWorld), e = indexEntry(currentWorld, data);
   if (i >= 0) { e.created = list[i].created; list[i] = e; } else list.unshift(e);
   saveIndex(list);
-  if (!quiet) toast(ok ? 'Partida guardada' : 'No se pudo guardar: el navegador no permite guardar o está lleno');
-  return ok;
+  if (!quiet) toast('Partida guardada');
+  return true;
 }
 function loadWorld(id) {
   const s = lsGet(WKEY(id)); if (!s) return false;

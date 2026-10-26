@@ -376,6 +376,7 @@ cmd('trucos', { a: ['cheats'], u: '/trucos si|no', d: 'El anfitrión permite o n
 cmd('expulsar', { a: ['kick'], u: '/expulsar <jugador>', d: 'El anfitrión saca a alguien de la partida.', run(a) { if (!inGame() || !NET.game.host) return errMsg('Solo el anfitrión.'); const o = findPeer(a.join(' ')); if (!o) return errMsg('No hay nadie llamado así.'); netKick(o.peer, false); } });
 cmd('vetar', { a: ['ban'], u: '/vetar <jugador>', d: 'El anfitrión saca a alguien y no le deja volver.', run(a) { if (!inGame() || !NET.game.host) return errMsg('Solo el anfitrión.'); const o = findPeer(a.join(' ')); if (!o) return errMsg('No hay nadie llamado así.'); netKick(o.peer, true); } });
 { const tp0 = CMDS.tp.run; const run = (a, raw) => { if (a.length === 1 && inGame()) { const o = findPeer(a[0]); if (!o || !o.pr) return errMsg('No hay nadie llamado así.'); S.player.x = o.pr.x + T; S.player.y = o.pr.y; view.x = S.player.x; view.y = S.player.y; return 'Junto a ' + o.nick + '.'; } return tp0(a, raw); }; for (const k in CMDS) if (CMDS[k].run === tp0) CMDS[k] = { ...CMDS[k], run, u: '/tp <x> <y> | /tp <jugador>' }; }
-function tpTo(peer) { const o = NET.peers.get(peer); if (o && o.pr && cheatsOK()) { S.player.x = o.pr.x + T; S.player.y = o.pr.y; view.x = S.player.x; view.y = S.player.y; } }
+// Teletransporte a otro jugador (menú de multijugador). Nombre propio para no tapar `tpTo` de sim/endgame.js.
+function tpToPeer(peer) { const o = NET.peers.get(peer); if (o && o.pr && cheatsOK()) { S.player.x = o.pr.x + T; S.player.y = o.pr.y; view.x = S.player.x; view.y = S.player.y; } }
 addEventListener('beforeunload', () => { if (inGame()) { if (!NET.game.host) sendPdat(true); NET.game.r.emit('bye', {}).catch(() => { }); } });
 netInit();

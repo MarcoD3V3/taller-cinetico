@@ -183,7 +183,7 @@ document.addEventListener('click', e => {
     if (a === 'copy') { const l = inviteURL(NET.game.code); (navigator.clipboard ? navigator.clipboard.writeText(l) : Promise.reject()).then(() => toast('🔗 Enlace copiado'), () => toast(l)); }
     if (a === 'close') { const g = NET.game, keep = g.host && g.opt.keep !== false && NET.peers.size; if (!g.host || keep || confirm('¿Cerrar tu mundo? Los demás jugadores saldrán de la partida.')) netLeave().then(pzRender); }
     if (a === 'kick' || a === 'ban') { const o = NET.peers.get(v); if (o && (a === 'kick' || confirm(`¿Vetar a ${o.nick}? No podrá volver a entrar en esta partida.`))) netKick(v, a === 'ban'); }
-    if (a === 'tp') { tpTo(v); closeModal(); }
+    if (a === 'tp') { tpToPeer(v); closeModal(); }
     if (a === 'pass') { netSetOpt({ pass: ($('lanPass2') || {}).value || '' }); toast(NET.game.opt.pass ? 'Contraseña cambiada' : 'Contraseña quitada'); }
     return; }
   if (t.dataset.mm) { const [a, v] = t.dataset.mm.split(':');

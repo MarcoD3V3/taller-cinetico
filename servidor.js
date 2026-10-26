@@ -25,6 +25,8 @@ const baseOf = req => PUBLIC || ((req.headers['x-forwarded-proto'] || 'http').sp
 const oauthStates = new Map();
 const redirect = (res, to) => { res.writeHead(302, { Location: to, 'Cache-Control': 'no-store' }); res.end(); };
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg', '.wav': 'audio/wav' };
+// Carpetas que puede pedir el navegador. Todo lo demás (raíz, .datos, node_modules) no se sirve.
+const STATIC_DIRS = ['css', 'js', 'assets', 'img', 'audio', 'fonts'];
 const lanIPs = () => Object.values(os.networkInterfaces()).flat().filter(i => i && i.family === 'IPv4' && !i.internal).map(i => i.address);
 // ---------- Archivos ----------
 const server = http.createServer(async (req, res) => {
@@ -52,13 +54,19 @@ const server = http.createServer(async (req, res) => {
   if (/^\/server\/[a-z0-9]{3,24}\/?$/i.test(p)) p = '/index.html'; else if (p.startsWith('/server/')) p = p.slice(7);
   if (p === '/api/game') { const g = gameList().find(x => x.room === 'tc-' + String(U.searchParams.get('c') || '').toLowerCase()); res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); return res.end(JSON.stringify(g ? { ok: true, name: g.name, host: g.host, n: g.n, max: g.max, lock: g.lock, dc: g.dc, mode: g.mode } : { ok: false })); }
   if (p.endsWith('/')) p += 'index.html';
-  const f = path.join(ROOT, path.normalize(p).replace(/^([\\/]*\.\.)+/, ''));
-  const ext = path.extname(f).toLowerCase();
-  // Nada fuera de la carpeta, nada oculto, solo tipos de la web (no se sirve este archivo ni los .bat)
-  const rel = path.relative(ROOT, f);
-  // Nada fuera de la carpeta, nada oculto, solo tipos de la web y, en la raíz, solo index.html (ni el servidor ni sus datos)
-  if (!f.startsWith(ROOT + path.sep) || /(^|[\\/])\./.test(rel) || !MIME[ext] || (!/[\\/]/.test(rel) && rel !== 'index.html') || /^node_modules/.test(rel)) { res.writeHead(404); return res.end('No encontrado'); }
-  fs.readFile(f, (err, data) => { if (err) { res.writeHead(404); return res.end('No encontrado'); } res.writeHead(200, { 'Content-Type': MIME[ext], 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff' }); res.end(data); });
+  // Lista blanca por primer segmento: solo se sirve el juego. Así no se cuela nada de la raíz
+  // (servidor, datos, configuración) ni node_modules, ni siquiera con los alias cortos 8.3 de
+  // Windows (NODE_M~1, DATOS~1), que no empiezan por punto. Tampoco rutas ocultas ni de control.
+  const rel = p.replace(/^[\\/]+/, '').replace(/\\/g, '/'), segs = rel.split('/');
+  const ext = path.extname(rel).toLowerCase();
+  const okDir = segs.length > 1 && STATIC_DIRS.includes(segs[0].toLowerCase());
+  const badPath = /[\u0000-\u001f]/.test(rel) || segs.some(s => !s || s === '.' || s === '..' || s.startsWith('.')) || !MIME[ext] ||
+    (segs.length === 1 ? rel !== 'index.html' : !okDir);
+  const f = path.join(ROOT, ...segs);
+  if (badPath || !f.startsWith(ROOT + path.sep)) { res.writeHead(404); return res.end('No encontrado'); }
+  try {
+    fs.readFile(f, (err, data) => { if (err) { res.writeHead(404); return res.end('No encontrado'); } res.writeHead(200, { 'Content-Type': MIME[ext], 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff' }); res.end(data); });
+  } catch (e) { res.writeHead(404); res.end('No encontrado'); }
 });
 // ---------- Cuentas propias ----------
 // La contraseña nunca se guarda: solo su huella con scrypt y una sal aleatoria por cuenta.
@@ -97,16 +105,32 @@ const GRACE = 45000, Q_MAX = 4000;
 function wsSend(c, obj) { if (c.gone) { if (c.q.length < Q_MAX) c.q.push(obj); else c.qLost = true; return; } if (c.dead || !c.sock) return; const buf = Buffer.from(JSON.stringify(obj)), n = buf.length; let h;
   if (n < 126) h = Buffer.from([0x81, n]); else if (n < 65536) { h = Buffer.alloc(4); h[0] = 0x81; h[1] = 126; h.writeUInt16BE(n, 2); } else { h = Buffer.alloc(10); h[0] = 0x81; h[1] = 127; h.writeBigUInt64BE(BigInt(n), 2); }
   try { c.sock.write(Buffer.concat([h, buf])); } catch (e) { } }
+// WebSocket: se acepta el mismo sitio que sirve el juego. Si el navegador manda Origin,
+// debe coincidir con Host o ser local; sin Origin (clientes que no son navegadores) se permite.
+function sameOrigin(origin, host) {
+  let u; try { u = new URL(origin); } catch (e) { return false; }
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
+  if (host && u.host === host) return true;
+  return u.hostname === 'localhost' || u.hostname === '127.0.0.1' || u.hostname === '[::1]';
+}
 server.on('upgrade', (req, sock) => {
   if (new URL(req.url, 'http://x').pathname !== '/ws' || !req.headers['sec-websocket-key']) { sock.destroy(); return; }
+  if (req.headers.origin && !sameOrigin(req.headers.origin, req.headers.host)) { sock.destroy(); return; }
   const acc = crypto.createHash('sha1').update(req.headers['sec-websocket-key'] + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64');
   sock.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${acc}\r\n\r\n`);
   sock.setNoDelay(true); sock.setKeepAlive(true, 20000);
   // «c» cambia si este socket recupera una conexión anterior (reconexión con «resume»)
-  let c = { sock, id: crypto.randomBytes(6).toString('hex'), rt: crypto.randomBytes(12).toString('hex'), rooms: new Set(), buf: Buffer.alloc(0), rate: 0, rateT: Date.now(), hello: false, frag: [], q: [], seen: Date.now() };
+  let c = { sock, id: crypto.randomBytes(6).toString('hex'), rt: crypto.randomBytes(12).toString('hex'), rooms: new Set(), buf: Buffer.alloc(0), rate: 0, rateT: Date.now(), bytes: 0, bytesT: Date.now(), hello: false, frag: [], q: [], seen: Date.now() };
   c.rebind = o => { o.rebind = c.rebind; o.buf = c.buf; o.frag = c.frag; c = o; };
   socks.add(sock); sock._tc = () => c;
-  sock.on('data', d => { c.seen = Date.now(); c.buf = Buffer.concat([c.buf, d]); if (c.buf.length > 12e6) return sock.destroy(); try { readFrames(c); } catch (e) { console.error('ws', e.message); sock.destroy(); } });
+  sock.on('data', d => {
+    c.seen = Date.now();
+    // Tope de entrada: 120 mensajes/s ya se limita en onMsg; aquí, además, 16 MB/s por socket.
+    const t = Date.now(); if (t - c.bytesT > 1000) { c.bytesT = t; c.bytes = 0; }
+    if ((c.bytes += d.length) > 16e6) return sock.destroy();
+    c.buf = Buffer.concat([c.buf, d]); if (c.buf.length > 12e6) return sock.destroy();
+    try { readFrames(c); } catch (e) { console.error('ws', e.message); sock.destroy(); }
+  });
   sock.on('close', () => { socks.delete(sock); sockGone(c, sock); }); sock.on('error', () => { socks.delete(sock); sockGone(c, sock); });
 });
 // Latido: el servidor hace ping cada 15 s; si un socket lleva 45 s sin dar señales, está muerto (aunque no se cerrara)
@@ -125,7 +149,7 @@ function readFrames(c0) { let c = c0;
     if (op === 8) { c.sock.end(); return; }
     if (op === 9) { try { c.sock.write(Buffer.concat([Buffer.from([0x8a, data.length]), data])); } catch (e) { } continue; }
     if (op === 10) continue;
-    if (op === 1 || op === 0) { c.frag.push(Buffer.from(data)); if (fin) { const txt = Buffer.concat(c.frag).toString('utf8'); c.frag = []; let m; try { m = JSON.parse(txt); } catch (e) { continue; } onMsg(c, m).catch(e => console.error('mensaje', e && e.message)); if (c.rebound) { const o = c.rebound; c.rebound = null; c = o; } } }
+    if (op === 1 || op === 0) { c.frag.push(Buffer.from(data)); if (fin) { const txt = Buffer.concat(c.frag).toString('utf8'); c.frag = []; if (txt.length > 10e6) return c.sock.destroy(); let m; try { m = JSON.parse(txt); } catch (e) { continue; } onMsg(c, m).catch(e => console.error('mensaje', e && e.message)); if (c.rebound) { const o = c.rebound; c.rebound = null; c = o; } } }
   }
 }
 // ---------- Salas ----------
@@ -214,7 +238,12 @@ async function onMsg(c, m) {
       r.peers.set(c.id, {}); c.rooms.add(rn); sendPeers(r); return rep({ op: 'joined', room: rn });
     }
     case 'leave': leaveRoom(c, rn); return rep({ op: 'left', room: rn });
-    case 'emit': { const r = rooms.get(rn); if (!r || !r.peers.has(c.id)) return; const t = clean(m.topic, 48), msg = { op: 'msg', room: rn, topic: t, data: m.data, peer: c.id, by: c.by, name: c.name, verified: !!c.verified };
+    case 'emit': { const r = rooms.get(rn); if (!r || !r.peers.has(c.id)) return; const t = clean(m.topic, 48);
+      // Lo que se retransmite a toda la sala va acotado: los trozos del mundo son de 3,2 KB,
+      // así que 2 MB sobra y evita que un cliente inunde a los demás.
+      let size = 0; try { size = JSON.stringify(m.data === undefined ? null : m.data).length; } catch (e) { return; }
+      if (size > 2e6) return;
+      const msg = { op: 'msg', room: rn, topic: t, data: m.data, peer: c.id, by: c.by, name: c.name, verified: !!c.verified };
       for (const id of r.peers.keys()) { const o = clients.get(id); if (o) wsSend(o, msg); } return; }
     case 'pres': { const r = rooms.get(rn); if (!r || !r.peers.has(c.id)) return; const p = m.p && typeof m.p === 'object' ? m.p : {}; if (JSON.stringify(p).length > 8192) return; r.peers.set(c.id, p); sendPeers(r); return; }
     case 'kick': { const r = rooms.get(rn); if (!r || !r.meta || r.meta.host !== c.id) return; const o = clients.get(clean(m.peer, 24)); if (!o || o === c) return; if (m.ban) { r.meta.bans.add(o.by); if (c.verified && DB) DB.addBan(c.by, o.by).catch(() => { }); } leaveRoom(o, rn, m.ban ? 'banned' : 'kicked'); return; }
