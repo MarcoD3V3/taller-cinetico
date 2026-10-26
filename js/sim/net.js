@@ -63,21 +63,23 @@ async function netConnectWs(url) {
 }
 // Tras reconectar: si el servidor nos recuerda, todo sigue; si se reinició, el anfitrión vuelve a abrir
 // la misma partida (mismo código y enlace) y los invitados vuelven a entrar y reciben el mundo otra vez
+// Aviso discreto de reconexión (como mucho uno por minuto; antes salía en el chat cada vez)
+const netNote = t => { const n = Date.now(); if (n - (NET._noteT || 0) < 60000) return; NET._noteT = n; toast(t); };
 async function netResumed(r, ev) {
   if (NET.room !== r) return;
   if (!(r.me.sessRetry && NET.me.verified)) NET.me = { id: r.me.by, name: r.me.name, avatar: r.me.avatar, color: colorOf(r.me.by), verified: r.me.verified };
   const g = NET.game;
-  if (ev.resumed) { if (g) okMsg('📡 Conexión recuperada.'); if (g && ev.lost && !g.host) netResync(); netRefreshUI(); return; }
+  if (ev.resumed) { if (g) netNote('📡 Conexión recuperada'); if (g && ev.lost && !g.host) netResync(); netRefreshUI(); return; }
   if (!g) { netRefreshUI(); return; }
   if (g.host) {
-    try { await r.create(g.r.name, { hostName: myNick(), name: g.opt.name, pass: g.opt.pass, max: g.opt.max, mode: g.opt.mode, requireDc: g.opt.requireDc, cheats: g.opt.cheats, keep: g.opt.keep !== false }); okMsg('📡 Reconectado: tu mundo vuelve a estar abierto con el mismo código.'); }
+    try { await r.create(g.r.name, { hostName: myNick(), name: g.opt.name, pass: g.opt.pass, max: g.opt.max, mode: g.opt.mode, requireDc: g.opt.requireDc, cheats: g.opt.cheats, keep: g.opt.keep !== false }); netNote('📡 Reconectado: tu mundo sigue abierto con el mismo código'); }
     catch (e) { errMsg('No se pudo volver a abrir tu mundo: ' + (e.message || e.code)); netLeave(true, true); }
     netRefreshUI(); return;
   }
   // Invitado: reintenta entrar durante un minuto (el anfitrión puede tardar en volver)
   const until = Date.now() + 60000;
   while (NET.game === g && Date.now() < until) {
-    try { await r.join(g.r.name, g.pass || ''); netResync(); okMsg('📡 Reconectado a la partida.'); return; }
+    try { await r.join(g.r.name, g.pass || ''); netResync(); netNote('📡 Reconectado a la partida'); return; }
     catch (e) { if (e.code === 'bad_pass' || e.code === 'banned' || e.code === 'full') { errMsg(WS_ERR[e.code]); break; } }
     await new Promise(ok => setTimeout(ok, 3000));
   }

@@ -18,7 +18,7 @@ let _wsStayUsed = false;
 function wsConnect(url, hello) {
   return new Promise((resolve, reject) => {
     const rooms = new Map(), wait = new Map(), conn = new Set(), reFns = new Set(), hostFns = new Set(), hoFns = new Set();
-    let pendingHo = null, ws = null, me = null, rid = 0, open = false, closed = false, lastRx = Date.now(), tries = 0, reT = 0, api0 = null, out = [];
+    let lastPing = 0, pendingHo = null, ws = null, me = null, rid = 0, open = false, closed = false, lastRx = Date.now(), tries = 0, reT = 0, api0 = null, out = [];
     const R = n => rooms.get(n) || (rooms.set(n, { h: {}, pf: new Set(), peers: Object.freeze([]), outFn: null }), rooms.get(n));
     // Sin conexión, lo que mandes espera (salvo la presencia, que solo vale la última)
     const send = o => { if (ws && ws.readyState === 1 && open) { ws.send(JSON.stringify(o)); return; } if (o.op === 'pres' || o.op === 'ping') return; if (out.length < 2000) out.push(o); };
@@ -99,7 +99,11 @@ function wsConnect(url, hello) {
     // Latido: si en 25 s no llega nada (ni el «pong»), se fuerza el cierre y se reconecta
     const beat = setInterval(() => {
       if (closed) { clearInterval(beat); return; }
-      if (ws && ws.readyState === 1 && open) { if (Date.now() - lastRx > 25000) { try { ws.close(); } catch (e) { } ws = null; setOpen(false); later(); return; } ws.send(JSON.stringify({ op: 'ping', t: Date.now() })); }
+      if (ws && ws.readyState === 1 && open) {
+        // Muerta solo si mandamos un ping hace más de 20 s y no ha llegado nada desde entonces. Antes se miraba
+        // solo «nada en 25 s», y con la pestaña oculta (el navegador retrasa este reloj) se cortaba sin motivo.
+        if (lastPing && lastPing > lastRx && Date.now() - lastPing > 20000) { try { ws.close(); } catch (e) { } ws = null; setOpen(false); later(); return; }
+        if (!(lastPing > lastRx)) lastPing = Date.now(); ws.send(JSON.stringify({ op: 'ping', t: Date.now() })); }
     }, 10000);
     // Al volver a la pestaña o recuperar la red: comprobar ya, sin esperar al siguiente latido
     const poke = () => { if (closed || !me) return; if (!ws || ws.readyState > 1) { clearTimeout(reT); tries = 0; dial(); } else if (ws.readyState === 1) { try { ws.send(JSON.stringify({ op: 'ping', t: Date.now() })); } catch (e) { } } };

@@ -36,7 +36,10 @@ function mpBase(w, h, s) {
   const step = CS * s, ox = (w / 2 - mv.x * s) % step, oy = (h / 2 - mv.y * s) % step;
   if (MP.show.grid && step > 18) { c.strokeStyle = 'rgba(255,255,255,.035)'; c.lineWidth = 1; c.beginPath(); for (let x = ox; x < w; x += step) { c.moveTo(x, 0); c.lineTo(x, h); } for (let y = oy; y < h; y += step) { c.moveTo(0, y); c.lineTo(w, y); } c.stroke(); }
   // Terreno con sombra (una sola vez por capa)
-  c.save(); if (!mv.drag) { c.shadowColor = 'rgba(0,0,0,.6)'; c.shadowBlur = 14 * dpr; } c.imageSmoothingEnabled = false; drawMapRegion(c, mv.x, mv.y, s, w, h); c.restore();
+  // El terreno va a una capa aparte y la sombra se aplica una sola vez a todo: si se hacía trozo a
+  // trozo, la sombra de cada trozo caía sobre los de al lado y se veían cuadros
+  const tc = MP.terr && MP.terr.width === w && MP.terr.height === h ? MP.terr : (MP.terr = mkCanvas(w, h)), tx = tc.getContext('2d'); tx.clearRect(0, 0, w, h); tx.imageSmoothingEnabled = false; drawMapRegion(tx, mv.x, mv.y, s, w, h);
+  c.save(); if (!mv.drag) { c.shadowColor = 'rgba(0,0,0,.6)'; c.shadowBlur = 14 * dpr; } c.drawImage(tc, 0, 0); c.restore();
   // Nombres de biomas: uno por zona, en el centro de sus trozos visibles
   if (MP.show.bio && s > 0.35) {
     const tx0 = mv.x - w / 2 / s, ty0 = mv.y - h / 2 / s, groups = new Map();
@@ -81,7 +84,7 @@ function mpSide() {
   for (const k of MAPT.keys()) { const b = mpBiome(k); if (!b) continue; cnt.set(b, (cnt.get(b) || 0) + 1); n++; }
   const list = [...cnt].sort((a, b) => b[1] - a[1]), core = L.core && L.core[0], p = S.player, dCore = core ? Math.round(Math.hypot(core.x + .5 - p.x / T, core.y + .5 - p.y / T)) : null, k = typeof layerOf === 'function' ? layerOf(Math.floor(p.y / T)) : 0;
   el.innerHTML = `<section><small>Exploración</small><div class="mpstat"><div><b>${n}</b><span>zonas vistas</span></div><div><b>${list.length}</b><span>biomas</span></div><div><b>${dCore ?? '—'}</b><span>al núcleo</span></div><div><b>${k ? 'Capa ' + k : 'Superficie'}</b><span>dónde estás</span></div></div></section>
-    <section><small>Biomas descubiertos</small><ul class="mpleg">${list.map(([b, c]) => { const B = mpB(b); return `<li><i style="background:${B && B.mc || '#888'}"></i><span>${esc(B ? B.n : b)}</span><em><u style="width:${Math.round(c / n * 100)}%"></u></em><b>${Math.round(c / n * 100)} %</b></li>`; }).join('') || '<li class="mut">Explora para descubrirlos</li>'}</ul></section>
+    <section><small>Biomas descubiertos</small><ul class="mpleg">${list.map(([b, c]) => { const B = mpB(b); return `<li data-mpbio="${b}" class="${MP.sel === b ? 'on' : ''}" title="Clic: ver dónde está"><i style="background:${B && B.mc || '#888'}"></i><span>${esc(B ? B.n : b)}</span><em><u style="width:${Math.round(c / n * 100)}%"></u></em><b>${Math.round(c / n * 100)} %</b></li>`; }).join('') || '<li class="mut">Explora para descubrirlos</li>'}</ul></section>
     <section><small>Marcadores</small><ul class="mpmarks">${(S.marks || []).map((m, i) => `<li data-mpgo="${i}"><span class="mpnum">${i + 1}</span>${esc(m.n)}<em>${Math.round(Math.hypot(m.x - p.x / T, m.y - p.y / T))} c</em></li>`).join('') || '<li class="mut">Clic en el mapa para poner uno</li>'}</ul></section>
     <section><small>Mostrar</small><div class="mptog">${[['bio', 'Nombres de biomas'], ['trail', 'Tu rastro'], ['mobs', 'Criaturas'], ['grid', 'Cuadrícula']].map(([k2, t]) => `<label><input type="checkbox" data-mpt="${k2}" ${MP.show[k2] ? 'checked' : ''}> ${t}</label>`).join('')}</div></section>
     <p class="mut small">Arrastra · rueda: zoom · clic: marcador · clic derecho: quitarlo</p>`;

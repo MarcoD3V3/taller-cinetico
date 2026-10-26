@@ -42,7 +42,7 @@ function drawMapRegion(c, cxT, cyT, s, w, h) {
   const c0 = Math.floor(tx0 / CS), c1 = Math.floor((tx0 + w / s) / CS), r0 = Math.floor(ty0 / CS), r1 = Math.floor((ty0 + h / s) / CS);
   for (let cy = r0; cy <= r1; cy++) for (let cx = c0; cx <= c1; cx++) {
     const m = MAPT.get(ckey(cx, cy)); if (!m) continue;
-    c.drawImage(m, Math.floor((cx * CS - tx0) * s), Math.floor((cy * CS - ty0) * s), Math.ceil(CS * s), Math.ceil(CS * s));
+    c.drawImage(m, Math.floor((cx * CS - tx0) * s), Math.floor((cy * CS - ty0) * s), Math.ceil(CS * s) + 1, Math.ceil(CS * s) + 1); // +1: sin rendijas entre trozos
   }
 }
 const mini = $('mini'), miniX = mini.getContext('2d');

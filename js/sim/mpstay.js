@@ -191,3 +191,8 @@ async function mpsResume() {
   if (rec.wid) await play(rec.wid);
 }
 setTimeout(mpsResume, 300);
+
+// ---------- Que el servidor no se duerma ----------
+// Algunos alojamientos gratuitos (Render) apagan el servidor si no reciben peticiones web durante un rato,
+// aunque haya partidas por WebSocket: al despertar, todos se reconectan. Con un toque cada 4 minutos no pasa.
+setInterval(() => { if (NET.kind === 'ws' && NET.room && /^https?:$/.test(location.protocol) && !inClaude()) fetch('/api/info', { cache: 'no-store' }).catch(() => { }); }, 240000);
