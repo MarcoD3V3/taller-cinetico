@@ -11,10 +11,14 @@
 // =====================================================================================
 const guestId = () => { try { let g = localStorage.getItem('tc-gid'); if (!g) { g = Math.random().toString(36).slice(2, 12); localStorage.setItem('tc-gid', g); } return g; } catch (e) { return 'x' + Math.random().toString(36).slice(2, 10); } };
 const WS_ERR = { too_big: 'El mundo es demasiado grande para la nube (máx. 8 MB comprimido).', quota: 'Ya tienes 20 mundos en la nube: borra alguno.', db: 'La base de datos no responde.', bad_pass: 'Contraseña incorrecta.', full: 'La partida está llena.', banned: 'Te han vetado en esta partida.', need_discord: 'Esta partida pide iniciar sesión con Discord.', not_found: 'Esa partida ya no existe.', taken: 'Ese código ya está en uso.', closed: 'La partida se ha cerrado.', kicked: 'El anfitrión te ha expulsado.', timeout: 'El servidor no responde.', same_account: 'Ya estás en esta partida con esta cuenta (en otra pestaña o en otro dispositivo). Una cuenta solo puede entrar una vez.', offline: 'Sin conexión con el servidor: reconectando…' };
+// Al recargar la página en una partida (sim/mpstay.js lo apunta al salir): se recupera el mismo
+// jugador del servidor, que aún te guarda el sitio unos segundos. Se usa una vez y se borra.
+const WS_STAY = (() => { try { const o = JSON.parse(sessionStorage.getItem('tc-mp-stay')); sessionStorage.removeItem('tc-mp-stay'); return o && Date.now() - o.t < 10 * 60000 ? o : null; } catch (e) { return null; } })();
+let _wsStayUsed = false;
 function wsConnect(url, hello) {
   return new Promise((resolve, reject) => {
-    const rooms = new Map(), wait = new Map(), conn = new Set(), reFns = new Set(), hostFns = new Set();
-    let ws = null, me = null, rid = 0, open = false, closed = false, lastRx = Date.now(), tries = 0, reT = 0, api0 = null, out = [];
+    const rooms = new Map(), wait = new Map(), conn = new Set(), reFns = new Set(), hostFns = new Set(), hoFns = new Set();
+    let pendingHo = null, ws = null, me = null, rid = 0, open = false, closed = false, lastRx = Date.now(), tries = 0, reT = 0, api0 = null, out = [];
     const R = n => rooms.get(n) || (rooms.set(n, { h: {}, pf: new Set(), peers: Object.freeze([]), outFn: null }), rooms.get(n));
     // Sin conexión, lo que mandes espera (salvo la presencia, que solo vale la última)
     const send = o => { if (ws && ws.readyState === 1 && open) { ws.send(JSON.stringify(o)); return; } if (o.op === 'pres' || o.op === 'ping') return; if (out.length < 2000) out.push(o); };
@@ -41,8 +45,14 @@ function wsConnect(url, hello) {
         const first = !me, resumed = !!m.resumed; me = Object.assign(me || {}, m); tries = 0;
         if (first) { api0 = Object.assign(api('lobby'), {
           me, server: url,
-          join: async (name, pass) => { await ask({ op: 'join', room: name, pass }); const r = R(name); r.pass = pass; return api(name); },
-          create: async (name, meta) => { await ask({ op: 'create', room: name, meta }); R(name).meta = meta; return api(name); },
+          join: async (name, pass) => { const a = await ask({ op: 'join', room: name, pass }); const r = R(name); r.pass = pass; r.info = a; return api(name); },
+          create: async (name, meta) => { const a = await ask({ op: 'create', room: name, meta }); const r = R(name); r.meta = meta; r.info = a; return api(name); },
+          // Tras recargar la página con la conexión recuperada: ya estás en la sala, solo falta el asa
+          attach: name => { R(name); return api(name); },
+          info: name => (rooms.get(name) || {}).info || null,
+          hoPut: (name, data, z) => send({ op: 'ho.put', room: name, data, z: !!z }),
+          hoAck: wid => send({ op: 'ho.ack', wid }),
+          onHandoff: fn => { hoFns.add(fn); if (pendingHo) { const l = pendingHo; pendingHo = null; setTimeout(() => fn(l), 0); } return () => hoFns.delete(fn); },
           list: async () => (await ask({ op: 'list' })).games || [],
           kick: (name, peer, ban) => send({ op: 'kick', room: name, peer, ban: !!ban }),
           meta: (name, meta) => { const r = rooms.get(name); if (r) r.meta = { ...(r.meta || {}), ...meta }; send({ op: 'meta', room: name, meta }); },
@@ -71,14 +81,15 @@ function wsConnect(url, hello) {
         r.peers = Object.freeze(m.peers.map(p => Object.freeze({ ...sender(p), presence: p.presence || {}, updatedAt: Date.now(), avatar: p.avatar })));
         const joined = r.peers.filter(p => !old.has(p.peer)), left = [...old.values()].filter(p => !r.peers.some(q => q.peer === p.peer));
         for (const f of r.pf) f({ peers: r.peers, joined, left, updated: r.peers }); return; }
-      if (m.op === 'host') { for (const f of hostFns) try { f(m); } catch (er) { console.warn(er); } return; }
+      if (m.op === 'handoff') { for (const f of hoFns) try { f(m.list || []); } catch (er) { console.warn(er); } if (!hoFns.size) pendingHo = m.list; return; }
+      if (m.op === 'host') { const r = rooms.get(m.room); if (r && m.meta) r.info = { ...(r.info || {}), owner: m.meta.owner, wid: m.meta.wid }; for (const f of hostFns) try { f(m); } catch (er) { console.warn(er); } return; }
       if (m.op === 'out') { const r = rooms.get(m.room); rooms.delete(m.room); if (r && r.outFn) r.outFn(m.why); }
     }
     function dial() {
       if (closed) return;
       let w; try { w = new WebSocket(url); } catch (e) { if (!me) reject(e); else later(); return; }
       ws = w; lastRx = Date.now();
-      w.onopen = () => { if (ws !== w) return; const h = { op: 'hello', ...hello }; if (me && me.rt) h.resume = { peer: me.peer, rt: me.rt }; w.send(JSON.stringify(h)); };
+      w.onopen = () => { if (ws !== w) return; const h = { op: 'hello', ...hello }; if (me && me.rt) h.resume = { peer: me.peer, rt: me.rt }; else if (WS_STAY && WS_STAY.peer && !_wsStayUsed) { _wsStayUsed = true; h.resume = { peer: WS_STAY.peer, rt: WS_STAY.rt }; } w.send(JSON.stringify(h)); };
       w.onmessage = e => { if (ws === w) onMsg(e); };
       w.onerror = () => { };
       w.onclose = () => { if (ws !== w) return; ws = null; setOpen(false); if (!me) { reject({ code: 'no_server', message: 'No hay servidor en ' + url }); return; } later(); };

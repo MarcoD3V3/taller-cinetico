@@ -23,6 +23,7 @@ async function pgStore(url) {
     CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, created TIMESTAMPTZ DEFAULT now(), expires TIMESTAMPTZ NOT NULL);
     CREATE TABLE IF NOT EXISTS saves (user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, id TEXT NOT NULL, name TEXT, data TEXT NOT NULL, meta JSONB, updated TIMESTAMPTZ DEFAULT now(), PRIMARY KEY (user_id, id));
     CREATE TABLE IF NOT EXISTS chars (user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, id TEXT NOT NULL, data TEXT NOT NULL, updated TIMESTAMPTZ DEFAULT now(), PRIMARY KEY (user_id, id));
+    CREATE TABLE IF NOT EXISTS handoffs (owner TEXT NOT NULL, wid TEXT NOT NULL, room TEXT, data TEXT NOT NULL, z BOOLEAN DEFAULT false, updated TIMESTAMPTZ DEFAULT now(), PRIMARY KEY (owner, wid));
     CREATE TABLE IF NOT EXISTS bans (host TEXT NOT NULL, banned TEXT NOT NULL, created TIMESTAMPTZ DEFAULT now(), PRIMARY KEY (host, banned));
     CREATE TABLE IF NOT EXISTS logins (username TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, salt TEXT NOT NULL, hash TEXT NOT NULL, created TIMESTAMPTZ DEFAULT now());`);
   await q('DELETE FROM sessions WHERE expires < now()');
@@ -42,6 +43,10 @@ async function pgStore(url) {
     async bans(host) { return new Set((await q('SELECT banned FROM bans WHERE host=$1', [host])).rows.map(r => r.banned)); },
     async addBan(host, who) { await q('INSERT INTO bans (host, banned) VALUES ($1,$2) ON CONFLICT DO NOTHING', [host, who]); },
     async delBan(host, who) { await q('DELETE FROM bans WHERE host=$1 AND banned=$2', [host, who]); },
+    // Mundos que siguieron en línea sin su dueño: la última copia espera a que el dueño vuelva
+    async hoPut(owner, wid, room, data, z) { await q(`INSERT INTO handoffs (owner, wid, room, data, z, updated) VALUES ($1,$2,$3,$4,$5,now()) ON CONFLICT (owner, wid) DO UPDATE SET room=$3, data=$4, z=$5, updated=now()`, [owner, wid, room, data, !!z]); },
+    async hoList(owner) { return (await q('SELECT wid, room, data, z, updated FROM handoffs WHERE owner=$1', [owner])).rows; },
+    async hoDel(owner, wid) { await q('DELETE FROM handoffs WHERE owner=$1 AND wid=$2', [owner, wid]); },
     // Cuentas propias (usuario y contraseña)
     async loginGet(u) { return (await q('SELECT * FROM logins WHERE username=$1', [u])).rows[0] || null; },
     async loginCreate(u, uid, salt, hash) { await q('INSERT INTO logins (username, user_id, salt, hash) VALUES ($1,$2,$3,$4)', [u, uid, salt, hash]); },
@@ -69,6 +74,9 @@ function fileStore(dir) {
     async bans(host) { return new Set(D.bans[host] || []); },
     async addBan(host, who) { const b = new Set(D.bans[host] || []); b.add(who); D.bans[host] = [...b]; save(); },
     async delBan(host, who) { D.bans[host] = (D.bans[host] || []).filter(x => x !== who); save(); },
+    async hoPut(owner, wid, room, data, z) { const H = D.handoffs || (D.handoffs = {}); (H[owner] || (H[owner] = {}))[wid] = { wid, room, data, z: !!z, updated: Date.now() }; save(); },
+    async hoList(owner) { return Object.values((D.handoffs || {})[owner] || {}); },
+    async hoDel(owner, wid) { const H = D.handoffs || {}; if (H[owner]) { delete H[owner][wid]; if (!Object.keys(H[owner]).length) delete H[owner]; } save(); },
     async loginGet(u) { return D.logins[u] || null; },
     async loginCreate(u, uid, salt, hash) { if (D.logins[u]) throw new Error('duplicate key'); D.logins[u] = { username: u, user_id: uid, salt, hash, created: Date.now() }; save(); },
   };

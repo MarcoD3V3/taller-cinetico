@@ -167,13 +167,21 @@ function leaveRoom(c, name, why) {
     const rest = [...r.peers.keys()].map(id => clients.get(id)).filter(Boolean).sort((a, b) => (a.gone ? 1 : 0) - (b.gone ? 1 : 0));
     if (r.meta.keep && rest.length) {
       const nh = rest[0], mt = r.meta; mt.host = nh.id; mt.hostName = nh.name;
-      for (const o of rest) wsSend(o, { op: 'host', room: name, peer: nh.id, name: nh.name, meta: { name: mt.name, max: mt.max, mode: mt.mode, requireDc: mt.requireDc, cheats: mt.cheats, keep: true, pass: o === nh ? mt.pass : undefined } });
+      for (const o of rest) wsSend(o, { op: 'host', room: name, peer: nh.id, name: nh.name, meta: { name: mt.name, max: mt.max, mode: mt.mode, requireDc: mt.requireDc, cheats: mt.cheats, keep: true, owner: mt.owner, wid: mt.wid, pass: o === nh ? mt.pass : undefined } });
       sendPeers(r); return;
     }
-    for (const o of rest) { o.rooms.delete(name); wsSend(o, { op: 'out', room: name, why: 'closed' }); } rooms.delete(name); return;
+    for (const o of rest) { o.rooms.delete(name); wsSend(o, { op: 'out', room: name, why: 'closed' }); } dropRoom(r); return;
   }
-  if (!r.peers.size && name !== 'lobby') rooms.delete(name); else sendPeers(r);
+  if (!r.peers.size && name !== 'lobby') dropRoom(r); else sendPeers(r);
 }
+// La sala se queda vacía: la última copia del mundo (la manda quien lo lleva cuando no es el dueño)
+// queda guardada para el dueño, que la recibe al conectarse (o ya, si está conectado)
+function dropRoom(r) {
+  rooms.delete(r.name); const mt = r.meta, L = r.last; if (!mt || !L || !mt.owner || !mt.wid) return;
+  const put = DB ? DB.hoPut(mt.owner, mt.wid, r.name, L.data, L.z) : Promise.resolve();
+  put.catch(e => console.error('entrega', e.message)).then(() => { for (const o of clients.values()) if (o.by === mt.owner && o.sock) hoSend(o); });
+}
+async function hoSend(c) { if (!DB || !c.by) return; try { const list = await DB.hoList(c.by); if (list.length) wsSend(c, { op: 'handoff', list: list.map(h => ({ wid: h.wid, room: h.room, data: h.data, z: !!h.z, t: +new Date(h.updated) })) }); } catch (e) { console.error('entrega', e.message); } }
 function bye(c) { if (c.dead && !c.gone) return; c.dead = true; c.gone = 0; clearTimeout(c.gt); for (const n of [...c.rooms]) leaveRoom(c, n); clients.delete(c.id); }
 // Se cortó el socket: si el jugador ya estaba dentro, se le guarda el sitio 45 s por si vuelve
 function sockGone(c, sock) {
@@ -202,7 +210,7 @@ async function onMsg(c, m) {
       wsSend(rs, { op: 'welcome', rid: m.rid, resumed: true, lost, peer: rs.id, rt: rs.rt, by: rs.by, name: rs.name, acct: rs.acct || null, accounts: !!DB, verified: !!rs.verified, avatar: rs.avatar || '', dcUser: rs.dcUser || '', lan: LOCAL_ONLY || PUBLIC ? [] : lanIPs(), port: PORT, public: PUBLIC || null, cloud: !!(DB && rs.verified), oauth: !!DC_SECRET });
       for (const o of q) wsSend(rs, o);
       for (const n of rs.rooms) { const r = rooms.get(n); if (r) sendPeers(r); }
-      return;
+      hoSend(rs); return;
     }
     c.hello = true;
     // Sesión del servidor (inicio de sesión hecho aquí) o, si no, token de Discord del navegador.
@@ -215,7 +223,7 @@ async function onMsg(c, m) {
     else Object.assign(c, { by: 'g:' + clean(m.gid, 24).replace(/[^a-z0-9]/gi, ''), name: clean(m.nick, 20) || 'Jugador', verified: false });
     clients.set(c.id, c); c.rooms.add('lobby'); room('lobby').peers.set(c.id, {});
     rep({ op: 'welcome', peer: c.id, by: c.by, name: c.name, acct: c.acct || null, accounts: !!DB, verified: !!c.verified, avatar: c.avatar || '', dcUser: c.dcUser || '', rt: c.rt, tokenBad: !!(m.token && !dc), sessBad: !!(m.sess && !su && !sessRetry), sessRetry, lan: LOCAL_ONLY || PUBLIC ? [] : lanIPs(), port: PORT, public: PUBLIC || null, cloud: !!(DB && c.verified), oauth: !!DC_SECRET });
-    sendPeers(room('lobby')); return;
+    sendPeers(room('lobby')); hoSend(c); return;
   }
   if (!c.hello) return;
   const rn = clean(m.room, 48);
@@ -224,9 +232,9 @@ async function onMsg(c, m) {
     case 'create': {
       if (!/^[a-z0-9][a-z0-9_.-]{0,47}$/.test(rn) || rooms.has(rn)) return rep({ op: 'err', code: 'taken' });
       const mt = m.meta || {}, r = room(rn);
-      r.meta = { host: c.id, hostName: c.verified ? c.name : (clean(mt.hostName, 20) || c.name), name: clean(mt.name, 40) || 'Partida', pass: clean(mt.pass, 40), max: Math.max(2, Math.min(32, +mt.max || 8)), mode: clean(mt.mode, 12), requireDc: !!mt.requireDc, cheats: !!mt.cheats, keep: mt.keep !== false, bans: new Set() };
+      r.meta = { host: c.id, hostName: c.verified ? c.name : (clean(mt.hostName, 20) || c.name), name: clean(mt.name, 40) || 'Partida', pass: clean(mt.pass, 40), max: Math.max(2, Math.min(32, +mt.max || 8)), mode: clean(mt.mode, 12), requireDc: !!mt.requireDc, cheats: !!mt.cheats, keep: mt.keep !== false, bans: new Set(), owner: clean(mt.owner, 60) || c.by, wid: clean(mt.wid, 40).replace(/[^a-z0-9_-]/gi, '') };
       if (c.verified && DB) try { r.meta.bans = await DB.bans(c.by); } catch (e) { }
-      r.peers.set(c.id, {}); c.rooms.add(rn); sendPeers(r); return rep({ op: 'joined', room: rn });
+      r.peers.set(c.id, {}); c.rooms.add(rn); sendPeers(r); return rep({ op: 'joined', room: rn, owner: r.meta.owner, wid: r.meta.wid });
     }
     case 'join': {
       const r = rooms.get(rn);
@@ -235,7 +243,7 @@ async function onMsg(c, m) {
         // Una cuenta, un jugador: si ya estás dentro (otra pestaña u otro dispositivo), no se entra dos veces.
         // Si lo que queda es un hueco de una conexión caída, se libera para ti.
         for (const id of [...r.peers.keys()]) { const o = clients.get(id); if (!o || o === c || o.by !== c.by) continue; if (o.gone) bye(o); else return rep({ op: 'err', code: 'same_account' }); } }
-      r.peers.set(c.id, {}); c.rooms.add(rn); sendPeers(r); return rep({ op: 'joined', room: rn });
+      r.peers.set(c.id, {}); c.rooms.add(rn); sendPeers(r); return rep({ op: 'joined', room: rn, owner: r.meta ? r.meta.owner : null, wid: r.meta ? r.meta.wid : null, host: r.meta ? r.meta.host : null });
     }
     case 'leave': leaveRoom(c, rn); return rep({ op: 'left', room: rn });
     case 'emit': { const r = rooms.get(rn); if (!r || !r.peers.has(c.id)) return; const t = clean(m.topic, 48);
@@ -275,6 +283,9 @@ async function onMsg(c, m) {
         await DB.putChar(c.by, id, txt); return rep({ op: 'ok' });
       } catch (e) { console.error('personajes', e.message); return rep({ op: 'err', code: 'db' }); }
     }
+    // Copia del mundo que lleva un jugador que no es el dueño (la última se guarda al vaciarse la sala)
+    case 'ho.put': { const r = rooms.get(rn); if (!r || !r.meta || r.meta.host !== c.id || !r.peers.has(c.id)) return; const data = String(m.data || ''); if (!data || data.length > MAX_SAVE) return; r.last = { data, z: !!m.z, t: Date.now() }; return; }
+    case 'ho.ack': { if (!DB || !c.by) return; const wid = clean(m.wid, 40).replace(/[^a-z0-9_-]/gi, ''); if (wid) DB.hoDel(c.by, wid).catch(() => { }); return; }
     case 'logout': if (c.sess && DB) await DB.endSession(c.sess).catch(() => { }); return rep({ op: 'ok' });
     case 'meta': { const r = rooms.get(rn); if (!r || !r.meta || r.meta.host !== c.id) return; const mt = m.meta || {}; if ('pass' in mt) r.meta.pass = clean(mt.pass, 40); if (mt.max) r.meta.max = Math.max(2, Math.min(32, +mt.max)); if ('requireDc' in mt) r.meta.requireDc = !!mt.requireDc; if (mt.mode) r.meta.mode = clean(mt.mode, 12); if ('cheats' in mt) r.meta.cheats = !!mt.cheats; if ('keep' in mt) r.meta.keep = !!mt.keep; if (mt.name) r.meta.name = clean(mt.name, 40); return; }
   }
