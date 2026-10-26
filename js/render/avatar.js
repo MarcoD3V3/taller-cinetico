@@ -276,7 +276,7 @@ function avatarSheet(look, equip) {
   for (const a of [sp.helm, sp.chest, sp.legs, sp.feet]) if (a) add(a.c, a.set === 'leather' ? 'leather' : a.set === 'fur' ? 'fur' : 'metal');
   if (sp.gloves) add(sp.gloves, 'leather'); if (sp.shieldC) add(sp.shieldC, 'metal');
   const hi = hiRes2x(cv, mats); paintHD(hi, sp, anchors, FW, FH, PAD); outline(hi.getContext('2d', { willReadFrequently: true }), W * 2, H * 2);
-  s = { cv: hi, FW, FH }; _avCache.set(key, s); if (_avCache.size > 40) _avCache.delete(_avCache.keys().next().value);
+  s = { cv: hi, FW, FH, an: anchors }; _avCache.set(key, s); if (_avCache.size > 40) _avCache.delete(_avCache.keys().next().value);
   return s;
 }
 // Ángulo → dirección de la hoja (y si hay que dibujarla en espejo)
@@ -288,7 +288,9 @@ function drawAvatar(ctx, look, equip, x, y, ang, walk, moving, sc = 2, held, swi
   const w = sh.FW * sc, h = sh.FH * sc, ox = -w / 2, oy = -h + 4 * sc;
   ctx.save(); ctx.translate(Math.round(x), Math.round(y)); if (flip) ctx.scale(-1, 1);
   const smooth = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
-  const drawHeld = () => { if (!held) return; const [hx, hy] = AV_HAND[d], px = ox + (hx + 1 + AV_M) * sc, py = oy + (hy + 1 + AV_M) * sc; ctx.save(); ctx.translate(px, py); const base = d === 0 ? 2.4 : d === 4 ? -0.8 : 0.6; ctx.rotate(base + (swing || 0)); const s = ITEMS[held] && (ITEMS[held].weapon || ITEMS[held].tool) ? 20 : 12; ctx.imageSmoothingEnabled = smooth; drawItem(ctx, held, s * 0.3, -s * 0.3, s); ctx.restore(); };
+  const drawHeld = () => { if (!held) return; const [hx, hy] = AV_HAND[d], an = sh.an && sh.an[d * AV_FR + f], px = ox + (hx + 1 + AV_M) * sc, py = oy + (hy + 1 + AV_M + (an ? an.yo || 0 : 0)) * sc;
+    if (typeof avHeld === 'function') { ctx.imageSmoothingEnabled = smooth; avHeld(ctx, held, d, flip, ang, swing, px, py, sc, f); ctx.imageSmoothingEnabled = false; return; }
+    ctx.save(); ctx.translate(px, py); const base = d === 0 ? 2.4 : d === 4 ? -0.8 : 0.6; ctx.rotate(base + (swing || 0)); const s = ITEMS[held] && (ITEMS[held].weapon || ITEMS[held].tool) ? 20 : 12; ctx.imageSmoothingEnabled = smooth; drawItem(ctx, held, s * 0.3, -s * 0.3, s); ctx.restore(); };
   if (d >= 3) drawHeld();
   ctx.drawImage(sh.cv, f * sh.FW * 2, d * sh.FH * 2, sh.FW * 2, sh.FH * 2, ox, oy, w, h); // hoja a doble resolución
   if (d < 3) drawHeld();

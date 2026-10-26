@@ -20,7 +20,11 @@ const AFX = { me: false, land: 0, wasAir: false, kick: 0, kickA: 0, step: -1, pr
     const air = (P.z || 0) > 0.5; if (air) { sy *= 1.05; sx *= 0.96; } if (AFX.wasAir && !air) AFX.land = 0.14; AFX.wasAir = air;
     if (AFX.land > 0) { const k = AFX.land / 0.14; sy *= 1 - 0.14 * k; sx *= 1 + 0.12 * k; }
     // Ataque: preparación (atrás) → golpe (adelante) → vuelta
-    if (P.swing > 0) { const p = 1 - P.swing / 0.2, a = P.swingA ?? ang, off = p < 0.25 ? -p / 0.25 * 2 : Math.sin((p - 0.25) / 0.75 * Math.PI) * 5; dx += Math.cos(a) * off; dy += Math.sin(a) * off * 0.6; lean += Math.cos(a) * (p < 0.25 ? -0.05 : 0.12) * Math.sin(p * Math.PI); }
+    if (P.swing > 0) { const p = 1 - P.swing / 0.2, a = P.swingA ?? ang, g = held && typeof gripOf === 'function' ? gripOf(held) : 'blade';
+      // Cuánto se lanza el cuerpo según el arma: lo pesado carga más; lo de lejos retrocede
+      const amp = { blade: 5, heavy: 7, spear: 9, tool: 3, item: 2, staff: 2, bow: -1.5, xbow: -2.5, gun: -3.5 }[g] ?? 5, wu = g === 'heavy' ? 0.35 : g === 'spear' ? 0.2 : 0.25;
+      const off = amp < 0 ? amp * Math.max(0, 1 - p) : p < wu ? -p / wu * (g === 'heavy' ? 3 : 2) : Math.sin((p - wu) / (1 - wu) * Math.PI) * amp;
+      if (g === 'heavy' && p < wu) { sy *= 1 + 0.05 * (p / wu); sx *= 1 - 0.03 * (p / wu); } else if (g === 'heavy' && p < wu + 0.25) { const k = 1 - (p - wu) / 0.25; sy *= 1 - 0.07 * k; sx *= 1 + 0.06 * k; } dx += Math.cos(a) * off; dy += Math.sin(a) * off * 0.6; lean += Math.cos(a) * (p < 0.25 ? -0.05 : 0.12) * Math.sin(p * Math.PI); }
     // Golpe recibido: retrocede y se encoge
     if (AFX.kick > 0) { const k = AFX.kick / 0.18; dx += Math.cos(AFX.kickA) * 4 * k; dy += Math.sin(AFX.kickA) * 2 * k; lean -= Math.cos(AFX.kickA) * 0.1 * k; sy *= 1 - 0.05 * k; }
   }
