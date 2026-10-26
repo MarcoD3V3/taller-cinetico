@@ -440,7 +440,7 @@ function eqSlot(k, cls = '') { return `<div class="s eq ${cls}" data-k="eq:${k}"
 function equipPanelHTML() {
   return `<div class="eqp"><div class="eqc">${['head', 'back', 'chest', 'hands', 'legs', 'feet'].map(k => eqSlot(k)).join('')}</div>
   <div class="eqmid"><canvas id="eqPrev" width="112" height="150" title="Clic para girar"></canvas><div class="eqrunes">${[1, 2, 3, 4, 5, 6].map(i => eqSlot('rune' + i, 'rune')).join('')}</div></div>
-  <div class="eqc">${['shield', 'ring1', 'ring2', 'totem', 'costume'].map(k => eqSlot(k)).join('')}</div>
+  <div class="eqc">${['shield', 'ring1', 'ring2', 'totem', 'costume', 'pack'].map(k => eqSlot(k)).join('')}</div>
   <div class="eqside"><div class="eqacc">${[1, 2, 3, 4].map(i => eqSlot('acc' + i)).join('')}</div><div class="eqstats" id="eqStats"></div></div></div>`;
 }
 // Estadísticas (con vista previa al pasar el ratón por una pieza del inventario)
