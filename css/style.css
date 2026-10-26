@@ -1343,3 +1343,4 @@ body.dying #vitals { animation: none; }
 .dgstats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; } .dgstats div { padding: 6px; border-radius: 10px; background: #ffffff08; text-align: center; } .dgstats b { display: block; font: 700 20px var(--display); color: #ffd0c8; } .dgstats span { font-size: 10.5px; color: #c8b8b0; }
 .dgcard.tips ul { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.5; color: #e8dcd8; }
 @media (max-width: 640px) { .dggrid { grid-template-columns: 1fr; } }
+#mCG { z-index: 96; }

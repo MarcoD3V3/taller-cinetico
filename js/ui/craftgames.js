@@ -331,3 +331,7 @@ addEventListener('keyup', e => { if (CG && (e.key === ' ' || e.key === 'Enter'))
   });
 }; }
 const c0own2 = id => { let n = 0; for (const s of S.inv) if (s && s.id === id) n += s.n; return n; };
+// Con un minijuego abierto, Esc lo salta (no abre el menú de pausa por debajo) y nada lo tapa
+let _cgEsc = 0; const cgEscNow = () => { _cgEsc = performance.now(); cgSkip(); };
+{ const p0 = openPause; openPause = pane => { if (CG) { cgEscNow(); return; } if (performance.now() - _cgEsc < 400 || (typeof CL !== 'undefined' && CL)) return; return p0(pane); }; }
+{ const c0 = closeModal; closeModal = () => { if (CG) { cgEscNow(); return; } if (performance.now() - _cgEsc < 400) return; return c0(); }; }
