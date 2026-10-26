@@ -1321,3 +1321,25 @@ body.inmenu #ampBar, body.climbing #ampBar { display: none; }
 .khor { font-style: normal; color: var(--muted); font-size: 10px; }
 .khg { margin-bottom: 4px; } .khg > small { display: block; margin: 2px 4px; font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
 @media (max-width: 900px) { #keyHud { display: none; } }
+
+/* Vida baja: viñeta roja que late (más fuerte cuanto peor) */
+#lowLife { position: fixed; inset: 0; pointer-events: none; z-index: 5; opacity: 0; transition: opacity .4s; background: radial-gradient(ellipse at center, transparent 45%, rgba(150,0,0,.55) 80%, rgba(90,0,0,.85)); }
+#lowLife.l1 { opacity: .35; } #lowLife.l2 { opacity: .6; } #lowLife.l3 { opacity: .85; background: radial-gradient(ellipse at center, rgba(40,0,0,.15) 30%, rgba(170,0,0,.6) 70%, rgba(80,0,0,.92)); }
+#lowLife.beat { animation: dgbeat .55s ease-out; }
+@keyframes dgbeat { 0% { transform: scale(1); filter: brightness(1); } 15% { transform: scale(1.04); filter: brightness(1.6); } 30% { transform: scale(1); filter: brightness(1); } 45% { transform: scale(1.025); filter: brightness(1.35); } 100% { transform: scale(1); } }
+body.dying #hotbar, body.dying #vitals { animation: dgshake .3s ease-in-out infinite alternate; } @keyframes dgshake { from { transform: translateX(-50%) translateY(0); } to { transform: translateX(-50%) translateY(-1px); } }
+body.dying #vitals { animation: none; }
+/* Pantalla de muerte con gráficos */
+#death .dbox { max-width: min(760px, calc(100vw - 24px)); animation: dgin .5s ease; } @keyframes dgin { from { opacity: 0; transform: translateY(10px) scale(.98); } }
+#death h1 { margin: 0 0 4px; letter-spacing: .02em; text-shadow: 0 0 30px #ff3a2a66; }
+.dggrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0 6px; text-align: left; }
+.dgcard { padding: 10px 12px; border-radius: 14px; background: rgba(20,12,12,.7); border: 1px solid #ff6b5b22; animation: dgin .5s ease backwards; } .dgcard:nth-child(2) { animation-delay: .1s; } .dgcard:nth-child(3) { animation-delay: .2s; } .dgcard:nth-child(4) { animation-delay: .3s; }
+.dgcard.wide { grid-column: 1 / -1; } .dgcard > small { display: block; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: #c8a8a0; margin-bottom: 6px; }
+.dgchart { width: 100%; height: 90px; display: block; } .dgp { fill: none; stroke: #ff6b5b; stroke-width: 2; stroke-linejoin: round; stroke-dasharray: 1200; stroke-dashoffset: 1200; animation: dgdraw 1.4s ease forwards .2s; } @keyframes dgdraw { to { stroke-dashoffset: 0; } }
+.dgl { stroke: #ffffff30; stroke-dasharray: 3 4; } .dgh circle { fill: #fff; opacity: .85; }
+.dgleg { display: flex; gap: 12px; font-size: 10.5px; color: #c8b8b0; margin-top: 4px; } .dgleg i { display: inline-block; width: 10px; height: 3px; margin-right: 4px; vertical-align: middle; } .dgleg .l1 { background: #ff6b5b; } .dgleg .l2 { background: #fff; height: 6px; width: 6px; border-radius: 50%; } .dgleg .l3 { border-top: 1px dashed #ffffff60; }
+.dgdon { display: flex; align-items: center; gap: 10px; } .dgdonut { width: 92px; height: 92px; flex: none; } .dgdonut path { fill: none; stroke-width: 14; stroke-dasharray: 260; stroke-dashoffset: 260; animation: dgdraw 1s ease forwards; }
+.dgdon ul { list-style: none; margin: 0; padding: 0; flex: 1; font-size: 12px; } .dgdon li { display: flex; align-items: center; gap: 6px; margin: 3px 0; } .dgdon li i { width: 8px; height: 8px; border-radius: 2px; flex: none; } .dgdon li b { margin-left: auto; font-family: var(--display); }
+.dgstats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; } .dgstats div { padding: 6px; border-radius: 10px; background: #ffffff08; text-align: center; } .dgstats b { display: block; font: 700 20px var(--display); color: #ffd0c8; } .dgstats span { font-size: 10.5px; color: #c8b8b0; }
+.dgcard.tips ul { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.5; color: #e8dcd8; }
+@media (max-width: 640px) { .dggrid { grid-template-columns: 1fr; } }

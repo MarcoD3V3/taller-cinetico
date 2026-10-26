@@ -174,7 +174,7 @@ function stepFoe(f, dt) {
   if (f.conf > 0) { const o = nearestFoe(f.x, f.y, 6 * T, o2 => o2 !== f); if (o) { tx = o.x; ty = o.y; td = dist(f.x, f.y, tx, ty); tgt = o; } }
   if (!f.boss && td > 34 * T) { FOES.splice(FOES.indexOf(f), 1); return; }
   const aggro = (buff('stealth') ? 5 : daylight() < 0.3 ? 13 : 9) * T * CM().detect;
-  if (!f.ag && td < aggro && !f.minion) f.ag = 1; else if (f.ag && td > aggro * 1.8 && !f.minion) f.ag = 0;
+  if (!f.ag && td < aggro && !f.minion) f.ag = 1; else if (f.ag && (td > aggro * 1.35 || (f.lostT = (td > aggro * 0.8 && !losClear(f.x, f.y, tx, ty)) ? (f.lostT || 0) + dt : 0) > 3) && !f.minion) { f.ag = 0; f.lostT = 0; }
   if (!f.ag && !f.minion && tgt === 'player') { foeWander(f, dt); return; } // patrulla (sim/mobai.js)
   const sp = D.v * T * (f.slow > 0 ? 0.5 : 1) * (_bloodMoon ? 1.15 : 1);
   let want = 0; // 1 acercarse, -1 alejarse
@@ -292,7 +292,7 @@ function playerAttack(id, mw) {
   if (pr.kind === 'melee') {
     P.cd = pr.cd * (survOn() ? 1 / Math.max(0.5, workMul()) : 1); P.swing = 0.2; P.swingA = a; sfx('swing');
     let hit = 0;
-    for (const f of FOES.slice()) { const d = dist(p.x, p.y, f.x, f.y); if (d > pr.reach + f.D.s) continue; let da = Math.abs(((Math.atan2(f.y - p.y, f.x - p.x) - a) + Math.PI * 3) % (Math.PI * 2) - Math.PI); if (da < pr.arc / 2 || d < f.D.s + 8) { damageFoe(f, pr.dmg * CM().melee, pr.el); hit++; if (!w.sweep && hit >= 1 + (w.chain || 0)) break; } }
+    for (const f of FOES.slice()) { const d = dist(p.x, p.y, f.x, f.y); if (d > pr.reach + f.D.s) continue; let da = Math.abs(((Math.atan2(f.y - p.y, f.x - p.x) - a) + Math.PI * 3) % (Math.PI * 2) - Math.PI); if (da < pr.arc / 2 || d < f.D.s + 8) { damageFoe(f, pr.dmg * CM().melee, pr.el); hit++; } }
     for (const an of ANIMALS.slice()) { const d = dist(p.x, p.y, an.x, an.y); if (d > pr.reach + 8) continue; const da = Math.abs(((Math.atan2(an.y - p.y, an.x - p.x) - a) + Math.PI * 3) % (Math.PI * 2) - Math.PI); if (da < pr.arc / 2) { hitAnimal(an, pr.dmg * CM().melee, w); hit++; } }
     if (hit) wearHeld(1);
     if (survOn()) S.pc.stam = Math.max(0, S.pc.stam - 2);
