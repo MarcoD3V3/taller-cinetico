@@ -339,3 +339,7 @@ let _cgEsc = 0; const cgEscNow = () => { _cgEsc = performance.now(); cgSkip(); }
 { const l0 = cgLoop; cgLoop = now => { try { l0(now); } catch (e) { console.warn('minijuego', e); if (CG && !CG.over) requestAnimationFrame(cgLoop); } }; }
 { const c0 = cgClose; cgClose = () => { const G = CG; try { c0(); } catch (e) { console.warn('minijuego', e); } if (CG === G && G) { CG = null; mCG.hidden = true; try { G.done(G.q ?? -1, G.roll); } catch (e) { } } }; }
 mCG.addEventListener('click', e => { if (e.target.closest('[data-cg="skip"]') && CG) { if (CG.phase === 'result') cgClose(); else cgSkip(); } });
+// Red de seguridad: la ventana nunca se queda a la vista sin un minijuego vivo detrás,
+// y la X o «Continuar» la cierran aunque algo haya fallado
+setInterval(() => { if (!mCG.hidden && (!CG || CG.over)) { mCG.hidden = true; CG = null; } }, 500);
+mCG.addEventListener('mousedown', e => { const b = e.target.closest && e.target.closest('[data-cg="skip"], [data-cg="ok"]'); if (!b) return; setTimeout(() => { if (CG && CG.phase === 'result') cgClose(); if (!CG) mCG.hidden = true; }, 60); }, true);
