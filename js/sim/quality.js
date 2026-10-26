@@ -41,8 +41,12 @@ const qBase = id => { const d = qParse(id); return d ? d.base : id; };
 // Las tablas ITEMS, WEAPONS y TOOLS crean la pieza la primera vez que alguien la pide
 function qItem(d) {
   const b = ITEMS[d.base], it = { ...b, n: `${b.n} · ${Q_TIERS[d.tier].n}`, q: d };
-  if (b.weapon) it.weapon = { ...b.weapon, dmg: Math.round(b.weapon.dmg * d.mul.dmg * 100) / 100 };
-  if (b.tool) it.tool = { ...b.tool, mult: Math.round(b.tool.mult * d.mul.spd * 100) / 100 };
+  // Los datos del arma o herramienta pueden estar solo en WEAPONS o TOOLS (picos de metal, armas nuevas…):
+  // sin esto, la pieza con calidad no era herramienta y no podía picar nada que pidiera nivel
+  const own = (tab, k) => tab && Object.getOwnPropertyDescriptor(tab, k)?.value, W0 = own(typeof WEAPONS !== 'undefined' ? WEAPONS : null, d.base), T0 = own(TOOLS, d.base);
+  const bw = b.weapon || W0 ? { ...(b.weapon || {}), ...(W0 || {}) } : null, bt = b.tool || T0 ? { ...(b.tool || {}), ...(T0 || {}) } : null;
+  if (bw) it.weapon = { ...bw, dmg: Math.round(bw.dmg * d.mul.dmg * 100) / 100 };
+  if (bt) it.tool = { ...bt, mult: Math.round(bt.mult * d.mul.spd * 100) / 100 };
   return it;
 }
 function qTable(tab, make) {
