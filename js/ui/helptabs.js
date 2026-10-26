@@ -30,6 +30,14 @@
       '<b>5 · Cosechar:</b> cuando esté madura, pulsa <kbd>F</kbd> encima o rómpela: te da la cosecha y 1–2 semillas para volver a sembrar. Tomate, fresa, uva, pimiento… rebrotan solos.',
       '<b>Más rápido:</b> <i>Harina de hueso</i> sube una etapa al momento; el <i>Compost</i> ×1,5 y el <i>Superabono</i> ×2. La <i>Lámpara de cultivo</i> hace crecer también de noche. Cada cultivo crece algo mejor en su bioma.',
     ]],
+    ['⚙ Automatizar', [
+      '<b>La idea:</b> todo se puede hacer a mano (picar, talar, sembrar, fabricar en mesas) o con máquinas que trabajan solas. Las máquinas necesitan <i>giro</i> (ejes desde una rueda, molino o motor) y cuanto más valioso es lo que buscas, más giro, más piezas y más pasos hacen falta.',
+      '<b>Madera:</b> planta <i>plantones</i> (salen al talar árboles): en unos 7 minutos son árboles, antes con agua cerca. Un <i>plantador automático</i> los planta y un <i>talador automático</i> (≥16 RPM) los corta cuando han crecido y saca los troncos por detrás hacia una cinta.',
+      '<b>Cultivos:</b> la <i>cosechadora automática</i> (≥16 RPM) recoge lo maduro en 3×3 delante de ella, vuelve a sembrar y saca la cosecha por detrás. Con aspersores, el huerto se cuida solo.',
+      '<b>Minerales:</b> el taladro va encima de la veta y las vetas se agotan. <i>Taladro mecánico</i>: piedra, arena, carbón, cobre. <i>Taladro reforzado</i> (≥32 RPM): hierro y menas medias. <i>Perforadora industrial</i> (≥64 RPM + lubricante): oro, plata y menas valiosas. <i>Perforadora de núcleo</i> (≥128 RPM + lubricante + brocas): lo más raro.',
+      '<b>Procesar:</b> lo que sale es mena en bruto. Para lingotes: trituradora → lavadora de menas → horno, enlazados con cintas. Las mesas industriales convierten lingotes en hojas, eslabones, armas…',
+      '<b>Almacén central:</b> 108 ranuras. Lleva ahí todas tus cintas (con clasificadores y embudos para repartir) y tendrás todo en un sitio.',
+    ]],
     ['🕳 Profundidades', [
       '<b>Bajar:</b> cava un hoyo hasta el fondo y pica ese fondo: se abre un <i>pozo</i>. Salta dentro con <kbd>Espacio</kbd> y caes a la capa de abajo (con una <i>Cuerda</i> en el inventario, sin hacerte daño). Con una <i>Escalera de mano</i> sobre el pozo bajas tranquilo y la escalera llega hasta el fondo.',
       '<b>Subir:</b> pon una <i>Escalera de mano</i> bajo tierra y úsala (clic derecho): abres un hueco en el techo y sales a la capa de arriba. También puedes volver por donde bajaste. Si arriba hay agua, ácido o lava, primero lo notas (te avisa) y, si insistes, te cae encima.',

@@ -59,10 +59,13 @@ function roofSprite(id, m) {
   if (!(m & 2)) { c.fillStyle = 'rgba(0,0,0,.28)'; c.fillRect(30, 0, 2, 32); }
   _roofSpr.set(key, cv0); return cv0;
 }
-let _indoorA = 0;
+let _indoorA = 0, _roofBox = null, _roofBoxV = -1;
 function drawRoofs(ctx) {
   if (!S || !S.roof) return; const tr = ctx.getTransform(), z = view.z;
   const x0 = Math.floor((view.x - cw / 2 / z) / T) - 1, x1 = Math.ceil((view.x + cw / 2 / z) / T) + 1, y0 = Math.floor((view.y - ch / 2 / z) / T) - 1, y1 = Math.ceil((view.y + ch / 2 / z) / T) + 1;
+  // Sin tejados a la vista (caja que los envuelve fuera de pantalla): no se recorre nada
+  if (_roofBoxV !== _roofVer) { _roofBoxV = _roofVer; let a = Infinity, b2 = Infinity, c2 = -Infinity, d = -Infinity; for (const k in S.roof) { const [x, y] = k.split(',').map(Number); if (x < a) a = x; if (y < b2) b2 = y; if (x > c2) c2 = x; if (y > d) d = y; } _roofBox = a === Infinity ? null : [a, b2, c2, d]; }
+  if (!_roofBox || _roofBox[2] < x0 || _roofBox[0] > x1 || _roofBox[3] < y0 || _roofBox[1] > y1) { _indoorA *= 0.8; return; }
   const reg = indoorRegion(); _indoorA += ((reg ? 1 : 0) - _indoorA) * 0.18;
   // Fuera: se ve todo menos la casa en la que estás
   for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { const id = roofAt(x, y); if (!id || (reg && reg.has(roofKey(x, y)))) continue;
