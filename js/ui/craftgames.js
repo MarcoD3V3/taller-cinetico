@@ -56,24 +56,24 @@ const CG_GAMES = {
   sharpen: {
     n: 'Afilar el filo', i: '🪨', goal: 'Apoya el filo en la piedra con la presión justa hasta dejarlo como una cuchilla.',
     steps: [['⏺', 'Mantén pulsado para apretar, suelta para aflojar'], ['▮', 'Deja la aguja dentro de la franja verde'], ['🔥', 'Si aprietas de más, el acero se recalienta']], gain: 'Presión constante → más rapidez y filo',
-    init: G => { G.p = 0; G.band = 0.55; G.sharp = 0; G.over = 0; G.inT = 0; G.rot = 0; },
+    init: G => { G.p = 0; G.band = 0.55; G.sharp = 0; G.burnT = 0; G.inT = 0; G.rot = 0; },
     draw: (g, G, dt) => {
       G.p = clamp(G.p + (G.down ? 0.75 : -0.6) * dt, 0, 1); G.band = 0.5 + Math.sin(G.t * 0.7) * 0.22; const bw = 0.16;
       const inB = Math.abs(G.p - G.band) < bw / 2, hi = G.p > G.band + bw / 2;
-      if (inB) { G.sharp += dt * 0.16; G.inT += dt; } if (hi) G.over += dt; G.rot += dt * (4 + G.p * 10);
+      if (inB) { G.sharp += dt * 0.16; G.inT += dt; } if (hi) G.burnT += dt; G.rot += dt * (4 + G.p * 10);
       if (G.down && G.p > 0.15 && Math.random() < G.p) G.burst(212, 128, hi ? '#ff7a3a' : GOLD, 1, { dir: -0.4, sp: 120, life: 0.4 });
       // Piedra
       const cx = 170, cy = 130, r = 62; g.fillStyle = '#4a4d55'; g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fill(); g.strokeStyle = '#ffffff12'; g.lineWidth = 2;
       for (let i = 0; i < 10; i++) { const a = G.rot + i * 0.63; g.beginPath(); g.moveTo(cx + Math.cos(a) * 18, cy + Math.sin(a) * 18); g.lineTo(cx + Math.cos(a) * (r - 6), cy + Math.sin(a) * (r - 6)); g.stroke(); }
       g.fillStyle = '#2c2e33'; g.beginPath(); g.arc(cx, cy, 10, 0, 7); g.fill();
       // Hoja apoyada
-      const bx = 205 - G.p * 12; g.save(); g.translate(bx, 118); g.rotate(-0.25); g.fillStyle = mixHex('#c8ccd4', '#5a7aff', clamp(G.over / 3, 0, 1)); g.beginPath(); g.moveTo(0, 0); g.lineTo(150, -6); g.lineTo(160, 6); g.lineTo(0, 12); g.fill(); g.fillStyle = '#6b4a2a'; g.fillRect(150, -4, 40, 12); g.restore();
+      const bx = 205 - G.p * 12; g.save(); g.translate(bx, 118); g.rotate(-0.25); g.fillStyle = mixHex('#c8ccd4', '#5a7aff', clamp(G.burnT / 3, 0, 1)); g.beginPath(); g.moveTo(0, 0); g.lineTo(150, -6); g.lineTo(160, 6); g.lineTo(0, 12); g.fill(); g.fillStyle = '#6b4a2a'; g.fillRect(150, -4, 40, 12); g.restore();
       // Medidor de presión
       const mx = 400, top = 40, h = 150; cgRR(g, mx, top, 18, h, 9); g.fillStyle = '#ffffff10'; g.fill();
       const by = top + h * (1 - G.band - bw / 2); cgRR(g, mx, by, 18, h * bw, 6); g.fillStyle = '#7fd07a55'; g.fill(); g.strokeStyle = '#7fd07a'; g.lineWidth = 1.5; g.stroke();
       const py = top + h * (1 - G.p); g.fillStyle = hi ? '#ff7a5a' : '#fff'; g.beginPath(); g.moveTo(mx - 10, py); g.lineTo(mx - 2, py - 6); g.lineTo(mx - 2, py + 6); g.fill();
       g.fillStyle = '#ccc'; g.font = '600 11px system-ui'; g.textAlign = 'center'; g.fillText('Presión', mx + 9, top - 8);
-      G.progress = clamp(G.sharp, 0, 1); G.live = clamp(1 - G.over / 4 - Math.max(0, G.t - 9) / 14, 0, 1);
+      G.progress = clamp(G.sharp, 0, 1); G.live = clamp(1 - G.burnT / 4 - Math.max(0, G.t - 9) / 14, 0, 1);
       g.fillStyle = inB ? '#7fd07a' : hi ? '#ff8a6a' : '#aaa'; g.font = '600 13px system-ui'; g.fillText(inB ? 'Así, constante' : hi ? '¡Demasiado fuerte!' : 'Aprieta más', 290, 214);
       if (inB && ((G.inT * 3) | 0) !== ((G.inT * 3 - dt * 3) | 0)) G.tick();
       if (G.sharp >= 1) G.finish(G.live); else if (G.t > 25) G.finish(G.live * G.sharp);
@@ -335,3 +335,7 @@ const c0own2 = id => { let n = 0; for (const s of S.inv) if (s && s.id === id) n
 let _cgEsc = 0; const cgEscNow = () => { _cgEsc = performance.now(); cgSkip(); };
 { const p0 = openPause; openPause = pane => { if (CG) { cgEscNow(); return; } if (performance.now() - _cgEsc < 400 || (typeof CL !== 'undefined' && CL)) return; return p0(pane); }; }
 { const c0 = closeModal; closeModal = () => { if (CG) { cgEscNow(); return; } if (performance.now() - _cgEsc < 400) return; return c0(); }; }
+// Seguridad: si un fotograma falla, el minijuego sigue (no se queda congelado) y siempre se puede salir
+{ const l0 = cgLoop; cgLoop = now => { try { l0(now); } catch (e) { console.warn('minijuego', e); if (CG && !CG.over) requestAnimationFrame(cgLoop); } }; }
+{ const c0 = cgClose; cgClose = () => { const G = CG; try { c0(); } catch (e) { console.warn('minijuego', e); } if (CG === G && G) { CG = null; mCG.hidden = true; try { G.done(G.q ?? -1, G.roll); } catch (e) { } } }; }
+mCG.addEventListener('click', e => { if (e.target.closest('[data-cg="skip"]') && CG) { if (CG.phase === 'result') cgClose(); else cgSkip(); } });
