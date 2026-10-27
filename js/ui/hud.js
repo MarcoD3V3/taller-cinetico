@@ -71,7 +71,7 @@ function hideTip() { if (_tipId === null && $('tip').hidden) return; $('tip').hi
 function placeHeld() { $('held').style.transform = `translate(${ui.mx - 18}px,${ui.my - 18}px)`; }
 // El ratón se procesa como mucho una vez por fotograma
 function tipFrame() {
-  _tipRaf = 0;
+  _tipRaf = 0; if (typeof drag === 'undefined') return; // aún cargando
   const s = !ui.held && !drag.on && _mvTarget && _mvTarget.closest && _mvTarget.closest('[data-id]');
   if (s && s.dataset.id) showTip(s.dataset.id, ui.mx, ui.my); else if (_tipId) hideTip();
   if (ui.held) placeHeld();

@@ -38,8 +38,11 @@ for (const type of ['keydown', 'keyup']) addEventListener(type, e => {
   const ev = new KeyboardEvent(type, { key: KEY_EVT(to), shiftKey: e.shiftKey, altKey: e.altKey, repeat: e.repeat, bubbles: true, cancelable: true }); ev.__tc = 1; dispatchEvent(ev);
 }, true);
 // ---------- Aplicar ----------
+// Filtro del canvas del mundo: solo si hace algo. Un filtro CSS (aunque sea «brightness(1)») obliga a la
+// tarjeta gráfica a reprocesar la pantalla entera en cada fotograma.
+function cvFilter() { const c = document.getElementById('c'); if (!c) return; const f = []; if (c._ill) f.push(c._ill); if (+OPT.bright !== 1) f.push('brightness(' + OPT.bright + ')'); if (+OPT.contrast !== 1) f.push('contrast(' + OPT.contrast + ')'); const s = f.join(' ') || 'none'; if (c.style.filter !== s) c.style.filter = s; }
 function optApply() {
-  const r = document.documentElement.style;
+  const r = document.documentElement.style; cvFilter();
   r.setProperty('--br', OPT.bright); r.setProperty('--ct', OPT.contrast); r.setProperty('--ui', OPT.uiScale);
   r.setProperty('--chatSize', OPT.chatSize + 'px'); r.setProperty('--chatBg', OPT.chatOpacity);
   if (typeof ui !== 'undefined') ui.fps = OPT.fps; const f = document.getElementById('fps'); if (f) f.hidden = !OPT.fps;

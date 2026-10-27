@@ -99,8 +99,8 @@ function hoverRefresh() {
   if (!canShow) { HC.target = null; return; }
   const t = hoverTarget(); HC.target = t;
   const html = hoverHTML(t);
-  if (t.key !== HC.key) { HC.key = t.key; HC.el.classList.remove('swap'); void HC.el.offsetWidth; HC.el.classList.add('swap'); clearTimeout(HC.swT); HC.swT = setTimeout(() => HC.el.classList.remove('swap'), 300); /* solo anima al cambiar de objetivo: si no, cada número que cambia (progreso, combustible…) la hacía parpadear */ HC.still = t.k === 'tile' ? 0 : Math.max(HC.still, 0.12); }
-  if (html !== HC.html) { HC.html = html; HC.el.innerHTML = html; }
+  if (t.key !== HC.key) { HC.key = t.key; HC.el.classList.remove('swap'); cancelAnimationFrame(HC.swR); HC.swR = requestAnimationFrame(() => HC.el.classList.add('swap')); clearTimeout(HC.swT); HC.swT = setTimeout(() => HC.el.classList.remove('swap'), 320); /* sin forzar un recálculo de la página (offsetWidth) a cada casilla */ /* solo anima al cambiar de objetivo: si no, cada número que cambia (progreso, combustible…) la hacía parpadear */ HC.still = t.k === 'tile' ? 0 : Math.max(HC.still, 0.12); }
+  if (html !== HC.html) { HC.html = html; HC.el.innerHTML = html; HC.wh = null; }
 }
 // Posición y visibilidad: cada fotograma, con suavizado
 function hoverFrame(dt) {
@@ -109,7 +109,7 @@ function hoverFrame(dt) {
   HC.still = moved ? Math.min(HC.still, 0.05) : HC.still + dt;
   const t = HC.target, want = !!t && !ui.open && HC.on && (t.k !== 'tile' ? HC.still > 0.12 : HC.still > 0.45);
   HC.show += ((want ? 1 : 0) - HC.show) * Math.min(1, dt * (want ? 10 : 14));
-  const el = HC.el, w = el.offsetWidth || 220, h = el.offsetHeight || 80;
+  const el = HC.el; if (!HC.wh && HC.show > 0.01 || want && !HC.wh) HC.wh = [el.offsetWidth || 220, el.offsetHeight || 80]; const [w, h] = HC.wh || [220, 80]; // el tamaño solo se mide cuando cambia el contenido
   let x = mouse.x + 20, y = mouse.y + 18; if (x + w > innerWidth - 8) x = mouse.x - w - 16; if (y + h > innerHeight - 90) y = Math.max(8, mouse.y - h - 14);
   if (HC.show < 0.02) { HC.x = x; HC.y = y; } else { const k = Math.min(1, dt * 16); HC.x += (x - HC.x) * k; HC.y += (y - HC.y) * k; }
   el.style.transform = `translate(${Math.round(HC.x)}px,${Math.round(HC.y)}px) scale(${0.96 + HC.show * 0.04})`;

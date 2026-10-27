@@ -33,7 +33,7 @@ let _hbRaf = 0, _hbM = { x: -999, y: -999 };
 function homeBg() {
   cancelAnimationFrame(_hbRaf); const cv = $('homeBg'); if (!cv) return; const g = cv.getContext('2d');
   const P = Array.from({ length: 46 }, () => ({ x: Math.random(), y: Math.random(), r: 0.6 + Math.random() * 1.8, v: 0.004 + Math.random() * 0.01, a: Math.random() * 6 }));
-  const step = t => { if (!cv.isConnected) return; const W = cv.width = cv.clientWidth, H = cv.height = cv.clientHeight; g.clearRect(0, 0, W, H);
+  const step = t => { if (!cv.isConnected) return; if (ui.open !== 'title') { _hbRaf = 0; return; } /* en partida no se dibuja */ if (cv.width !== cv.clientWidth || cv.height !== cv.clientHeight) { cv.width = cv.clientWidth; cv.height = cv.clientHeight; } const W = cv.width, H = cv.height; g.clearRect(0, 0, W, H);
     for (const p of P) { p.y -= p.v / 60; if (p.y < -0.02) { p.y = 1.02; p.x = Math.random(); } let x = p.x * W, y = p.y * H; const dx = x - _hbM.x, dy = y - _hbM.y, d = Math.hypot(dx, dy); if (d < 120) { x += dx / d * (120 - d) * 0.35; y += dy / d * (120 - d) * 0.35; }
       g.globalAlpha = 0.18 + 0.15 * Math.sin(t / 900 + p.a); g.fillStyle = '#e0b54c'; g.beginPath(); g.arc(x, y, p.r, 0, 7); g.fill(); }
     g.globalAlpha = 0.05; g.strokeStyle = '#e0b54c'; g.lineWidth = 2; for (const [cx, cy, r, s] of [[0.1, 0.85, 90, 1], [0.92, 0.2, 70, -1.3]]) { g.save(); g.translate(cx * W, cy * H); g.rotate(t / 4000 * s); g.beginPath(); for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2, rr = i % 2 ? r * 0.82 : r; g.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } g.closePath(); g.stroke(); g.beginPath(); g.arc(0, 0, r * 0.3, 0, 7); g.stroke(); g.restore(); }

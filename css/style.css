@@ -819,7 +819,7 @@ body.clkopen #moodles { top: auto; bottom: 120px; transform: none; }
 .dctag{font-size:11px;padding:1px 6px;border-radius:8px;background:#5865f233;color:#b8bfff;margin-left:4px}
 
 /* =================== Menús: pausa, principal, multijugador, opciones =================== */
-canvas#c { filter: var(--ill, blur(0)) brightness(var(--br, 1)) contrast(var(--ct, 1)); }
+/* el filtro del canvas (brillo, contraste, mareo) lo pone cvFilter() en ui/opts.js, solo cuando hace falta */
 body.nobar #topbar { display: none !important; }
 #right, #vitals, #hotbar, #info, #goal, #clock, #chat { zoom: var(--ui, 1); }
 #bMenu { position: absolute; right: 6px; top: 6px; z-index: 3; background: rgba(18,19,21,.72) !important; border: 1px solid #ffffff14 !important; backdrop-filter: blur(4px); }
@@ -1448,3 +1448,26 @@ body.dying #vitals { animation: none; }
 .mpores li i { width: 9px; height: 9px; transform: rotate(45deg); border-radius: 2px; flex: none; box-shadow: 0 0 0 1px #0008; } .mpores li span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mpores li u { text-decoration: none; font-size: 10px; padding: 1px 5px; border-radius: 5px; background: #ffffff10; color: #d8d2c4; } .mpores li em { font-style: normal; font-size: 10.5px; color: var(--muted); }
 .mpores li.mut { cursor: default; }
+
+/* Rendimiento: el HUD está siempre encima del mundo, que se redibuja en cada fotograma; un desenfoque
+   (backdrop-filter) ahí obliga a la tarjeta gráfica a desenfocar de nuevo cada trozo de pantalla 60 veces por
+   segundo. Se quita y el fondo se hace un poco más opaco para que se lea igual. */
+body.hudmin { --hud: rgba(14, 15, 17, .74); }
+.hcard, .hudmin #goal, .hudmin #topbar, .hudmin #hotbar .s, .hudmin #toast div, .hudmin #info, #wxHud span, #clock, #chat.open #chatLog, #bMenu, #layerHud, #hbPop, #keyHud { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+#wxHud span, #clock { background: rgba(14, 15, 17, .74); }
+/* Fundido al viajar entre capas (render/travel.js) */
+#travelFx { position: fixed; inset: 0; z-index: 65; background: #050506; opacity: 0; pointer-events: none; transition: opacity .26s ease-out; }
+#travelFx.on { opacity: 1; transition: opacity .12s ease-in; }
+
+/* Menús más ágiles: entradas cortas (sin esperar a que cada tarjeta aparezca en cascada), una
+   aparición breve de las ventanas, y sin desenfoque detrás de la pausa (se recalculaba sobre el
+   mundo, que sigue dibujándose detrás). */
+.mpw, .home, .cgin, .mppass { animation-duration: .14s !important; }
+.chc { animation-duration: .16s !important; animation-delay: calc(var(--d, 0ms) * .35) !important; }
+.cspane, .clkx, .btpane { animation-duration: .12s !important; }
+.khr { animation-duration: .14s !important; }
+.khr:nth-child(n) { animation-delay: 0s !important; }
+.pausem, .chm { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; background: rgba(6, 7, 8, .66); }
+.modal:not([hidden]) > .modal-in { animation: modalIn .12s cubic-bezier(.2, .8, .3, 1); }
+@keyframes modalIn { from { opacity: .4; transform: translateY(4px) scale(.992); } }
+@media (prefers-reduced-motion: reduce) { .modal:not([hidden]) > .modal-in { animation: none; } }

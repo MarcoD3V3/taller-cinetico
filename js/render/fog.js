@@ -18,26 +18,27 @@ function fogHidden(x, y) {
 }
 function fogMark(x, y) {
   const c = getChunk(x >> CSH, y >> CSH), f = fogArr(c), i = ((y & CMASK) << CSH) | (x & CMASK);
-  if (f[i]) return; f[i] = 1; c.fogD = 1; if (fogRock(GI[c.g[i]])) mapPixel(x, y);
+  if (f[i]) return; f[i] = 1; c.fogD = 1; _fogVer++; if (fogRock(GI[c.g[i]])) mapPixel(x, y);
 }
 // Lo que se ve desde el jugador: recorrido por el aire libre (la roca corta la vista)
-let _fogKey = '', _fogDirty = true;
+let _fogKey = '', _fogDirty = true, _fogVer = 0, _fogTerr = 0, _fogLitV = -1;
 function fogTick() {
   const p = S.player, tx = Math.floor(p.x / T), ty = Math.floor((p.y + 5) / T), k = tx + ',' + ty;
   if (k === _fogKey && !_fogDirty) return; _fogKey = k; _fogDirty = false;
   fogFlood(tx, ty, FOG_R);
-  // Las luces que has puesto también descubren la roca que alumbran
-  if (typeof L !== 'undefined' && L.light) for (const b of L.light) if (Math.abs(b.x - tx) < 30 && Math.abs(b.y - ty) < 30 && litOf(b)) fogFlood(b.x, b.y, Math.min(10, (typeof lightOf === 'function' ? lightOf(b) : BD[b.type].light || 2) + 2));
+  // Las luces que has puesto también descubren la roca que alumbran (cada una, una vez por cambio del terreno)
+  if (typeof L !== 'undefined' && L.light) for (const b of L.light) if (b._fogV !== _fogTerr && Math.abs(b.x - tx) < 30 && Math.abs(b.y - ty) < 30 && litOf(b) && (b._fogV = _fogTerr, true)) fogFlood(b.x, b.y, Math.min(10, (typeof lightOf === 'function' ? lightOf(b) : BD[b.type].light || 2) + 2));
 }
+const _ffSeen = new Uint8Array(41 * 41), _ffQ = new Int16Array(41 * 41 * 2);
 function fogFlood(tx, ty, R) {
-  const k = tx + ',' + ty, seen = new Set([k]), q = [[tx, ty]];
-  while (q.length) {
-    const [x, y] = q.shift();
+  R = Math.min(R, 20); const W = 2 * R + 1, R2 = R * R; _ffSeen.fill(0, 0, W * W); _ffSeen[R * W + R] = 1; _ffQ[0] = 0; _ffQ[1] = 0; let qh = 0, qt = 2;
+  while (qh < qt) {
+    const ox = _ffQ[qh++], oy = _ffQ[qh++], x = tx + ox, y = ty + oy;
     for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) fogMark(x + dx, y + dy);
     for (let d = 0; d < 4; d++) {
-      const nx = x + DX[d], ny = y + DY[d], nk = nx + ',' + ny;
-      if (seen.has(nk) || (nx - tx) * (nx - tx) + (ny - ty) * (ny - ty) > R * R) continue; seen.add(nk);
-      if (!fogRock(GI[gnd(nx, ny)])) q.push([nx, ny]);
+      const nx = ox + DX[d], ny = oy + DY[d]; if (nx * nx + ny * ny > R2) continue;
+      const si = (ny + R) * W + nx + R; if (_ffSeen[si]) continue; _ffSeen[si] = 1;
+      if (!fogRock(GI[gnd(tx + nx, ty + ny)])) { _ffQ[qt++] = nx; _ffQ[qt++] = ny; }
     }
   }
 }
@@ -45,7 +46,7 @@ function fogFlood(tx, ty, R) {
 function fogSync(c) { if (c.fog && c.fogD) { (S.fog || (S.fog = {}))[ckey(c.cx, c.cy)] = rle(c.fog); c.fogD = 0; } }
 { const s0 = serialize; serialize = () => { for (const c of WORLD.values()) fogSync(c); return s0(); }; }
 { const u0 = onChunkUnload; onChunkUnload = c => { fogSync(c); u0(c); }; }
-{ const t0 = onTileChange; onTileChange = (x, y, b) => { _fogDirty = true; t0(x, y, b); }; }
+{ const t0 = onTileChange; onTileChange = (x, y, b) => { _fogDirty = true; _fogTerr++; t0(x, y, b); }; }
 // Mapa: la roca sin descubrir sale como roca oscura, sin menas
 { const m0 = mapRGB; mapRGB = (x, y, t) => fogHidden(x, y) ? [46, 44, 48] : m0(x, y, t); }
 // Capa de niebla: 4 píxeles por casilla. Lo descubierto se ve entero; la primera casilla oscura
@@ -53,13 +54,17 @@ function fogSync(c) { if (c.fog && c.fogD) { (S.fog || (S.fog = {}))[ckey(c.cx, 
 const FOG_Q = 4, _fogCells = new Float32Array(FOG_Q);
 for (let i = 0; i < FOG_Q; i++) _fogCells[i] = (i + 0.5) / FOG_Q;
 let _fogCv = null, _fogImg = null;
+let _fogLast = '', _fogAny = false;
 function drawFog(ctx, x0, y0, x1, y1) {
   if (!S) return; fogTick();
   const w = x1 - x0 + 1, h = y1 - y0 + 1, W = w * FOG_Q, H = h * FOG_Q;
+  const fk = x0 + ',' + y0 + ',' + w + ',' + h + ',' + _fogVer + ',' + _fogTerr + ',' + WORLD.size;
+  if (fk === _fogLast) { if (_fogAny) { const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = true; ctx.drawImage(_fogCv, 0, 0, W, H, x0 * T, y0 * T, w * T, h * T); ctx.imageSmoothingEnabled = sm; } return; }
+  _fogLast = fk; _fogAny = false;
   // Mapa de casillas ocultas (con un borde de 1 para mirar vecinas)
   const hid = new Uint8Array((w + 2) * (h + 2)); let any = false;
   for (let y = -1; y <= h; y++) for (let x = -1; x <= w; x++) if (fogHidden(x0 + x, y0 + y)) { hid[(y + 1) * (w + 2) + x + 1] = 1; any = true; }
-  if (!any) return;
+  if (!any) return; _fogAny = true;
   if (!_fogCv || _fogCv.width < W || _fogCv.height < H) { _fogCv = mkCanvas(W + 64, H + 64); _fogImg = null; }
   const c = _fogCv.getContext('2d'); if (!_fogImg || _fogImg.width !== W || _fogImg.height !== H) _fogImg = c.createImageData(W, H);
   const u = new Uint32Array(_fogImg.data.buffer); u.fill(0);

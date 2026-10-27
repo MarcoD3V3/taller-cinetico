@@ -34,7 +34,7 @@ const SYN = {
   fuelfeed: { n: 'Toma de combustible', i: '⛽', to: ['proc', 'gen'], test: (n, f, b) => !!n.slots && (BD[b.type].fuel || b.type === 'furnace'), fx: {}, max: 1, d: 'Si un cofre pegado tiene combustible, la máquina lo coge sola cuando le falta.' },
 };
 // Qué reglas puede tener cada familia (para la parte didáctica: "qué podrías poner al lado")
-const synFor = f => Object.keys(SYN).filter(k => SYN[k].to.includes(f));
+const _synFor = new Map(), synFor = f => { let r = _synFor.get(f); if (!r) { r = Object.keys(SYN).filter(k => SYN[k].to.includes(f)); _synFor.set(f, r); } return r; };
 const SYN_FAMS = new Set(Object.values(SYN).flatMap(r => r.to));
 function synCalc(b) {
   const f = famOf(b.type); if (!SYN_FAMS.has(f)) { b.syn = null; b.synM = null; return; }
@@ -129,11 +129,12 @@ function sigOut(b) {
 // Las máquinas con "Al recibir señal…" necesitan estar en la lista de receptores
 { const r0 = rebuildLists; rebuildLists = () => { r0(); L.sigOut = []; for (const b of blocks) { if (b.sIn && !L.rsc.includes(b)) L.rsc.push(b); if (b.sOut) L.sigOut.push(b); } }; }
 // ---------- Bucle: antes de la lógica (para que las señales salgan este mismo paso) ----------
-let _lkT = 0, _lkC = 0;
+let _lkT = 0, _lkC = 0, _lkI = 0;
 { const l0 = logicTick; logicTick = dt => {
   _lkT += dt; _lkC += dt;
   if (_lkC >= 2) { _lkC = 0; chainScan(); }
-  if (_lkT >= 1) { _lkT = 0; for (const b of blocks) { const f = famOf(b.type); if (SYN_FAMS.has(f)) synCalc(b); if (hasCond(f) || f === 'storage') b.wst = wstOf(b); if (b.st) b._run = b.st.run; if (b.syn && b.syn.some(s => s[0] === 'fuelfeed')) fuelFeed(b); } }
+  // Cada bloque se repasa una vez por segundo, pero repartido entre los 20 pasos (antes, todos de golpe: un tirón cada segundo)
+  { const n = blocks.length, per = Math.ceil(n / 20); if (_lkI >= n) _lkI = 0; const end = Math.min(n, _lkI + per); for (; _lkI < end; _lkI++) { const b = blocks[_lkI]; const f = famOf(b.type); if (SYN_FAMS.has(f)) synCalc(b); if (hasCond(f) || f === 'storage') b.wst = wstOf(b); if (b.st) b._run = b.st.run; if (b.syn && b.syn.some(s => s[0] === 'fuelfeed')) fuelFeed(b); } }
   for (const b of L.sigOut || []) { if (b.st && b.st.made !== b._made) { if (b._made !== undefined) b._pulse = S.time + 0.3; b._made = b.st.made; } if (b.sOut === 'work' || b.sOut === 'need' || b.sOut === 'full') b.wst = wstOf(b); const v = sigOut(b); if (v !== b.mo) { b.mo = v; dirty.logic = true; } }
   l0(dt);
 }; }

@@ -51,7 +51,7 @@ function buildChunk(cx, cy, s = 1) {
   if (s !== 1) paintCliffsLo(c, x0, y0);
   _baseDone = false; tileLights.set(chunkKey(cx, cy), lights); if (_treeLayer) tileTrees.set(chunkKey(cx, cy), _treeList); _treeLayer = false;
   if (s === 1) _staleCh.delete(chunkKey(cx, cy));
-  const m = s === 1 ? chunks : s === 0.5 ? chunksH : chunksQ, lim = s === 1 ? 40 : s === 0.5 ? 160 : 700;
+  const m = s === 1 ? chunks : s === 0.5 ? chunksH : chunksQ, lim = s === 1 ? 60 : s === 0.5 ? 160 : 700; // con margen para el suelo dibujado por adelantado (render/travel.js)
   if (m.size > lim) m.delete(m.keys().next().value);
   m.set(chunkKey(cx, cy), c0); return c0;
 }

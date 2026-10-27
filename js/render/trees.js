@@ -117,9 +117,20 @@ const XRAY_R = 46; // radio en unidades del mundo
 function drawTrees(ctx, k, ox, oy, x0, y0, x1, y1, front) {
   const p = S.player, pty = p.y + 8, sm = ctx.imageSmoothingEnabled;
   // Árboles de delante: van a una capa aparte para poder recortarles el círculo
-  let dc = ctx, covered = false;
+  let dc = ctx, covered = false, layer = false;
   if (front) {
     const now = performance.now(), dt = Math.min(0.1, (now - (_xrayT || now)) / 1000); _xrayT = now;
+    // ¿Alguna copa de delante tapa al jugador? (solo se miran los árboles de su alrededor)
+    const ptx = Math.floor(p.x / T), pty0 = Math.floor(pty / T);
+    for (let cy = Math.floor(pty0 / CH); cy <= Math.floor((pty0 + 5) / CH); cy++) for (let cx = Math.floor((ptx - 3) / CH); cx <= Math.floor((ptx + 3) / CH); cx++) {
+      const list = tileTrees.get(chunkKey(cx, cy)); if (!list) continue;
+      for (let i = 0; i < list.length; i += 4) { const tx = list[i], ty = list[i + 1]; if (Math.abs(tx - ptx) > 3 || ty < pty0 - 1 || ty > pty0 + 5) continue; const baseY = ty * T + 26; if (baseY <= pty) continue; const k2 = treeSprite(list[i + 2], list[i + 3] & 3, list[i + 3] >> 2).k; if (Math.abs(p.x - (tx * T + 16)) < 40 * k2 && pty > baseY - 112 * k2) covered = true; }
+    }
+    const target = covered ? 1 : 0; _xray += (target - _xray) * Math.min(1, dt * 7); if (Math.abs(target - _xray) < 0.003) _xray = target;
+    // Sin círculo que recortar, los árboles van directos a la pantalla (sin capa extra a pantalla completa)
+    layer = _xray > 0.01;
+  }
+  if (layer) {
     if (!_treeLayerCv || _treeLayerCv.width !== ctx.canvas.width || _treeLayerCv.height !== ctx.canvas.height) _treeLayerCv = mkCanvas(ctx.canvas.width, ctx.canvas.height);
     dc = _treeLayerCv.getContext('2d'); dc.setTransform(1, 0, 0, 1, 0, 0); dc.clearRect(0, 0, _treeLayerCv.width, _treeLayerCv.height); dc.setTransform(ctx.getTransform());
     ctx._xrDt = dt;
@@ -131,14 +142,12 @@ function drawTrees(ctx, k, ox, oy, x0, y0, x1, y1, front) {
       const tx = list[i], ty = list[i + 1]; if (tx < x0 - 2 || tx > x1 + 2 || ty < y0 - 1 || ty > y1 + 5) continue;
       const baseY = ty * T + 26; if ((baseY > pty) !== front) continue;
       const s = treeSprite(list[i + 2], list[i + 3] & 3, list[i + 3] >> 2);
-      if (front && Math.abs(p.x - (tx * T + 16)) < 40 * s.k && pty < baseY && pty > baseY - 112 * s.k) covered = true;
       dc.drawImage(s.cv, tx * T + 16 - TREE_AX, baseY - TREE_AY, TREE_W, TREE_H);
     }
   }
-  if (front) {
+  if (layer) {
     // aparece y se desvanece con suavidad (≈0,2 s), con una curva sin tirones
-    const target = covered ? 1 : 0; _xray += (target - _xray) * Math.min(1, (ctx._xrDt || 0.016) * 7); if (Math.abs(target - _xray) < 0.003) _xray = target;
-    if (_xray > 0.01) {
+    {
       const m = ctx.getTransform(), sx = m.a * p.x + m.e, sy = m.d * (p.y - 10) + m.f, e = _xray * _xray * (3 - 2 * _xray), r = XRAY_R * m.a * (0.75 + 0.25 * e);
       dc.setTransform(1, 0, 0, 1, 0, 0); dc.globalCompositeOperation = 'destination-out';
       const g = dc.createRadialGradient(sx, sy, r * 0.15, sx, sy, r);

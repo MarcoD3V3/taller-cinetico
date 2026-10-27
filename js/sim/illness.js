@@ -136,7 +136,7 @@ function illVisual(ctx) {
   const sevMax = Math.max(0, ...Object.keys(L2).map(id => ILLS[id].sev)); if (sevMax >= 3) { ctx.fillStyle = `rgba(160,40,40,${0.06 + Math.sin(t * 2) * 0.03})`; ctx.fillRect(0, 0, W, H); }
 }; }
 // Vista borrosa de verdad (conjuntivitis, migraña): filtro suave sobre el lienzo
-{ let _blur = 0; const tick = () => { const L2 = S && S.pc && S.pc.ills, on = !!L2 && Object.keys(L2).some(id => ILLS[id].vis === 'blur'); if (on !== !!_blur) { _blur = on ? 1 : 0; cv.style.setProperty('--ill', on && (typeof OPT === 'undefined' || OPT.illFx) ? 'blur(0.7px)' : 'blur(0)'); } setTimeout(tick, 500); }; setTimeout(tick, 500); }
+{ let _blur = 0; const tick = () => { const L2 = S && S.pc && S.pc.ills, on = !!L2 && Object.keys(L2).some(id => ILLS[id].vis === 'blur'); if (on !== !!_blur) { _blur = on ? 1 : 0; cv._ill = on && (typeof OPT === 'undefined' || OPT.illFx) ? 'blur(0.7px)' : ''; cvFilter(); } setTimeout(tick, 500); }; setTimeout(tick, 500); }
 // ---------- En la ficha (pestaña Estado) ----------
 { const st0 = CS_PANE.state; CS_PANE.state = () => {
   const L2 = S.pc.ills || {}, ks = Object.keys(L2); let h = '';
