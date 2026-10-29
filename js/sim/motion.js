@@ -191,7 +191,7 @@ function paintCliffs(u, W, x0, y0) {
 function paintCliffsLo(c, x0, y0) {
   for (let ty = 0; ty < CH; ty++) for (let tx = 0; tx < CH; tx++) {
     const gx = x0 + tx, gy = y0 + ty, l = lvAt(gx, gy), up = lvAt(gx, gy - 1);
-    if (l) { c.fillStyle = l > 0 ? `rgba(255,255,255,${l * 0.04})` : `rgba(0,0,0,${Math.min(0.45, -l * 0.12)})`; c.fillRect(tx * T, ty * T, T, T); }
+    if (l && !GI[gnd(gx, gy)].liquid) { c.fillStyle = l > 0 ? `rgba(255,255,255,${l * 0.04})` : `rgba(0,0,0,${Math.min(0.45, -l * 0.12)})`; c.fillRect(tx * T, ty * T, T, T); }
     if (up > l && !(GI[gnd(gx, gy - 1)].liquid && GI[gnd(gx, gy)].liquid)) { const fh = faceH(up - l); c.fillStyle = GI[gnd(gx, gy - 1)].liquid === 'water' ? '#a8d0f0' : '#5a4a3a'; c.fillRect(tx * T, ty * T, T, fh); c.fillStyle = 'rgba(0,0,0,.25)'; c.fillRect(tx * T, ty * T + fh, T, 5); }
   }
 }
