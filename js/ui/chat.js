@@ -77,7 +77,7 @@ cmd('ayuda', { a: ['help', '?'], u: '/ayuda [comando]', d: 'Lista los comandos o
   sysMsg('Comandos (✦ = truco): ' + rows.join(' · ')); sysMsg('Consejo: Tab completa, ↑ repite. Coordenadas con ~ son relativas a ti (/tp ~5 ~0).');
 } });
 cmd('modo', { a: ['gamemode', 'gm'], u: '/modo creativo|supervivencia', d: 'Creativo: no gastas objetos, no recibes daño, rompes al instante y sin hambre ni sed.', cheat: 1, run(a) {
-  const m = normTxt(a[0] || ''); if (/^(c|creativo|creative|1)$/.test(m)) { S.sandbox = true; S.creative = true; vitalsDirty = true; return '✦ Modo creativo: sin gasto, sin daño y rotura instantánea.'; }
+  const m = normTxt(a[0] || ''); if (/^(c|creativo|creative|1)$/.test(m)) { S.sandbox = true; S.creative = true; vitalsDirty = true; return '✦ Modo creativo: sacas lo que quieras del recetario (B), construir no gasta, sin daño y rotura instantánea.'; }
   if (/^(s|supervivencia|survival|0)$/.test(m)) { S.sandbox = false; S.creative = false; vitalsDirty = true; return 'Modo supervivencia.'; }
   return errMsg('Usa /modo creativo o /modo supervivencia');
 } });
@@ -153,7 +153,10 @@ cmd('nick', { a: ['nombre', 'name'], u: '/nick <nombre>', d: 'Tu nombre en el ch
 cmd('yo', { a: ['me'], u: '/yo <acción>', d: 'Narra lo que haces («* Ana saluda»).', run(a, raw) { chatSendMe(a.join(' ')); } });
 let chatSendMe = t => chatPush('me', t, { nick: myNick(), c: '#ffe08a' });
 // ---------- Efectos del modo creativo ----------
-{ const t0 = invTake; invTake = (id, n) => S && S.creative ? n : t0(id, n); }
+// En creativo no se gasta lo que construyes (colocar bloques), pero mover cosas entre la mochila,
+// cofres, máquinas y bancos sí es real: antes invTake no quitaba nada y al meter algo en una máquina
+// se quedaba también en la mochila (se duplicaba). Lo que necesites lo sacas del recetario.
+{ const p0 = tryPlace; tryPlace = (type, x, y, dir, quiet) => { const had = S && S.creative ? invCount(type) : 0; const b = p0(type, x, y, dir, quiet); if (b && S.creative && invCount(type) < had) invAdd(type, 1); return b; }; }
 { const h0 = hurt; hurt = (t, part, mult, cause) => { if (S && S.creative) return; h0(t, part, mult, cause); }; }
 { const s0 = speedMul; speedMul = () => s0() * ((S && S.spdCheat) || 1) * (S && S.creative ? 1.3 : 1); }
 // ---------- Sugerencias mientras escribes ----------

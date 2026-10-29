@@ -237,7 +237,7 @@ function cxSearch(q) {
 }
 // ---------- Ventana ----------
 const CX_TABS = [['home', '🏠 Inicio'], ['items', '📦 Objetos'], ['mach', '⚙ Máquinas'], ['mobs', '🐾 Criaturas'], ['bio', '🗺 Biomas'], ['boss', '👑 Jefes']];
-function cxTabOf(sec) { const p = sec.split(':')[0]; return { i: 'items', items: 'items', m: 'mach', mach: 'mach', f: 'mobs', a: 'mobs', mobs: 'mobs', z: 'bio', bio: 'bio', j: 'boss', boss: 'boss', b: 'items' }[p] || 'home'; }
+function cxTabOf(sec) { const p = sec.split(':')[0]; return { cre: 'cre', prog: 'prog', i: 'items', items: 'items', m: 'mach', mach: 'mach', f: 'mobs', a: 'mobs', mobs: 'mobs', z: 'bio', bio: 'bio', j: 'boss', boss: 'boss', b: 'items' }[p] || 'home'; }
 renderBook = function () {
   const q = $('bookQ').value.trim().toLowerCase(), sec = _bookSec, tab = q ? null : cxTabOf(sec), I = cxIndex();
   if (sec.startsWith('b:')) _bookSec = 'items:' + sec.slice(2); // enlaces antiguos a grupos del banco
@@ -246,6 +246,7 @@ renderBook = function () {
   if (tab === 'items') { const cur = _bookSec.startsWith('items:') ? _bookSec.slice(6) : sec.startsWith('i:') ? cxGroup(sec.slice(2)) : ''; side = `<button data-sec="items" class="${_bookSec === 'items' ? 'on' : ''}">Todos <span class="mut">${ITEM_ORDER.length}</span></button>` + Object.keys(I.groups).sort().map(g => `<button data-sec="items:${cxE(g)}" class="${cur === g ? 'on' : ''}">${itemImg(I.groups[g][0], 16)} ${cxE(g)} <span class="mut">${I.groups[g].length}</span></button>`).join(''); }
   else if (tab === 'mach') side = Object.keys(machInfo()).sort((a, b) => (MACHINE_NAME[a] || a).localeCompare(MACHINE_NAME[b] || b)).map(k => `<button data-sec="m:${k}" class="${sec === 'm:' + k ? 'on' : ''}">${itemImg(machInfo()[k].blocks[0], 16)} ${cxE(MACHINE_NAME[k] || k)}</button>`).join('');
   else if (tab === 'bio') side = BIOMES.filter(b => b && b.n).map(b => `<button data-sec="z:${b.key}" class="${sec === 'z:' + b.key ? 'on' : ''}"><i class="sw" style="background:${b.mc}"></i> ${cxE(b.n)}</button>`).join('');
+  else if (typeof cxSideExtra === 'function' && cxSideExtra(tab)) side = cxSideExtra(tab);
   else side = `<div class="cxhelp"><b>¿Cómo se usa?</b><p>Pasa el ratón por cualquier icono para ver qué es; haz clic para abrir su ficha.</p><p>En cada objeto verás su receta dibujada, el árbol de ingredientes y de dónde sale cada cosa.</p><p>${_bookFrom ? 'Has abierto el recetario desde un banco: en la ficha de un objeto, «Poner en el banco» coloca la receta.' : 'Ábrelo desde un banco (F) o tu inventario (E) para poner las recetas con un clic.'}</p></div>`;
   let main;
   if (q) main = cxSearch(q);
@@ -261,7 +262,7 @@ renderBook = function () {
   else if (sec === 'bio') main = cxBiomes();
   else if (sec.startsWith('z:')) main = cxBiomePage(sec.slice(2));
   else if (sec === 'boss') main = cxBosses();
-  else main = cxHome();
+  else main = (typeof cxRouteExtra === 'function' && cxRouteExtra(sec)) || cxHome();
   const back = _bookHist.length && !q ? `<button class="cxback" data-back="1">← Volver</button>` : '';
   const crumbs = sec.includes(':') && !q ? `<span class="cxcrumb">${back}<span class="mut small">${cxE(CX_TABS.find(t => t[0] === tab)[1])} › ${cxE(sec.startsWith('i:') ? (ITEMS[sec.slice(2)] || {}).n : sec.startsWith('m:') ? MACHINE_NAME[sec.slice(2)] || sec.slice(2) : sec.startsWith('f:') ? (ENEMIES[sec.slice(2)] || {}).n : sec.startsWith('a:') ? (SPECIES[sec.slice(2)] || {}).n : sec.startsWith('j:') ? (BOSSES[sec.slice(2)] || {}).n : sec.startsWith('z:') ? (BIOMES[BI_[sec.slice(2)]] || {}).n : sec.split(':')[1])}</span></span>` : back ? `<span class="cxcrumb">${back}</span>` : '';
   const mainEl = document.querySelector('#bookBody .bmain'), st = mainEl ? mainEl.scrollTop : 0;
