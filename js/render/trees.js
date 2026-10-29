@@ -133,7 +133,6 @@ function drawTrees(ctx, k, ox, oy, x0, y0, x1, y1, front) {
   if (layer) {
     if (!_treeLayerCv || _treeLayerCv.width !== ctx.canvas.width || _treeLayerCv.height !== ctx.canvas.height) _treeLayerCv = mkCanvas(ctx.canvas.width, ctx.canvas.height);
     dc = _treeLayerCv.getContext('2d'); dc.setTransform(1, 0, 0, 1, 0, 0); dc.clearRect(0, 0, _treeLayerCv.width, _treeLayerCv.height); dc.setTransform(ctx.getTransform());
-    ctx._xrDt = dt;
   }
   dc.imageSmoothingEnabled = false;
   for (let cy = Math.floor(y0 / CH); cy <= Math.floor((y1 + 5) / CH); cy++) for (let cx = Math.floor((x0 - 2) / CH); cx <= Math.floor((x1 + 2) / CH); cx++) {
