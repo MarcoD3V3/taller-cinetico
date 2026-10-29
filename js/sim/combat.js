@@ -125,7 +125,13 @@ function killFoe(f) {
   if (f.boss && D.revive && !f.revived) { f.revived = 1; f.hp = f.mhp * 0.5; fxText(f.x, f.y - D.s, '¡Renace de sus cenizas!', '#ffb030', true); bossRoar(); return; }
   FOES.splice(FOES.indexOf(f), 1);
   if (f.clone || f.summoned) return;
-  if (D.split || (f.boss && D.split)) for (let i = 0; i < (f.boss ? 4 : 2); i++) spawnFoe(f.boss ? 'slimeEElite' : 'slimeE', f.x + (i - 1) * 16, f.y + (i % 2) * 14, { minion: f.boss ? 1 : 0, small: !f.boss });
+  // Dividirse: como mucho 3 generaciones (cada hijo con algo menos de la mitad de vida) y nunca por encima
+  // de 160 enemigos; antes cada hijo se volvía a partir sin fin y llenaba la pantalla
+  if (D.split && f.boss) { for (let i = 0; i < 4; i++) { const o = spawnFoe('slimeEElite', f.x + (i - 1) * 16, f.y + (i % 2) * 14, { minion: 1 }); o.gen = 3; } }
+  else if (D.split && (f.gen || 0) < 3 && FOES.length < 160) {
+    const into = ENEMIES[D.splitInto] ? D.splitInto : ENEMIES[f.k] ? f.k : 'slimeE', n = D.splits || 2;
+    for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2, o = spawnFoe(into, f.x + Math.cos(a) * 14, f.y + Math.sin(a) * 12, { small: 1 }); o.gen = (f.gen || 0) + 1; o.mhp = o.hp = Math.max(3, Math.round(f.mhp * 0.45)); o.sz = Math.pow(0.78, o.gen); }
+  }
   if (f.small) return;
   // Botín
   const got = {};

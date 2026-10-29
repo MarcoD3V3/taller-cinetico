@@ -89,7 +89,7 @@ function elementFx(x, y, el, big) {
   const lost = hp0 - Math.max(0, f.hp), big = lost >= f.mhp * 0.22 || lost >= 25, y = f.y - (f.D ? f.D.s * 0.5 : 6);
   AN.spark.push({ x: f.x, y, t: 0, life: big ? 0.22 : 0.15, r: big ? 18 : 11, col: el ? elCol(el)[0] : '#ffffff' });
   if (el) elementFx(f.x, y, el, big);
-  if (big) { shake = Math.max(shake, 0.12); AN.txt.push({ x: f.x, y: y - 18, t: 0, life: 0.9, s: '¡Golpe fuerte!', col: '#ffd34a', big: 1 }); tone(90, 0.12, 'square', 0.05, 0.4); }
+  if (big && performance.now() - (AN.bigT || 0) > 180 && AN.txt.length < 40) { AN.bigT = performance.now(); shake = Math.max(shake, 0.12); AN.txt.push({ x: f.x, y: y - 18, t: 0, life: 0.9, s: '¡Golpe fuerte!', col: '#ffd34a', big: 1 }); tone(90, 0.12, 'square', 0.05, 0.4); }
   const now = performance.now() / 1000; AN.combo = now - AN.comboT < 1.6 ? AN.combo + 1 : 1; AN.comboT = now;
   if (AN.combo >= 3) { AN.txt = AN.txt.filter(t => !t.combo); AN.txt.push({ x: S.player.x, y: S.player.y - 44, t: 0, life: 1.4, s: `×${AN.combo} combo`, col: AN.combo >= 10 ? '#ff7a3a' : AN.combo >= 6 ? '#ffd34a' : '#fff4c0', combo: 1, big: AN.combo >= 6 }); if (AN.combo % 5 === 0) { fxRingFx(S.player.x, S.player.y, '#ffd34a', 40); tone(660 + AN.combo * 20, 0.1, 'triangle', 0.05, 1.5); } }
   return r;

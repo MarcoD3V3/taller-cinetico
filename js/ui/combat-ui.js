@@ -135,7 +135,7 @@ function drawCombat(ctx, k, ox, oy, x0, y0, x1, y1) {
     const D = f.D; if (!inView(f.x, f.y, D.s * 1.5)) continue;
     const spr = foeSprite(D), s = spr.width / SPR_S, bob = Math.sin(f.ph) * (D.shape === 'fly' || D.shape === 'ghost' ? 3 : 1);
     if (f.boss || D.elite || D.glow) { ctx.globalAlpha = 0.25 + 0.1 * Math.sin(f.ph); ctx.fillStyle = f.boss ? D.c2 : D.elite ? '#ffd34a' : D.c; ctx.beginPath(); ctx.arc(f.x, f.y, D.s * 1.25, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
-    ctx.save(); ctx.imageSmoothingEnabled = false; ctx.translate(f.x, f.y + bob); if (f.face < 0) ctx.scale(-1, 1);
+    ctx.save(); ctx.imageSmoothingEnabled = false; ctx.translate(f.x, f.y + bob); if (f.face < 0) ctx.scale(-1, 1); if (f.sz) ctx.scale(f.sz, f.sz); // los hijos de un limo, más pequeños
     if (f.clone) ctx.globalAlpha = 0.6; if (f.frz > 0) ctx.globalAlpha = 0.7;
     ctx.drawImage(spr, -s / 2, -s / 2, s, s); ctx.globalAlpha = 1;
     if (f.flash > 0) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.6; ctx.drawImage(spr, -s / 2, -s / 2, s, s); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; }
