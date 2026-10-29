@@ -11,7 +11,7 @@ let _arwPick = null, _arwLast = null; const ARW_LIVE = [];
   const A = ARROWS[String(aid).split('~')[0]]; if (!A) return r;
   if (aid !== _arwLast && PROJ.length > n0) { _arwLast = aid; toast('🏹 Disparas: ' + ITEMS[aid].n); }
   for (let i = n0; i < PROJ.length; i++) { const pj = PROJ[i]; if (pj.team !== 'p') continue;
-    pj.dmg = (pj.dmg + (A.add || 0)) * (A.mul || 1); if (A.spd) { pj.vx *= A.spd; pj.vy *= A.spd; }
+    pj.dmg += (A.dmg || 0) * CM().ranged; // daño del arco + daño de la flecha if (A.spd) { pj.vx *= A.spd; pj.vy *= A.spd; }
     pj.pierce = (pj.pierce || 0) + (A.pierce || 0); if (A.homing) pj.homing = 1; if (A.boom) pj.boom = A.boom; if (A.el) pj.el = A.el; if (A.slow) pj.slow = A.slow;
     pj.c = A.hd; pj.arw = aid; pj.arrow = true; ARW_LIVE.push({ pj, A, seen: new Set(pj.hit) }); }
   return r;

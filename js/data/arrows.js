@@ -68,11 +68,15 @@ const ARROW_DEF = [
 ];
 const ARROW_N = [25, 20, 15, 10, 6], ARROW_TIER = [1, 3, 4, 6, 7], ARROW_RPM = [0, 16, 48, 96, 160];
 const arwRes = s => { if (!s) return null; if (s.startsWith('@')) { const [m, f] = s.slice(1).split('.'); return (MF[m] && MF[m][f]) || null; } return ITEMS[s] ? s : null; };
-for (const [id, n, sh, hd, fl, form, r, fx, core, teeth, d] of ARROW_DEF) {
-  ARROWS[id] = { r, sh, hd, fl, form, ...fx };
+// Daño propio de cada flecha (se suma al del arco): crece por la lista, de 3 a ~65, y su «mul»
+// lo hace algo mayor o menor. Así un arco flojo con una flecha buena pega fuerte, y al revés.
+const ARROW_DMG = (i, fx) => Math.round((3 * Math.pow(40 / 3, i / (ARROW_DEF.length - 1)) + (fx.add || 0)) * (1 + ((fx.mul || 1) - 1) * 0.4));
+ARROW_DEF.forEach((a, i) => { a.push(ARROW_DMG(i, a[7])); });
+for (const [id, n, sh, hd, fl, form, r, fx, core, teeth, d, dmg] of ARROW_DEF) {
+  ARROWS[id] = { r, sh, hd, fl, form, ...fx, dmg };
   if (!ITEMS[id]) IT(id, n, hd, 'arrowI', C_CAT, '');
   const bits = [];
-  if (fx.mul && fx.mul !== 1) bits.push(fx.mul > 1 ? `+${Math.round((fx.mul - 1) * 100)} % de daño` : `${Math.round((fx.mul - 1) * 100)} % de daño`); if (fx.add) bits.push(`+${fx.add} de daño`);
+  bits.push(`+${dmg} de daño sobre el del arco`);
   if (fx.spd) bits.push(`vuela un ${Math.round((fx.spd - 1) * 100)} % más rápido`); if (fx.pierce) bits.push(`atraviesa ${fx.pierce} enemigo${fx.pierce > 1 ? 's' : ''}`); if (fx.homing) bits.push('persigue al enemigo');
   if (fx.boom) bits.push(`explota (radio ${Math.round(fx.boom / 32 * 10) / 10} casillas)`); if (fx.burn) bits.push(`quema ${fx.burn[0]}/s durante ${fx.burn[1]} s`); if (fx.poison) bits.push(`envenena ${fx.poison[0]}/s durante ${fx.poison[1]} s`);
   if (fx.frz) bits.push(`congela ${fx.frz} s`); if (fx.slow) bits.push(`frena ${fx.slow} s`); if (fx.stun) bits.push(`aturde ${fx.stun} s`); if (fx.bleed) bits.push(`${Math.round(fx.bleed * 100)} % de sangrado`);
@@ -80,7 +84,7 @@ for (const [id, n, sh, hd, fl, form, r, fx, core, teeth, d] of ARROW_DEF) {
   if (fx.split) bits.push(`se parte en ${fx.split}`); if (fx.kb) bits.push('empuja'); if (fx.tag) bits.push(`marca: +${fx.tag} de daño de todos durante 5 s`); if (fx.crit) bits.push(`${Math.round(fx.crit * 100)} % de crítico`);
   if (fx.el && typeof TR_ELN !== 'undefined') bits.push('elemento ' + TR_ELN[fx.el]);
   ITEMS[id].d = `【${['Común', 'Poco común', 'Rara', 'Épica', 'Legendaria'][r]}】 ${d} ${bits.join(' · ')}${bits.length ? '.' : ''} Munición de arcos: se usa la primera que lleves en el inventario.`;
-  ITEMS[id].rar = r; ITEMS[id].arrowFx = 1;
+  ITEMS[id].rar = r; ITEMS[id].arrowFx = 1; ITEMS[id].ammoDmg = dmg;
   if (!core) continue;
   // Receta: punta (núcleo) + astil, plumas y lo especial; las raras piden giro y nivel de taller
   const c0 = arwRes(core) || arwRes('@' + ['iron', 'steel', 'mithril', 'adamantite', 'orichalcum'][r] + '.nugget') || 'stone';
