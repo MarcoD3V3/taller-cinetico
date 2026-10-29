@@ -76,7 +76,7 @@ cmd('ayuda', { a: ['help', '?'], u: '/ayuda [comando]', d: 'Lista los comandos o
   const seen = new Set(), rows = []; for (const k in CMDS) { const c = CMDS[k]; if (c.alias || seen.has(k)) continue; seen.add(k); rows.push((c.cheat ? '✦ ' : '') + c.u); }
   sysMsg('Comandos (✦ = truco): ' + rows.join(' · ')); sysMsg('Consejo: Tab completa, ↑ repite. Coordenadas con ~ son relativas a ti (/tp ~5 ~0).');
 } });
-cmd('modo', { a: ['gamemode', 'gm'], u: '/modo creativo|supervivencia', d: 'Creativo: no gastas objetos, no recibes daño, rompes al instante y sin hambre ni sed.', cheat: 1, run(a) {
+cmd('modo', { a: ['gamemode', 'gm'], u: '/modo creativo|supervivencia', d: 'Creativo: sacas lo que quieras del recetario, construir no gasta, no recibes daño y rompes al instante.', cheat: 1, run(a) {
   const m = normTxt(a[0] || ''); if (/^(c|creativo|creative|1)$/.test(m)) { S.sandbox = true; S.creative = true; vitalsDirty = true; return '✦ Modo creativo: sacas lo que quieras del recetario (B), construir no gasta, sin daño y rotura instantánea.'; }
   if (/^(s|supervivencia|survival|0)$/.test(m)) { S.sandbox = false; S.creative = false; vitalsDirty = true; return 'Modo supervivencia.'; }
   return errMsg('Usa /modo creativo o /modo supervivencia');
