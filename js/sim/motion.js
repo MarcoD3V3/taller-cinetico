@@ -144,7 +144,8 @@ function paintCliffs(u, W, x0, y0) {
     const up = lvAt(gx, gy - 1), lf = lvAt(gx - 1, gy), rt = lvAt(gx + 1, gy), dn = 0;
     // Terrazas altas un poco más claras (se lee la altura de un vistazo)
     // (en la montaña ya se leen las capas por sus paredes: no hace falta aclarar)
-    if (l && l <= LV_FOOT) { const f = Math.max(0.55, 1 + l * 0.04); for (let y = 0; y < T; y++) { let i = (by + y) * W + bx; for (let x = 0; x < T; x++, i++) { const v = u[i]; u[i] = (0xff000000 | Math.min(255, ((v >> 16) & 255) * f) << 16 | Math.min(255, ((v >> 8) & 255) * f) << 8 | Math.min(255, (v & 255) * f)) >>> 0; } } }
+    // (el agua es plana: no se aclara por terraza; si no, en lagos y costas salían recuadros de otro tono)
+    if (l && l <= LV_FOOT && !GI[gnd(gx, gy)].liquid) { const f = Math.max(0.55, 1 + l * 0.04); for (let y = 0; y < T; y++) { let i = (by + y) * W + bx; for (let x = 0; x < T; x++, i++) { const v = u[i]; u[i] = (0xff000000 | Math.min(255, ((v >> 16) & 255) * f) << 16 | Math.min(255, ((v >> 8) & 255) * f) << 8 | Math.min(255, (v & 255) * f)) >>> 0; } } }
     // Paredes laterales: franja de roca irregular en el lado bajo (la de la izquierda en sombra,
     // la de la derecha iluminada) y canto claro en la terraza alta
     const meLiq = GI[gnd(gx, gy)].liquid;

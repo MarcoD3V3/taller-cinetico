@@ -19,12 +19,13 @@ let _baseDone = false; const _texPx = new Map();
 function tileTexPx(t, v) { const k = t * TEX_VARS + v; let p = _texPx.get(k); if (!p) { p = new Uint32Array(tileTex(t, v).getContext('2d').getImageData(0, 0, T, T).data.buffer.slice(0)); _texPx.set(k, p); } return p; }
 // Color base con grano por píxel (manchas grandes + ruido fino)
 function paintTexBase(c, g, t, v) {
-  const img = c.createImageData(T, T), d = img.data, base = g.c, jit = (th(t, v, 1) - 0.5) * 12;
+  // En los líquidos cada casilla debe empalmar con la de al lado: sin cambio de tono por variante ni degradado
+  // por casilla (si no, un lago se ve como un tablero de cuadros)
+  const img = c.createImageData(T, T), d = img.data, base = g.c, jit = g.liquid ? 0 : (th(t, v, 1) - 0.5) * 12;
   const amp = g.liquid ? (g.glow ? 18 : 5) : g.key && /SNOW|ICE|SALT/.test(g.key) ? 5 : g.tuft ? 11 : g.rock || g.dot ? 13 : /SAND/.test(g.key || '') ? 7 : 9;
   for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
     const big = hash2((x >> 3) + v * 5, (y >> 3) + t, 9) - 0.5, fine = hash2(x + v * 37, y + t * 11, 4) - 0.5;
     let n = jit + big * amp * 1.2 + fine * amp * 0.8;
-    if (g.liquid && !g.glow) n += (y / T - 0.5) * -8; // el agua, algo más clara arriba
     const i = (y * T + x) * 4; d[i] = clamp(base[0] + n, 0, 255); d[i + 1] = clamp(base[1] + n, 0, 255); d[i + 2] = clamp(base[2] + n * 0.9, 0, 255); d[i + 3] = 255;
   }
   c.putImageData(img, 0, 0);

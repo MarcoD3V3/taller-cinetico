@@ -5,7 +5,9 @@ const CH = 16;
 const cv = document.getElementById('c'), ctx = cv.getContext('2d', { alpha: false });
 const view = { x: 0, y: 0, z: 1.25 };
 let dpr = 1, cw = 0, ch = 0;
-function resize() { dpr = Math.min(2, window.devicePixelRatio || 1); cw = innerWidth; ch = innerHeight; cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr); darkC.width = Math.ceil(cw / 4); darkC.height = Math.ceil(ch / 4); }
+// Nunca a tamaño 0: si la página se carga oculta o minimizada, la ventana mide 0×0 y dibujar la capa de la
+// noche con un lienzo vacío fallaba en cada fotograma (el mundo se quedaba congelado al oscurecer)
+function resize() { dpr = Math.min(2, window.devicePixelRatio || 1); cw = innerWidth; ch = innerHeight; cv.width = Math.max(1, Math.round(cw * dpr)); cv.height = Math.max(1, Math.round(ch * dpr)); darkC.width = Math.max(1, Math.ceil(cw / 4)); darkC.height = Math.max(1, Math.ceil(ch / 4)); }
 const darkC = mkCanvas(1, 1), darkX = darkC.getContext('2d');
 addEventListener('resize', resize);
 
@@ -69,6 +71,8 @@ function drawFrontTiles(ctx) {
 function mouseWorld() { return { x: (mouse.x - cw / 2) / view.z + view.x, y: (mouse.y - ch / 2) / view.z + view.y }; }
 let _vis = [], frameNo = 0, _staleBudget = 2;
 function render(fdt) {
+  if (cw !== innerWidth || ch !== innerHeight) resize(); // la ventana cambió sin avisar (pestaña oculta, pantalla completa…)
+  if (cw < 2 || ch < 2) return; // ventana oculta: no hay nada que dibujar
   if (dirty.lists) rebuildLists();
   if (shake > 0) shake -= fdt;
   const sj = shake > 0 ? (Math.random() - 0.5) * 10 * dpr : 0, z = view.z, k = z * dpr, ox = cw / 2 * dpr - view.x * k + sj, oy = ch / 2 * dpr - view.y * k + sj;
