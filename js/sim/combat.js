@@ -447,7 +447,7 @@ function combatTick(dt) {
       for (const f of FOES) { if (pj.hit.has(f) || dist(pj.x, pj.y, f.x, f.y) > pj.r + f.D.s) continue; pj.hit.add(f); if (pj.boom) { explode(pj.x, pj.y, pj.boom, pj.dmg, 'p', pj.el); dead = true; break; } damageFoe(f, pj.dmg, pj.el); if (pj.slow) f.slow = pj.slow; if (pj.pierce-- <= 0) { dead = true; break; } }
       if (!dead && pj.arrow) for (const an of ANIMALS) if (dist(pj.x, pj.y, an.x, an.y) < SPECIES[an.sp].s + 4) { hitAnimal(an, pj.dmg, pj.w); dead = true; break; }
     }
-    if (dead) { if (pj.boom && pj.team === 'p' && pj.life > 0) explode(pj.x, pj.y, pj.boom, pj.dmg, 'p', pj.el); PROJ.splice(i, 1); }
+    if (dead) { if (pj.boom && pj.team === 'p' && (pj.life > 0 || pj.fuse)) explode(pj.x, pj.y, pj.boom, pj.dmg, 'p', pj.el); if (pj.post && typeof trPost === 'function') trPost(pj); PROJ.splice(i, 1); } // fuse: los explosivos estallan también al acabarse la mecha
   }
   if (PROJ.length > 400) PROJ.splice(0, PROJ.length - 400);
   // Peligros en el suelo

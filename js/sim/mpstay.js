@@ -196,3 +196,9 @@ setTimeout(mpsResume, 300);
 // Algunos alojamientos gratuitos (Render) apagan el servidor si no reciben peticiones web durante un rato,
 // aunque haya partidas por WebSocket: al despertar, todos se reconectan. Con un toque cada 4 minutos no pasa.
 setInterval(() => { if (NET.kind === 'ws' && NET.room && /^https?:$/.test(location.protocol) && !inClaude()) fetch('/api/info', { cache: 'no-store' }).catch(() => { }); }, 240000);
+// Si ya no estás en una partida en línea (la cerraste, se apagó el servidor o se acabó), la
+// dirección vuelve a la de siempre: así recargar o compartir el enlace no lleva a una partida que ya no existe
+{ const home = () => { if (location.pathname.startsWith('/server/') && !inGame()) try { history.replaceState(null, '', '/'); } catch (e) { } };
+  const l0 = netLeave; netLeave = (...a) => { const r = l0(...a); setTimeout(home, 0); return r; };
+  // al cargar se da un margen para volver a entrar sola (mpsResume) o por el enlace de invitación
+  setInterval(() => { if (performance.now() > 20000 && !(typeof pendingJoin === 'function' && pendingJoin())) home(); }, 3000); }

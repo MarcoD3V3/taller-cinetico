@@ -451,7 +451,9 @@ function genTileB(x, y, P, cl, bio) {
   return t;
 }
 // Una casilla suelta (vista previa, consultas puntuales)
-function genTile(x, y, P = S.gen) { const c = climate(x, y, P, _cl), b = pickBiome(c[0], c[1], c[2], c[3], c[4], P); return genTileB(x, y, P, c, b); }
+// Con lugares únicos (las Maravillas, data/wonders.js) el bioma también depende de la posición
+function pickBiomeAt(x, y, c, P) { const w = typeof wonderAt === 'function' ? wonderAt(x, y, P) : -1; return w >= 0 ? w : pickBiome(c[0], c[1], c[2], c[3], c[4], P); }
+function genTile(x, y, P = S.gen) { const c = climate(x, y, P, _cl), b = pickBiomeAt(x, y, c, P); return genTileB(x, y, P, c, b); }
 // Un chunk entero: el clima se muestrea en una rejilla 5×5 y se interpola (25 cálculos en vez de 1024)
 const _cg = new Float32Array(25 * 5);
 function computeClimateGrid(x0, y0, P) {
@@ -470,12 +472,12 @@ function genChunkTiles(c) {
   computeClimateGrid(x0, y0, P);
   for (let y = 0; y < CS; y++) for (let x = 0; x < CS; x++) {
     climateLerp(x, y, cl);
-    const bio = pickBiome(cl[0], cl[1], cl[2], cl[3], cl[4], P), i = (y << CSH) | x, t = genTileB(x0 + x, y0 + y, P, cl, bio);
+    const bio = pickBiomeAt(x0 + x, y0 + y, cl, P), i = (y << CSH) | x, t = genTileB(x0 + x, y0 + y, P, cl, bio);
     c.g[i] = t; c.bio[i] = bio; c.t[i] = GI[t].hp || 0;
   }
   endOverlay(c); // la Ciudadela, los santuarios y el otro lado de la Puerta (sim/endgame.js)
 }
 function computeChunkBiomes(c) {
   const P = S.gen, cl = [0, 0, 0, 0, 0]; computeClimateGrid(c.cx * CS, c.cy * CS, P);
-  for (let y = 0; y < CS; y++) for (let x = 0; x < CS; x++) { climateLerp(x, y, cl); c.bio[(y << CSH) | x] = pickBiome(cl[0], cl[1], cl[2], cl[3], cl[4], P); }
+  for (let y = 0; y < CS; y++) for (let x = 0; x < CS; x++) { climateLerp(x, y, cl); c.bio[(y << CSH) | x] = pickBiomeAt(c.cx * CS + x, c.cy * CS + y, cl, P); }
 }

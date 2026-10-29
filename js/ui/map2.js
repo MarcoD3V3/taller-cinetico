@@ -27,9 +27,12 @@ setInterval(() => { if (!S || !S.player || ui.open === 'map') return; const p = 
 // Bioma de cada trozo explorado (para leyenda y etiquetas)
 function mpBiome(k) { let b = MP.bioC.get(k); if (b === undefined) { const [cx, cy] = ckeyXY(k); const B = BIOMES[biomeOf(cx * CS + 16, cy * CS + 16)]; b = B ? B.key : ''; MP.bioC.set(k, b); } return b; }
 const mpB = key => BIOMES.find(b => b && b.key === key);
+// Capa de un trozo explorado y la capa donde estás: la leyenda y la búsqueda solo miran tu capa
+const mpLay = k => typeof layerOf === 'function' ? layerOf(ckeyXY(k)[1] * CS + 16) : 0;
+const mpHere = () => typeof layerOf === 'function' && S && S.player ? layerOf(Math.floor(S.player.y / T)) : 0;
 // Capa base: fondo, terreno, nombres de biomas, cuadrícula
 function mpBase(w, h, s) {
-  const k = [w, h, s.toFixed(3), mv.x.toFixed(2), mv.y.toFixed(2), MAPT.size, MP.show.bio, MP.show.grid, (performance.now() / 1000) | 0].join('|'); if (k === MP.baseK && MP.base) return MP.base; MP.baseK = k;
+  const k = [w, h, s.toFixed(3), mv.x.toFixed(2), mv.y.toFixed(2), MAPT.size, MP.show.bio, MP.show.grid, typeof inGame === 'function' && inGame() ? (performance.now() / 3000) | 0 : 0].join('|'); if (k === MP.baseK && MP.base) return MP.base; MP.baseK = k;
   const cv0 = MP.base && MP.base.width === w && MP.base.height === h ? MP.base : (MP.base = mkCanvas(w, h)), c = cv0.getContext('2d');
   // Fondo: degradado oscuro con bruma y cuadrícula
   const g = c.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.max(w, h) * 0.7); g.addColorStop(0, '#161a1f'); g.addColorStop(1, '#0a0b0d'); c.fillStyle = g; c.fillRect(0, 0, w, h);
@@ -59,7 +62,7 @@ function mpPin(c, x, y, col, ch, label) {
 drawBig = () => {
   if (ui.open !== 'map' || !S) return;
   const w = big.width, h = big.height, s = mv.z * dpr, now = performance.now() / 1000;
-  bigX.setTransform(1, 0, 0, 1, 0, 0); bigX.drawImage(mpBase(w, h, s), 0, 0);
+  bigX.setTransform(1, 0, 0, 1, 0, 0); { const [bc, bx, by] = mpBaseAt(w, h, s); bigX.fillStyle = '#0a0b0d'; bigX.fillRect(0, 0, w, h); bigX.drawImage(bc, bx, by); }
   const toS = (x, y) => mpToS(x, y, w, h, s);
   // Rastro
   if (MP.show.trail && MP.trail.length > 1) { bigX.strokeStyle = 'rgba(240,199,94,.55)'; bigX.lineWidth = 2 * dpr; bigX.setLineDash([3 * dpr, 4 * dpr]); bigX.lineDashOffset = -now * 12; bigX.beginPath(); MP.trail.forEach((p, i) => { const [x, y] = toS(p.x, p.y); i ? bigX.lineTo(x, y) : bigX.moveTo(x, y); }); const [px0, py0] = toS(S.player.x / T, S.player.y / T); bigX.lineTo(px0, py0); bigX.stroke(); bigX.setLineDash([]); }
@@ -76,15 +79,25 @@ drawBig = () => {
   bigX.save(); bigX.translate(px, py); bigX.rotate(a); bigX.fillStyle = '#f0c75e'; bigX.strokeStyle = '#1a1a1a'; bigX.lineWidth = 1.5 * dpr; bigX.beginPath(); bigX.moveTo(9 * dpr, 0); bigX.lineTo(-6 * dpr, -6 * dpr); bigX.lineTo(-3 * dpr, 0); bigX.lineTo(-6 * dpr, 6 * dpr); bigX.closePath(); bigX.fill(); bigX.stroke(); bigX.restore();
   $('mapCoords').textContent = `X ${Math.floor(mv.x)} · Y ${(typeof surfY === 'function' ? surfY(Math.floor(mv.y)) : Math.floor(mv.y))} · zoom ×${mv.z.toFixed(1).replace('.', ',')}`;
 };
-// Animación (30 FPS como mucho, solo con el mapa abierto)
-function mpLoop(t) { if (ui.open !== 'map') { MP.raf = 0; return; } MP.raf = requestAnimationFrame(mpLoop); if (t - MP.last < 33) return; MP.last = t; drawBig(); }
+// La capa guardada es más grande que la vista (un margen por cada lado): al arrastrar solo se desplaza,
+// y se rehace cuando te sales del margen, cambias el zoom o hay algo nuevo que pintar
+function mpBaseAt(w, h, s) {
+  const m = Math.round(Math.max(w, h) * 0.35), W = w + 2 * m, H = h + 2 * m, E = MP.ext, f = [MP.show.bio, MP.show.grid, MP.sel, mpHere()].join(',');
+  const dx = E ? (E.x - mv.x) * s : 0, dy = E ? (E.y - mv.y) * s : 0, now = performance.now();
+  if (!E || !MP.baseK || E.s !== s || E.W !== W || E.H !== H || Math.abs(dx) > m || Math.abs(dy) > m || E.n !== MAPT.size || E.f !== f || (E.dr && !mv.drag) || (!mv.drag && typeof inGame === 'function' && inGame() && now - E.t > 3000)) {
+    const cv = mpBase(W, H, s); MP.ext = { x: mv.x, y: mv.y, s, W, H, n: MAPT.size, f, t: now, dr: !!mv.drag }; // hecha al arrastrar: sin sombra; se rehace al soltar return [cv, -m, -m];
+  }
+  return [MP.base, -m + dx, -m + dy];
+}
+// Animación: 30 FPS en reposo; al arrastrar o hacer zoom, a ritmo completo (solo con el mapa abierto)
+function mpLoop(t) { if (ui.open !== 'map') { MP.raf = 0; return; } MP.raf = requestAnimationFrame(mpLoop); if (!MP.dirty && t - MP.last < 33) return; MP.dirty = false; MP.last = t; drawBig(); }
 // Panel lateral
 function mpSide() {
   const el = $('mapSide'); if (!el || !S) return; const cnt = new Map(); let n = 0;
-  for (const k of MAPT.keys()) { const b = mpBiome(k); if (!b) continue; cnt.set(b, (cnt.get(b) || 0) + 1); n++; }
+  const here = mpHere(); for (const k of MAPT.keys()) { if (mpLay(k) !== here) continue; const b = mpBiome(k); if (!b) continue; cnt.set(b, (cnt.get(b) || 0) + 1); n++; }
   const list = [...cnt].sort((a, b) => b[1] - a[1]), core = L.core && L.core[0], p = S.player, dCore = core ? Math.round(Math.hypot(core.x + .5 - p.x / T, core.y + .5 - p.y / T)) : null, k = typeof layerOf === 'function' ? layerOf(Math.floor(p.y / T)) : 0;
   el.innerHTML = `<section><small>Exploración</small><div class="mpstat"><div><b>${n}</b><span>zonas vistas</span></div><div><b>${list.length}</b><span>biomas</span></div><div><b>${dCore ?? '—'}</b><span>al núcleo</span></div><div><b>${k ? 'Capa ' + k : 'Superficie'}</b><span>dónde estás</span></div></div></section>
-    <section><small>Biomas descubiertos</small><ul class="mpleg">${list.map(([b, c]) => { const B = mpB(b); return `<li data-mpbio="${b}" class="${MP.sel === b ? 'on' : ''}" title="Clic: ver dónde está"><i style="background:${B && B.mc || '#888'}"></i><span>${esc(B ? B.n : b)}</span><em><u style="width:${Math.round(c / n * 100)}%"></u></em><b>${Math.round(c / n * 100)} %</b></li>`; }).join('') || '<li class="mut">Explora para descubrirlos</li>'}</ul></section>
+    <section><small>Biomas descubiertos · ${k ? esc(LAYERS[k].n) : 'superficie'}</small><ul class="mpleg">${list.map(([b, c]) => { const B = mpB(b); return `<li data-mpbio="${b}" class="${MP.sel === b ? 'on' : ''}" title="Clic: ir a la zona más cercana que has descubierto"><i style="background:${B && B.mc || '#888'}"></i><span>${esc(B ? B.n : b)}</span><em><u style="width:${Math.round(c / n * 100)}%"></u></em><b>${Math.round(c / n * 100)} %</b></li>`; }).join('') || '<li class="mut">Explora para descubrirlos</li>'}</ul></section>
     <section><small>Marcadores</small><ul class="mpmarks">${(S.marks || []).map((m, i) => `<li data-mpgo="${i}"><span class="mpnum">${i + 1}</span>${esc(m.n)}<em>${Math.round(Math.hypot(m.x - p.x / T, m.y - p.y / T))} c</em></li>`).join('') || '<li class="mut">Clic en el mapa para poner uno</li>'}</ul></section>
     <section><small>Mostrar</small><div class="mptog">${[['bio', 'Nombres de biomas'], ['trail', 'Tu rastro'], ['mobs', 'Criaturas'], ['grid', 'Cuadrícula']].map(([k2, t]) => `<label><input type="checkbox" data-mpt="${k2}" ${MP.show[k2] ? 'checked' : ''}> ${t}</label>`).join('')}</div></section>
     <p class="mut small">Arrastra · rueda: zoom · clic: marcador · clic derecho: quitarlo</p>`;

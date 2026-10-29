@@ -200,7 +200,8 @@ function iconStyle(id) {
   s = `background-size:${ATLAS.cols * 100}% ${ATLAS.rows * 100}%;background-position:${col / (ATLAS.cols - 1) * 100}% ${row / Math.max(1, ATLAS.rows - 1) * 100}%`;
   ATLAS.style.set(id, s); return s;
 }
-setTimeout(buildAtlas, 300);
+// Se espera a que carguen todos los scripts: los dibujos de bloques y de muchos objetos llegan después
+if (document.readyState === 'complete') setTimeout(buildAtlas, 300); else addEventListener('load', () => setTimeout(buildAtlas, 30), { once: true });
 // Brillo (para luces de noche)
 const glowSprite = (() => {
   const s = mkCanvas(128, 128), c = s.getContext('2d'), g = c.createRadialGradient(64, 64, 0, 64, 64, 64);

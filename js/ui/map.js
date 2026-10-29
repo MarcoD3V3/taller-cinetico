@@ -79,7 +79,7 @@ function drawBig() {
   $('mapCoords').textContent = `Centro X ${Math.floor(mv.x)} · Y ${(typeof surfY === 'function' ? surfY(Math.floor(mv.y)) : Math.floor(mv.y))}${typeof layerOf === 'function' && layerOf(Math.floor(mv.y)) ? ' · ' + LAYERS[layerOf(Math.floor(mv.y))].n : ''} · zoom ×${mv.z.toFixed(1)} · ${MAPT.size} chunks explorados · ${S.marks.length} marcadores`;
 }
 big.addEventListener('mousedown', e => { mv.drag = { x: e.clientX, y: e.clientY, mx: mv.x, my: mv.y, moved: false, btn: e.button }; });
-addEventListener('mousemove', e => { if (!mv.drag || ui.open !== 'map') return; const dx = e.clientX - mv.drag.x, dy = e.clientY - mv.drag.y; if (Math.abs(dx) + Math.abs(dy) > 3) mv.drag.moved = true; mv.x = mv.drag.mx - dx / mv.z; mv.y = mv.drag.my - dy / mv.z; drawBig(); });
+addEventListener('mousemove', e => { if (!mv.drag || ui.open !== 'map') return; const dx = e.clientX - mv.drag.x, dy = e.clientY - mv.drag.y; if (Math.abs(dx) + Math.abs(dy) > 3) mv.drag.moved = true; mv.x = mv.drag.mx - dx / mv.z; mv.y = mv.drag.my - dy / mv.z; if (typeof MP !== 'undefined') MP.dirty = true; else drawBig(); });
 addEventListener('mouseup', e => {
   if (!mv.drag || ui.open !== 'map') { mv.drag = null; return; }
   const d = mv.drag; mv.drag = null; if (d.moved) return;
@@ -89,5 +89,5 @@ addEventListener('mouseup', e => {
   drawBig();
 });
 big.addEventListener('contextmenu', e => e.preventDefault());
-big.addEventListener('wheel', e => { e.preventDefault(); mv.z = clamp(mv.z * (e.deltaY > 0 ? 0.85 : 1.18), 0.3, 16); drawBig(); }, { passive: false });
+big.addEventListener('wheel', e => { e.preventDefault(); mv.z = clamp(mv.z * (e.deltaY > 0 ? 0.85 : 1.18), 0.3, 16); if (typeof MP !== 'undefined') MP.dirty = true; else drawBig(); }, { passive: false });
 addEventListener('resize', () => { if (ui.open === 'map') { sizeBig(); drawBig(); } });

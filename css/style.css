@@ -1471,3 +1471,9 @@ body.hudmin { --hud: rgba(14, 15, 17, .74); }
 .modal:not([hidden]) > .modal-in { animation: modalIn .12s cubic-bezier(.2, .8, .3, 1); }
 @keyframes modalIn { from { opacity: .4; transform: translateY(4px) scale(.992); } }
 @media (prefers-reduced-motion: reduce) { .modal:not([hidden]) > .modal-in { animation: none; } }
+/* Collares buscabiomas en el panel del mapa (sim/wonders.js) */
+#mapSide section.mpcollar { border-color: #7fd07a33; background: linear-gradient(180deg, #7fd07a0c, #ffffff04); }
+#mapSide section.mpcollar.t2 { border-color: #6ab8ff40; background: linear-gradient(180deg, #6ab8ff10, #ffffff04); }
+#mapSide section.mpcollar.t3 { border-color: #f0c75e55; background: linear-gradient(180deg, #f0c75e14, #ff7ad808); }
+#mapSide [data-mpcol] { cursor: pointer; border-radius: 6px; } #mapSide [data-mpcol]:hover { background: #ffffff0d; }
+#mapSide { overscroll-behavior: contain; contain: layout paint; } /* el scroll del panel no arrastra al resto de la página */

@@ -14,7 +14,7 @@ const mpRect = (k, w, h, s) => { const [cx, cy] = ckeyXY(k), [x, y] = mpToS(cx *
 { const b0 = mpBase; mpBase = (w, h, s) => {
   const cv = b0(w, h, s); if (!MP.sel || MP._selK === MP.baseK) return cv; MP._selK = MP.baseK;
   const c = cv.getContext('2d'), B = mpB(MP.sel), col = (B && B.mc) || '#f0c75e', sel = new Set();
-  for (const k of MAPT.keys()) if (mpBiome(k) === MP.sel) sel.add(k);
+  const here = mpHere(); for (const k of MAPT.keys()) if (mpBiome(k) === MP.sel && mpLay(k) === here) sel.add(k);
   // Una sola figura por capa: si se rellenaba trozo a trozo, los bordes se oscurecían dos veces y se veían cuadros
   c.save(); c.fillStyle = 'rgba(4,5,8,.62)'; c.beginPath();
   for (const k of MAPT.keys()) { if (sel.has(k)) continue; const [x, y, z] = mpRect(k, w, h, s); if (x > w || y > h || x + z < 0 || y + z < 0) continue; c.rect(Math.round(x), Math.round(y), Math.round(x + z) - Math.round(x), Math.round(y + z) - Math.round(y)); }
@@ -28,9 +28,13 @@ const mpRect = (k, w, h, s) => { const [cx, cy] = ckeyXY(k), [x, y] = mpToS(cx *
 function mpNearest() {
   const now = performance.now(); if (MP.near && MP.near.b === MP.sel && now - MP.nearT < 1000) return MP.near; MP.nearT = now;
   const px = S.player.x / T, py = S.player.y / T; let best = null, bd = 1e9, n = 0;
-  for (const k of MAPT.keys()) { if (mpBiome(k) !== MP.sel) continue; n++; const [cx, cy] = ckeyXY(k), x = cx * CS + CS / 2, y = cy * CS + CS / 2, d = Math.hypot(x - px, y - py); if (d < bd) { bd = d; best = { x, y }; } }
+  const here = mpHere(); for (const k of MAPT.keys()) { if (mpBiome(k) !== MP.sel || mpLay(k) !== here) continue; n++; const [cx, cy] = ckeyXY(k), x = cx * CS + CS / 2, y = cy * CS + CS / 2, d = Math.hypot(x - px, y - py); if (d < bd) { bd = d; best = { x, y }; } }
   return (MP.near = best ? { b: MP.sel, x: best.x, y: best.y, d: Math.round(bd), n } : null);
 }
+// Viaje suave del mapa hasta un punto (unos 0,35 s)
+function mpFly(x, y, z) { const a = { x: mv.x, y: mv.y, z: mv.z }, t0 = performance.now(); cancelAnimationFrame(MP.fly);
+  const st = t => { const k = Math.min(1, (t - t0) / 350), e = 1 - Math.pow(1 - k, 3); mv.x = a.x + (x - a.x) * e; mv.y = a.y + (y - a.y) * e; mv.z = a.z + (z - a.z) * e; MP.dirty = true; if (k < 1 && ui.open === 'map') MP.fly = requestAnimationFrame(st); };
+  MP.fly = requestAnimationFrame(st); }
 // ---------- Menas: se apuntan al explorar ----------
 const ORE_G = new Set(); GI.forEach((g, i) => { if (!g || !g.drop || g.tree || g.liquid || g.key === 'STONE' || !ITEMS[g.drop]) return; if (/ore|Ore/.test(g.drop) || ['ore', 'gem'].includes(ITEMS[g.drop].s) || /^M_/.test(g.key || '')) ORE_G.add(i); });
 const _oreSeen = new Set();
@@ -86,9 +90,9 @@ function mpSelBar() {
 document.addEventListener('click', e => {
   if (ui.open !== 'map' || !e.target.closest) return;
   const b = e.target.closest('[data-mpbio]'); if (b) { MP.sel = MP.sel === b.dataset.mpbio ? null : b.dataset.mpbio; MP.baseK = ''; MP._selK = ''; MP.near = null; mpSide();
-    const N = MP.sel && mpNearest(); if (N) { const r = big.getBoundingClientRect(), [x, y] = mpToS(N.x, N.y, big.width, big.height, mv.z * dpr); if (x < 0 || y < 0 || x > big.width || y > big.height) { mv.x = (mv.x + N.x) / 2; mv.y = (mv.y + N.y) / 2; } } return; }
+    const N = MP.sel && mpNearest(); if (N) mpFly(N.x, N.y, Math.max(mv.z, 2)); return; }
   const a = e.target.closest('[data-mps]'); if (a) { const N = mpNearest(); if (a.dataset.mps === 'off') { MP.sel = null; MP.baseK = ''; mpSide(); }
-    else if (N && a.dataset.mps === 'go') { mv.x = N.x; mv.y = N.y; mv.z = Math.max(mv.z, 2); }
+    else if (N && a.dataset.mps === 'go') mpFly(N.x, N.y, Math.max(mv.z, 2));
     else if (N && a.dataset.mps === 'mark') { const B = mpB(MP.sel); S.marks.push({ x: Math.floor(N.x), y: Math.floor(N.y), n: B ? B.n : 'Bioma' }); toast('📍 Marcado: ' + (B ? B.n : '')); mpSide(); } return; }
   const o = e.target.closest('[data-mpore]'); if (o) { const [cx, cy] = ckeyXY(o.dataset.mpore); mv.x = cx * CS + 16; mv.y = cy * CS + 16; mv.z = Math.max(mv.z, 3); return; }
   const pp = e.target.closest('[data-mppeer]'); if (pp && NET.peers.get(pp.dataset.mppeer)) { const q = NET.peers.get(pp.dataset.mppeer).pr; mv.x = q.x / T; mv.y = q.y / T; }
