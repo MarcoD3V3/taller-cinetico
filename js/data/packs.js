@@ -11,7 +11,8 @@
 //  La lógica y la ventana están en sim/packs.js.
 // =====================================================================================
 const PACK_RAR = [['Común', '#cfcac0'], ['Poco común', '#7fd07a'], ['Rara', '#6ab8ff'], ['Épica', '#c08aff'], ['Legendaria', '#f0c75e'], ['Mítica', '#ff7ad8']];
-const PACK_SLOTS = [6, 8, 9, 10, 12, 12, 14, 15, 16, 18, 18, 20, 21, 24, 24, 27, 27, 30, 30, 32, 33, 36, 36, 40, 42, 45, 48, 50, 54, 64];
+// Huecos: crecen con lo difícil que es fabricarla (la mítica, casi imposible, es un almacén entero)
+const PACK_SLOTS = [9, 12, 15, 18, 21, 24, 28, 32, 36, 40, 45, 50, 54, 60, 66, 72, 80, 88, 96, 104, 112, 120, 132, 144, 156, 168, 180, 198, 216, 256];
 // [id, nombre, color, acento, glifo del emblema, emblema, núcleo del emblema, dientes del emblema, dientes de la mochila, efectos, defensa, módulos, descripción]
 const PACK_DEF = [
   ['packSack', 'Saco de arpillera', '#b89a6a', '#7a5a3a', '🪢', 'Nudo de cordelero', 'rope', 'rope,stick', 'cloth*2,rope', {}, 0, [], 'Un saco con correa: lo justo para no ir cargado de piedras en las manos.'],

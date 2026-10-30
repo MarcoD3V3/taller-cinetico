@@ -32,7 +32,8 @@ const wingOf = () => S && S.equip ? WINGS[wingId(S.equip)] || null : null;
   if (WF.on) { hasFlag('phoenixWings'); _flags.phoenixWings = true; }
   u0(fdt);
   // Aleteo: rápido al subir o con impulsador, quieto (alas abiertas) al planear, plegadas en el suelo
-  WF.rate = WF.on ? (WF.boost && WF.boost.spd ? 20 : WF.lift ? 13 : 0) : 0; WF.ph += WF.rate * fdt;
+  // al planear también aletean despacio (y más si te mueves), para que nunca queden rígidas en el aire
+  WF.rate = WF.on ? (WF.boost && WF.boost.spd ? 20 : WF.lift ? 13 : pmove.moving ? 6 : 3) : 0; WF.ph += WF.rate * fdt;
   WF.open += ((WF.on ? 1 : 0) - WF.open) * Math.min(1, fdt * 8);
   if (WF.on) { P.z = Math.max(0.6, WF.z + (WF.rate ? Math.sin(WF.ph) * 1.4 : 0)); P.vz = 0; }
   // Impulsador: empuja hacia donde miras
@@ -104,6 +105,13 @@ function wingPath(c, st, span, k, t, W) {
     c.fillStyle = '#fff'; for (let i = 0; i < 9; i++) { const sx = L * ((i * 0.37) % 0.85 + 0.08), sy = -H * 0.45 + ((i * 0.53) % 0.8) * H * 0.6, tw = 0.5 + 0.5 * Math.sin(t * 4 + i * 2); c.globalAlpha = tw; c.fillRect(sx, sy, 1.4, 1.4); } c.globalAlpha = 1; return; }
 }
 const shade2 = (h, f) => (typeof shade === 'function' && typeof toHex === 'function' ? toHex(shade(h, f)) : h);
+// De perfil (mirando a un lado) se ven las dos alas hacia atrás, una delante de la otra, batiendo arriba y abajo
+function drawWingsSide(c, W, x, y, sc, ph, open, dir) {
+  const span = (14 + W.r * 2.8) * sc, k = open, t = performance.now() / 1000, flap = Math.sin(ph);
+  c.save(); c.translate(x - dir * 2 * sc, y);
+  for (const far of [1, 0]) { c.save(); c.scale(-dir, 1); c.translate(far * 2 * sc, -far * 2 * sc); const lift = k ? -0.55 - flap * 0.6 * k : 0.9; c.rotate(lift - far * 0.18); c.scale(1, k ? 0.55 + 0.45 * Math.abs(Math.cos(ph)) : 0.5); if (far) c.globalAlpha *= 0.7; wingPath(c, W.style, span * (k ? 1 : 0.7), k, t, W); c.restore(); }
+  c.restore();
+}
 function drawWingsAt(c, W, x, y, sc, ph, open, behind) {
   const span = (14 + W.r * 2.8) * sc, k = open, t = performance.now() / 1000;
   const flap = Math.sin(ph) * 0.55 * k, base = k ? -0.25 - flap : 0.6;
@@ -115,7 +123,8 @@ function drawWingsAt(c, W, x, y, sc, ph, open, behind) {
 { const d0 = drawAvatar; drawAvatar = (...a) => {
   const [ctx, , equip, x, y, fa, walk, moving, sc0] = a, W = WINGS[wingId(equip)]; if (!W || !ctx) return d0(...a);
   const sc = sc0 || 1.6, me = S && equip === S.equip, open = me ? WF.open : moving && walk === 1.2 ? 1 : 0, ph = me ? WF.ph : performance.now() / 1000 * (open ? 10 : 0);
-  const back = Math.sin(fa || 0) < -0.45, sy = y - 14 * sc;
+  const back = Math.sin(fa || 0) < -0.45, sy = y - 14 * sc, cs = Math.cos(fa || 0), side = Math.abs(cs) > 0.75;
+  if (side) { drawWingsSide(ctx, W, x, sy, sc, ph, open, cs > 0 ? 1 : -1); return d0(...a); }
   if (!back) drawWingsAt(ctx, W, x, sy, sc, ph, open, true);
   const r = d0(...a);
   if (back) drawWingsAt(ctx, W, x, sy, sc, ph, open, false);

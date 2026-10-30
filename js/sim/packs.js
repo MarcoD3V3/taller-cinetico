@@ -129,16 +129,17 @@ function packRender(force) {
   const P = packOn(); if (!P || ui.open !== 'pack') return; const st = packSt(P), a = packSlots(P), pc = S.pc || {};
   const sig = JSON.stringify([P.id, a, S.inv, st, Math.round(pc.water || 0), Math.round(pc.food || 0), Math.round(pc.hp || 0), Math.round(pc.mana || 0), Math.floor((S.time || 0) / 5)]);
   if (!force && sig === _packSig) return; _packSig = sig;
-  const used = a.filter(Boolean).length, fill = slotsFill(a), cols = P.slots <= 12 ? 6 : P.slots <= 24 ? 8 : P.slots <= 36 ? 9 : P.slots <= 54 ? 10 : 8;
+  const used = a.filter(Boolean).length, fill = slotsFill(a), cols = Math.max(6, Math.min(16, Math.round(Math.sqrt(P.slots * 1.9)))), big = P.slots > 120;
   const it = ITEMS[P.id], mods = (it.gear && it.gear.mods) || {}, rar = PACK_RAR[P.rar];
   const chips = Object.entries(mods).map(([k, v]) => `<span>${packModTxt(k, v)}</span>`).join('') + (it.gear.def ? `<span>🛡 Defensa +${it.gear.def}</span>` : '');
   const mods2 = P.modules.filter(m => m !== 'grid').map(m => PACK_MODS[m] ? PACK_MODS[m](P, st) : '').join('');
   $('packBody').innerHTML = `<div class="pkwrap d${P.deco} r${P.rar}" style="--pc:${P.c};--pa:${P.a};--rc:${rar[1]}">
-    <header class="pkh"><div class="pkicon">${itemImg(P.id, 56)}</div><div class="pkt"><b>${esc(P.n)}</b><div class="pkchips"><span class="pkrar">${rar[0]}</span><span>🎒 ${used}/${P.slots} huecos</span>${P.heavy ? `<span title="Cuanto más llena, más frena">⚖ hasta −${Math.round(P.heavy * 100)} % velocidad</span>` : '<span>⚖ No pesa</span>'}${chips}</div></div><button class="ghost" data-pka="close">Cerrar <kbd>V</kbd></button></header>
+    <header class="pkh"><div class="pkicon">${itemImg(P.id, 56)}</div><div class="pkt"><b>${esc(P.n)}</b><div class="pkchips"><span class="pkrar">${rar[0]}</span><span title="Huecos ocupados / total">🎒 ${used}/${P.slots} huecos</span>${P.heavy ? `<span title="Cuanto más llena, más frena">⚖ hasta −${Math.round(P.heavy * 100)} % velocidad</span>` : '<span>⚖ No pesa</span>'}${chips}</div></div><button class="ghost" data-pka="close">Cerrar <kbd>V</kbd></button></header>
     <div class="pkmain"><section class="pkleft"><div class="pkbar"><div class="pkfill"><i style="width:${(fill * 100).toFixed(0)}%"></i></div><button data-pka="sort">Ordenar</button><button data-pka="stash" title="Guarda lo que ya hay en la mochila">Guardar repetidos</button><button data-pka="empty">Sacarlo todo</button></div>
-      <div class="pkgrid" style="--cols:${cols}">${a.map((s, i) => slotH(s, 'b' + i)).join('')}</div>
-      <div class="pksub">Tu inventario <small>· clic: pasar la pila · clic derecho: pasar 1</small></div><div class="pkgrid inv" style="--cols:12">${S.inv.map((s, i) => slotH(s, 'i' + i)).join('')}</div></section>
-      ${mods2 ? `<aside class="pkmods">${mods2}</aside>` : ''}</div></div>`;
+      <div class="pkhelp"><span>🖱 <b>Clic</b> mueve la pila</span><span>🖱 <b>Clic derecho</b> mueve 1</span><span>⌨ <b>V</b> abre y cierra</span><span>📈 Cuanto más rara la mochila, más huecos y más módulos</span></div>
+      <div class="pkgridwrap"><div class="pkgrid ${big ? 'big' : ''}" style="--cols:${cols}">${a.map((s, i) => slotH(s, 'b' + i)).join('')}</div></div>
+      <div class="pksub">Tu inventario <small>· clic: pasar la pila a la mochila · clic derecho: pasar 1</small></div><div class="pkgrid inv" style="--cols:12">${S.inv.map((s, i) => slotH(s, 'i' + i)).join('')}</div></section>
+      ${mods2 ? `<aside class="pkmods"><div class="pkmtitle">🔧 Módulos <small>lo que hace esta mochila además de guardar</small></div>${mods2}</aside>` : ''}</div></div>`;
   const cv = $('packBody').querySelector('canvas.pkcomp'); if (cv) drawCompass(cv);
 }
 // Mover entre la mochila y el inventario
