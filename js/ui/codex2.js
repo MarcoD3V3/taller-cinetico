@@ -23,7 +23,7 @@ function cxCreAllowed() {
 }
 function cxSetCreative(on) {
   if (on && !cxCreAllowed()) { toastErr('En esta partida en línea el anfitrión no permite el modo creativo'); return; }
-  S.creative = S.sandbox = !!on; vitalsDirty = true; toast(on ? '🎨 Modo creativo: saca lo que quieras del recetario, construir no gasta y no recibes daño' : '⚔ Modo supervivencia', true); renderBook();
+  S.creative = S.sandbox = !!on; vitalsDirty = true; toast(on ? '🎨 Modo creativo: saca lo que quieras del recetario; nada de lo que usas se gasta y no recibes daño' : '⚔ Modo supervivencia', true); renderBook();
 }
 let _cxGiveT = 0, _cxGiveN = 0, _cxGiveId = null;
 function cxGive(id, n) {
@@ -37,7 +37,7 @@ function cxGive(id, n) {
 { const t0 = cxTile; cxTile = (id, extra = '') => t0(id, extra + (S && S.creative ? `<b class="give" data-cxgive="${id}" title="Coger ${cxStackOf(id)} (Mayús: 1)">+</b>` : '')); }
 function cxCreative() {
   const on = !!(S && S.creative), I = cxIndex(), q = CX.creQ.toLowerCase();
-  let h = `<div class="crehead ${on ? 'on' : ''}"><div><b>${on ? '🎨 Modo creativo activado' : '⚔ Estás en supervivencia'}</b><small>${on ? 'Clic en un objeto: una pila · Mayús+clic: 1 · clic derecho: 10. Construir no gasta y no recibes daño. Mover cosas entre la mochila, cofres y máquinas sí es real.' : 'Actívalo para sacar cualquier objeto sin límites (también con /modo creativo en el chat).'}${!cxCreAllowed() ? '<br><span class="bad">En esta partida en línea el anfitrión no lo permite.</span>' : ''}</small></div><button class="${on ? '' : 'pri'}" data-cxcre="${on ? 0 : 1}">${on ? 'Volver a supervivencia' : 'Activar creativo'}</button>${on ? '<button class="danger" data-cxclear="1" title="Tira todo lo que llevas en la mochila (no el equipo)">🗑 Vaciar mochila</button>' : ''}</div>`;
+  let h = `<div class="crehead ${on ? 'on' : ''}"><div><b>${on ? '🎨 Modo creativo activado' : '⚔ Estás en supervivencia'}</b><small>${on ? 'Clic en un objeto: una pila · Mayús+clic: 1 · clic derecho: 10. Nada de lo que usas se gasta (flechas, comida, bombas, bloques…) ni se desgasta, y no recibes daño. Mover cosas entre la mochila, cofres y máquinas sí es real.' : 'Actívalo para sacar cualquier objeto sin límites (también con /modo creativo en el chat).'}${!cxCreAllowed() ? '<br><span class="bad">En esta partida en línea el anfitrión no lo permite.</span>' : ''}</small></div><button class="${on ? '' : 'pri'}" data-cxcre="${on ? 0 : 1}">${on ? 'Volver a supervivencia' : 'Activar creativo'}</button>${on ? '<button class="danger" data-cxclear="1" title="Tira todo lo que llevas en la mochila (no el equipo)">🗑 Vaciar mochila</button>' : ''}</div>`;
   if (!on) return h;
   const groups = Object.keys(I.groups).sort();
   h += `<div class="cxtools"><input type="search" id="creQ" placeholder="Filtrar el catálogo…" value="${cxE(CX.creQ)}"><button data-cxcg="" class="${!CX.creG ? 'on' : ''}">Todo</button>${groups.map(g => `<button data-cxcg="${cxE(g)}" class="${CX.creG === g ? 'on' : ''}">${itemImg(I.groups[g][0], 14)} ${cxE(g)}</button>`).join('')}</div>`;

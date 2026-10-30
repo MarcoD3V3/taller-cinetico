@@ -156,7 +156,7 @@ let chatSendMe = t => chatPush('me', t, { nick: myNick(), c: '#ffe08a' });
 // En creativo no se gasta lo que construyes (colocar bloques), pero mover cosas entre la mochila,
 // cofres, máquinas y bancos sí es real: antes invTake no quitaba nada y al meter algo en una máquina
 // se quedaba también en la mochila (se duplicaba). Lo que necesites lo sacas del recetario.
-{ const p0 = tryPlace; tryPlace = (type, x, y, dir, quiet) => { const had = S && S.creative ? invCount(type) : 0; const b = p0(type, x, y, dir, quiet); if (b && S.creative && invCount(type) < had) invAdd(type, 1); return b; }; }
+// (lo que no se gasta en creativo está en sim/creative.js)
 { const h0 = hurt; hurt = (t, part, mult, cause) => { if (S && S.creative) return; h0(t, part, mult, cause); }; }
 { const s0 = speedMul; speedMul = () => s0() * ((S && S.spdCheat) || 1) * (S && S.creative ? 1.3 : 1); }
 // ---------- Sugerencias mientras escribes ----------
