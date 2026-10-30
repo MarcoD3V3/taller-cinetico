@@ -25,8 +25,10 @@ const wingOf = () => S && S.equip ? WINGS[wingId(S.equip)] || null : null;
   if (WF.on) {
     const B = WF.boost, floaty = B && B.glide > 0, night = W.power === 'night' && daylight() < 0.3;
     WF.lift = space && (inf || WF.fuel > 0 || floaty);
-    if (WF.lift) { WF.z = Math.min(34, WF.z + 70 * fdt); if (!inf && !floaty) WF.fuel = Math.max(0, WF.fuel - fdt * (night ? 0.7 : 1)); }
-    else WF.z -= W.glide * fdt * (floaty ? 0.15 : 1);
+    // Con un cohete subes mucho más (hasta su altura); con las alas, hasta 34 px (11 m) y por encima te mantienes bajando despacio
+    if (B && B.climb && B.t > 0) WF.z = Math.min(34 + B.climb, WF.z + B.lift * fdt);
+    else if (WF.lift) { if (WF.z < 34) WF.z = Math.min(34, WF.z + 70 * fdt); else WF.z -= W.glide * 0.35 * fdt; if (!inf && !floaty) WF.fuel = Math.max(0, WF.fuel - fdt * (night ? 0.7 : 1)); }
+    else WF.z -= W.glide * fdt * (floaty ? 0.15 : 1) * (WF.z > 34 ? 1.6 : 1);
     if (WF.z <= 0.5 && !(B && B.spd)) { WF.on = false; WF.z = 0; _flagVer = -1; dust(S.player.x, S.player.y + 8, 6); }
   }
   if (WF.on) { hasFlag('phoenixWings'); _flags.phoenixWings = true; }
@@ -35,7 +37,7 @@ const wingOf = () => S && S.equip ? WINGS[wingId(S.equip)] || null : null;
   // al planear también aletean despacio (y más si te mueves), para que nunca queden rígidas en el aire
   WF.rate = WF.on ? (WF.boost && WF.boost.spd ? 20 : WF.lift ? 13 : pmove.moving ? 6 : 3) : 0; WF.ph += WF.rate * fdt;
   WF.open += ((WF.on ? 1 : 0) - WF.open) * Math.min(1, fdt * 8);
-  if (WF.on) { P.z = Math.max(0.6, WF.z + (WF.rate ? Math.sin(WF.ph) * 1.4 : 0)); P.vz = 0; }
+  if (WF.on) { const vz = WF.z <= 34 ? WF.z : 34 + (WF.z - 34) * 0.4; P.z = Math.max(0.6, vz + (WF.rate ? Math.sin(WF.ph) * 1.4 : 0)); P.vz = 0; } // por encima de 11 m el dibujo sube menos (la altura real está en la barra)
   // Impulsador: empuja hacia donde miras
   const B = WF.boost; if (B) { B.t -= fdt; if (B.spd && WF.on) { const a = P.faceA || 0, v = (2.2 + B.spd) * T * fdt; movePlayer(Math.cos(a) * v, Math.sin(a) * v); if (Math.random() < 0.8) fxAdd({ x: S.player.x - Math.cos(a) * 10, y: S.player.y - WF.z, vx: -Math.cos(a) * 40 + (Math.random() - 0.5) * 30, vy: -Math.sin(a) * 40 + (Math.random() - 0.5) * 30, life: 0.45, t: 0, size: 2.4, col: B.c, glow: 1, drag: 2 }); }
     if (B.t <= 0) WF.boost = null; }
@@ -145,3 +147,23 @@ function drawBoostIcon(c, id, s) {
 }
 { const d0 = drawItemPath; drawItemPath = (c, id, s) => { const b = String(id).split('~')[0]; return WINGS[b] ? drawWingIcon(c, b, s) : BOOSTS[b] ? drawBoostIcon(c, b, s) : d0(c, id, s); }; }
 if (typeof EQ_N !== 'undefined') EQ_N.back = 'Capa o alas';
+// ---------- Barra de altura (a la izquierda): cielo por capas, metros, tu posición, vuelo y cohete ----------
+const ALT_MAX = 65, ALT_Z = 3; // metros que caben en la barra · píxeles de altura por metro
+const ALT_ZONES = [[0, 3, 'Suelo', '#6a5a3a'], [3, 11, 'Copas de los árboles', '#3a7a3a'], [11, 22, 'Nubes bajas', '#5a9ad0'], [22, 40, 'Cielo abierto', '#3a6ac8'], [40, 65, 'Cielo alto', '#2a2a7a']];
+const altEl = document.createElement('div'); altEl.id = 'altHud'; altEl.hidden = true;
+altEl.innerHTML = `<div class="alttube">${ALT_ZONES.map(([a, b, n, c]) => `<div class="altz" style="bottom:${a / ALT_MAX * 100}%;height:${(b - a) / ALT_MAX * 100}%;--zc:${c}"><span>${n}</span></div>`).join('')}${[0, 10, 20, 30, 40, 50, 60].map(m => `<i class="altt" style="bottom:${m / ALT_MAX * 100}%"><b>${m} m</b></i>`).join('')}<div class="altmax"></div><div class="altme"><span class="alticon">🪽</span><b></b></div></div>
+  <div class="altfuel"><i></i></div><div class="altinfo"><b class="altzone"></b><small class="altstate"></small><div class="altboost"><i></i><span></span></div></div>`;
+document.body.appendChild(altEl);
+const altQ = s => altEl.querySelector(s), A = { me: altQ('.altme'), meb: altQ('.altme b'), max: altQ('.altmax'), fuel: altQ('.altfuel i'), zone: altQ('.altzone'), st: altQ('.altstate'), bo: altQ('.altboost'), boi: altQ('.altboost i'), bos: altQ('.altboost span'), last: '' };
+{ const u0 = updatePlayer; updatePlayer = fdt => { u0(fdt); altHud(); }; }
+function altHud() {
+  const W = wingOf(), show = !!W && !ui.open && (WF.on || (P.z || 0) > 1); if (altEl.hidden === show) altEl.hidden = !show; if (!show) return;
+  const m = Math.max(0, WF.on ? WF.z : P.z || 0) / ALT_Z, pct = Math.min(100, m / ALT_MAX * 100);
+  A.me.style.bottom = pct + '%'; const mt = m.toFixed(1) + ' m'; if (A.meb.textContent !== mt) A.meb.textContent = mt;
+  const B = WF.boost, ceil = (34 + (B && B.climb && B.t > 0 ? B.climb : 0)) / ALT_Z; A.max.style.bottom = Math.min(100, ceil / ALT_MAX * 100) + '%';
+  const f = W.fly === Infinity ? 1 : WF.fuel / W.fly; A.fuel.style.transform = `scaleY(${f.toFixed(3)})`; A.fuel.style.background = W.fly === Infinity ? 'linear-gradient(0deg,#f0c75e,#ff7ad8)' : f > 0.3 ? W.c2 : '#ff6b5b';
+  const z = ALT_ZONES.find(([a, b]) => m >= a && m < b) || ALT_ZONES[ALT_ZONES.length - 1];
+  const st = !WF.on ? 'Saltando' : B && B.t > 0 && B.spd ? '🚀 Impulsado' : WF.lift ? (WF.z < 34 ? '⬆ Subiendo' : '〰 Manteniendo altura') : '⬇ Planeando', key = z[2] + st;
+  const zt = mt + ' · ' + z[2]; if (A.zone.textContent !== zt) A.zone.textContent = zt; if (A.last !== key) { A.last = key; A.zone.style.setProperty('--zc', z[3]); A.st.textContent = st + (W.fly === Infinity ? ' · vuelo infinito' : ''); }
+  const bt = B && B.t > 0 ? B.t : 0; A.bo.hidden = !bt; if (bt) { const tot = B.t0 || (B.t0 = B.t); A.boi.style.transform = `scaleX(${(bt / tot).toFixed(3)})`; A.boi.style.background = B.c; A.bos.textContent = `Cohete ${bt.toFixed(1)} s`; }
+}

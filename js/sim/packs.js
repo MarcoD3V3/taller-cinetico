@@ -216,3 +216,11 @@ if (typeof KH_ALL !== 'undefined') try { KH_ALL[1][1].push([['v'], 'Abrir la moc
   bt.innerHTML = itemImg(P.id, 30); bt.style.setProperty('--pa', P.a); }; }
 // Al ponerte o quitarte una mochila, la barra se rehace
 let _packEq = null; setInterval(() => { if (!S || !S.equip) return; if (S.equip.pack !== _packEq) { _packEq = S.equip.pack; try { buildHotbar(); } catch (e) { } } }, 500);
+// Mientras te desplazas no se redibuja la ventana, y al redibujarla se conserva dónde estabas
+let _pkScrollT = 0;
+mPack.addEventListener('scroll', () => { _pkScrollT = performance.now(); }, true);
+{ const r0 = packRender; packRender = force => {
+  if (!force && performance.now() - _pkScrollT < 600) return;
+  const g = mPack.querySelector('.pkgridwrap'), m = mPack.querySelector('.pkmods'), gs = g ? g.scrollTop : 0, ms = m ? m.scrollTop : 0;
+  r0(force); const g2 = mPack.querySelector('.pkgridwrap'), m2 = mPack.querySelector('.pkmods'); if (g2) g2.scrollTop = gs; if (m2) m2.scrollTop = ms;
+}; }

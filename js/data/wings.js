@@ -67,3 +67,14 @@ for (const [id, n, c, fx, core, teeth, yieldN, tier, d] of BOOST_DEF) {
   const c0 = wRes(core) || 'paper', tt = teeth.split(',').map(p => { const [x, k] = p.split('*'); return (wRes(x) || 'gunpowder') + (k ? '*' + k : ''); });
   if (RX(id, c0, tt, 0, tier) && RECIPE_FOR[id]) RECIPE_FOR[id].n = yieldN;
 }
+// ---------- Fuerza de cada impulsador según lo complicado que es ----------
+// Más nivel de taller = más rápido, más tiempo y más altura (el estelar es una bala que dura mucho)
+const BOOST_TIER = {}, BOOST_TXT = {}; for (const d of BOOST_DEF) { BOOST_TIER[d[0]] = d[7]; BOOST_TXT[d[0]] = d[8]; }
+for (const id in BOOSTS) {
+  const B = BOOSTS[id], t = BOOST_TIER[id], star = id === 'boostStar';
+  if (B.spd) { B.spd = +(B.spd * (1 + t * 0.18) + (star ? 1.5 : 0)).toFixed(2); B.t = +((B.t || 2) * (1.6 + t * 0.45)).toFixed(1); }
+  if (B.glide) B.t = 10 + t * 3;
+  B.climb = Math.min(160, 30 + t * 24 + (star ? 40 : 0)); B.lift = 45 + t * 22; // hasta cuánto te sube (px) y a qué ritmo
+  const bits = []; if (B.spd) bits.push(`velocidad ×${B.spd} durante ${B.t} s`); if (B.fuel) bits.push(B.fuel >= 1 ? 'recarga todo el vuelo' : `recarga ${Math.round(B.fuel * 100)} % del vuelo`); if (B.glide) bits.push(`${B.t} s sin gastar vuelo`); bits.push(`te sube hasta ${Math.round(B.climb / 3)} m`);
+  ITEMS[id].d = `${BOOST_TXT[id]} ${bits.join(' · ')}. Úsalo con F mientras vuelas (con alas, también te lanza a volar).`;
+}
