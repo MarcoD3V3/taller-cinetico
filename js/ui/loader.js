@@ -38,7 +38,7 @@ function ldTip(d) { LD.tip = (LD.tip + d + LD_TIPS.length) % LD_TIPS.length; con
 // Abre la pantalla. steps: nombres de los pasos. cancel: función si se puede cancelar.
 function loadShow(title, steps, opt = {}) {
   const el = ldEl(); clearInterval(LD.poll); LD.cancel = opt.cancel || null; LD.steps = steps || []; LD.cur = -1; LD.shownAt = performance.now();
-  el.classList.remove('fail', 'done'); el.hidden = false; requestAnimationFrame(() => el.classList.add('on'));
+  el.classList.remove('fail', 'done'); el.hidden = false; requestAnimationFrame(() => { if (!el.hidden && !el.classList.contains('done')) el.classList.add('on'); });
   document.getElementById('ldTitle').textContent = title; document.getElementById('ldSub').textContent = opt.sub || '';
   document.getElementById('ldAct').innerHTML = LD.cancel ? '<button data-ld="cancel">Cancelar</button>' : '';
   ldRenderSteps(); loadProgress(0); if (LD.steps.length) loadStep(0);

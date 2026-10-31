@@ -157,7 +157,7 @@ document.body.appendChild(altEl);
 const altQ = s => altEl.querySelector(s), A = { me: altQ('.altme'), meb: altQ('.altme b'), max: altQ('.altmax'), fuel: altQ('.altfuel i'), zone: altQ('.altzone'), st: altQ('.altstate'), bo: altQ('.altboost'), boi: altQ('.altboost i'), bos: altQ('.altboost span'), last: '' };
 { const u0 = updatePlayer; updatePlayer = fdt => { u0(fdt); altHud(); }; }
 function altHud() {
-  const W = wingOf(), show = !!W && !ui.open && (WF.on || (P.z || 0) > 1); if (altEl.hidden === show) altEl.hidden = !show; if (!show) return;
+  const W = wingOf(), show = !!W && !ui.open && OPT.altHud !== false && (WF.on || (P.z || 0) > 1); if (altEl.hidden === show) altEl.hidden = !show; if (!show) return;
   const m = Math.max(0, WF.on ? WF.z : P.z || 0) / ALT_Z, pct = Math.min(100, m / ALT_MAX * 100);
   A.me.style.bottom = pct + '%'; const mt = m.toFixed(1) + ' m'; if (A.meb.textContent !== mt) A.meb.textContent = mt;
   const B = WF.boost, ceil = (34 + (B && B.climb && B.t > 0 ? B.climb : 0)) / ALT_Z; A.max.style.bottom = Math.min(100, ceil / ALT_MAX * 100) + '%';
@@ -186,7 +186,7 @@ const WFX = { was: false, z0: null, flapS: 0, trail: 0 };
   WFX.was = WF.on;
   // cámara
   // La altura aleja la cámara un poco; en cuanto mueves tú la rueda, tu zoom manda y ya no se toca hasta aterrizar
-  { const alt = WF.on ? Math.min(1, WF.z / 194) : 0, wantF = 1 - alt * 0.22;
+  { const alt = WF.on ? Math.min(1, WF.z / 194) : 0, wantF = 1 - alt * (OPT.flyZoom === false ? 0 : 0.22);
     if (WFX.applied !== undefined && Math.abs(view.z - WFX.applied) > 1e-6) WFX.user = true; // has movido el zoom tú: a partir de ahí manda el tuyo
     if (WFX.user) { WFX.base = WFX.applied = undefined; WFX.f = 1; if (!WF.on) WFX.user = false; } else {
     if (WFX.base === undefined) WFX.base = view.z;
@@ -225,7 +225,7 @@ const WFA = { tilt: 0, sq: 0, boost: null, clouds: [], cx: 0, cy: 0 };
   try { return d0(...a); } finally { ctx.restore(); }
 }; }
 { const w0 = drawWeatherScreen; drawWeatherScreen = (ctx, dt) => { w0(ctx, dt);
-  const m = WF.on ? WF.z / ALT_Z : 0, al = Math.min(1, Math.max(0, (m - 12) / 18)); if (!ctx || al < 0.01) return;
+  const m = WF.on ? WF.z / ALT_Z : 0, al = Math.min(1, Math.max(0, (m - 12) / 18)); if (!ctx || al < 0.01 || OPT.flyClouds === false) return;
   if (!WFA.clouds.length) for (let i = 0; i < 9; i++) WFA.clouds.push({ x: Math.random(), y: Math.random(), r: 60 + Math.random() * 110, d: 0.4 + Math.random() * 0.8 });
   const w = ctx.canvas.width, h = ctx.canvas.height, pad = 260; ctx.save();
   for (const c of WFA.clouds) {

@@ -24,7 +24,7 @@ function pzNav() {
   const kn = o => KEY_NAME((OPT.keys || {})[o] || o);
   return `<div class="pzbrand">Taller Cinético</div>` + it('main', 'Volver al juego', 'Esc', 'pri') + '<hr>' +
     it('inv', 'Inventario', kn('e')) + it('book', 'Recetario', kn('b')) + it('map', 'Mapa', kn('m')) + it('char', 'Personaje', kn('c')) + it('lore', 'Crónicas', kn('j')) + it('chat', 'Chat', kn('enter')) + it('help', 'Ayuda', kn('h')) + '<hr>' +
-    it('opts', 'Opciones') + it('lan', inGame() ? (NET.game.host ? 'Tu mundo en red' : 'Partida en línea') : 'Abrir en red', kn('u')) + it('acc', 'Cuenta y Discord') + '<hr>' +
+    it('opts', 'Ajustes') + it('lan', inGame() ? (NET.game.host ? 'Tu mundo en red' : 'Partida en línea') : 'Abrir en red', kn('u')) + it('acc', 'Cuenta y Discord') + '<hr>' +
     it('save', isGuest() ? 'Guardar (en el anfitrión)' : 'Guardar', 'Ctrl+S') + it('quit', 'Salir al menú principal');
 }
 function pzHead(title, sub) { return `<header class="pzh"><div><h2>${title}</h2>${sub ? `<div class="mut small">${sub}</div>` : ''}</div><button data-close>Volver <kbd>Esc</kbd></button></header>`; }
@@ -44,7 +44,7 @@ function mainHTML() {
   return pzHead(mp ? 'Menú' : 'Pausa', state) +
     `<div class="pzgrid">${card('Mundo', esc(S.name || 'Mundo'), (S.sandbox ? 'creativo' : 'supervivencia') + (isGuest() ? ' · invitado' : ''))}${card('Día ' + day, hh, typeof WX_T !== 'undefined' && WX_T[WX.type] ? WX_T[WX.type].i + ' ' + WX_T[WX.type].n : '')}${card('Vida', Math.round(pc.hp ?? 100) + ' / ' + Math.round(maxHp()), `hambre ${Math.round(pc.food ?? 100)} · sed ${Math.round(pc.water ?? 100)}`)}${card('Posición', Math.floor(S.player.x / T) + ', ' + Math.floor(S.player.y / T), blocks.length + ' bloques en el mundo')}</div>` +
     `<div class="pzquick"><label class="pzq">${svgI('M4 9h4l5-4v14l-5-4H4V9z', 16)} Volumen <input type="range" data-opt="master" min="0" max="1" step="0.05" value="${OPT.master}"></label><label class="chk"><input type="checkbox" data-opt="mute" ${OPT.mute ? 'checked' : ''}> Silenciar</label></div>` +
-    `<div class="pzbig"><button class="pri" data-pz="main" data-close>${svgI(IC.play, 18)} Volver al juego</button><button data-pz="lan">${svgI(IC.lan, 18)} ${mp ? 'Jugadores y permisos' : 'Abrir mi mundo a otros'}</button><button data-pz="opts">${svgI(IC.opts, 18)} Opciones</button></div>` +
+    `<div class="pzbig"><button class="pri" data-pz="main" data-close>${svgI(IC.play, 18)} Volver al juego</button><button data-pz="lan">${svgI(IC.lan, 18)} ${mp ? 'Jugadores y permisos' : 'Abrir mi mundo a otros'}</button><button data-pz="opts">${svgI(IC.opts, 18)} Ajustes</button></div>` +
     (mp && g && g.host ? `<p class="mut small">Código de tu partida: <b class="pzcode">${esc(g.code.toUpperCase())}</b></p>` : '');
 }
 // ---------- Opciones ----------
@@ -125,7 +125,7 @@ function showMain() {
   $('tBody').innerHTML = `<div class="mmain">${S && currentWorld ? `<button class="mm pri" data-mm="resume">${svgI(IC.play, 20)}<span>Volver a la partida<small>${esc(S.name || '')}</small></span></button>` : ''}
     <button class="mm ${S && currentWorld ? '' : 'pri'}" data-mm="single">${svgI('M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21c0-4 4-6 8-6s8 2 8 6', 20)}<span>Un jugador<small>${worldIndex().filter(w => !String(w.id).startsWith('mp-')).length} mundos guardados</small></span></button>
     <button class="mm" data-mm="multi">${svgI(IC.lan, 20)}<span>Multijugador<small>${esc(mp)}</small></span></button>
-    <div class="mmrow"><button class="mm sm" data-mm="opts">${svgI(IC.opts, 18)}<span>Opciones</span></button><button class="mm sm" data-mm="acc">${svgI(IC.acc, 18)}<span>Cuenta${typeof DC !== 'undefined' && DC.data ? ' · ' + esc(dcTag()) : ''}</span></button></div></div>
+    <div class="mmrow"><button class="mm sm" data-mm="opts">${svgI(IC.opts, 18)}<span>Ajustes</span></button><button class="mm sm" data-mm="acc">${svgI(IC.acc, 18)}<span>Cuenta${typeof DC !== 'undefined' && DC.data ? ' · ' + esc(dcTag()) : ''}</span></button></div></div>
     <p class="mmfoot mut small">${esc(myNick())} · ${esc(NET.status)}</p>`;
 }
 { const o0 = openTitle; openTitle = () => { o0(); showMain(); }; }
