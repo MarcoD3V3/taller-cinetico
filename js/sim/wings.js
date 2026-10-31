@@ -167,3 +167,29 @@ function altHud() {
   const zt = mt + ' · ' + z[2]; if (A.zone.textContent !== zt) A.zone.textContent = zt; if (A.last !== key) { A.last = key; A.zone.style.setProperty('--zc', z[3]); A.st.textContent = st + (W.fly === Infinity ? ' · vuelo infinito' : ''); }
   const bt = B && B.t > 0 ? B.t : 0; A.bo.hidden = !bt; if (bt) { const tot = B.t0 || (B.t0 = B.t); A.boi.style.transform = `scaleX(${(bt / tot).toFixed(3)})`; A.boi.style.background = B.c; A.bos.textContent = `Cohete ${bt.toFixed(1)} s`; }
 }
+// F con un impulsador en la mano: siempre lo usa (antes, si el cursor apuntaba al agua, F intentaba beber;
+// y sobre un bloque, lo abría). Volando tampoco se bebe del suelo.
+{ const i0 = interact; interact = (...a) => { const s = S && S.inv[S.sel]; if (s && BOOSTS[String(s.id).split('~')[0]]) { useItem(); return; } return i0(...a); }; }
+{ const d0 = drinkAt; drinkAt = (...a) => WF.on ? false : d0(...a); }
+// ---------- Que volar se sienta bien ----------
+//  · Despegue con remolino de polvo y sonido; aterrizaje con golpe suave, polvo y un pequeño temblor.
+//  · La cámara se aleja un poco cuanto más alto vas (y vuelve al aterrizar).
+//  · Más rápido cuanto más alto (hasta +25 %) y, si avanzas mientras planeas, caes más despacio.
+//  · Estelas de viento al ir deprisa y un «fush» suave en cada aletazo.
+const WFX = { was: false, z0: null, flapS: 0, trail: 0 };
+{ const u0 = updatePlayer; updatePlayer = fdt => {
+  const glide0 = WF.on && !WF.lift && pmove.moving ? WF.z : null;
+  u0(fdt); if (!S) return; const p = S.player;
+  if (glide0 !== null && WF.on && !WF.lift && WF.z < glide0) WF.z = glide0 - (glide0 - WF.z) * 0.65; // el avance sostiene
+  if (WF.on && !WFX.was) { WFX.z0 = view.z; fxBurst(p.x, p.y + 8, 16, { col: 'rgba(220,210,190,.9)', sp: 90, life: 0.5, size: 2.4, drag: 2 }); tone(520, 0.12, 'sine', 0.035, 1.8); }
+  if (!WF.on && WFX.was) { dust(p.x, p.y + 8, 12); shake = Math.max(shake || 0, 0.06); tone(110, 0.12, 'triangle', 0.05, 0.6); }
+  WFX.was = WF.on;
+  // cámara
+  if (WFX.z0) { const alt = WF.on ? Math.min(1, WF.z / 194) : 0, want = WFX.z0 * (1 - alt * 0.22); view.z += (want - view.z) * Math.min(1, fdt * 3); if (!WF.on && Math.abs(view.z - WFX.z0) < 0.005) { view.z = WFX.z0; WFX.z0 = null; } }
+  if (!WF.on) return;
+  // aletazos con sonido
+  const sp = Math.sin(WF.ph); if (WFX.flapS < 0 && sp >= 0 && WF.rate >= 6) tone(170 + Math.random() * 40, 0.07, 'sine', 0.018, 0.5); WFX.flapS = sp;
+  // estelas de viento
+  if (pmove.moving || (WF.boost && WF.boost.spd)) { WFX.trail -= fdt; if (WFX.trail <= 0) { WFX.trail = 0.04; const a = (P.faceA || 0) + Math.PI, off = (Math.random() - 0.5) * 20; fxAdd({ x: p.x + Math.cos(a) * 8 - Math.sin(a) * off, y: p.y - P.z - 10 + Math.cos(a) * off * 0.5, vx: Math.cos(a) * 90, vy: Math.sin(a) * 90, life: 0.35, t: 0, size: 1.4, col: 'rgba(255,255,255,.55)', drag: 1 }); } }
+}; }
+{ const s0 = speedMul; speedMul = () => s0() * (WF.on ? 1 + Math.min(1, WF.z / 194) * 0.25 : 1); }
