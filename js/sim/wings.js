@@ -173,7 +173,7 @@ function altHud() {
 { const d0 = drinkAt; drinkAt = (...a) => WF.on ? false : d0(...a); }
 // ---------- Que volar se sienta bien ----------
 //  · Despegue con remolino de polvo y sonido; aterrizaje con golpe suave, polvo y un pequeño temblor.
-//  · La cámara se aleja un poco cuanto más alto vas (y vuelve al aterrizar).
+//  · La cámara se aleja un poco cuanto más alto vas (y vuelve al aterrizar), salvo que hayas usado tú el zoom.
 //  · Más rápido cuanto más alto (hasta +25 %) y, si avanzas mientras planeas, caes más despacio.
 //  · Estelas de viento al ir deprisa y un «fush» suave en cada aletazo.
 const WFX = { was: false, z0: null, flapS: 0, trail: 0 };
@@ -181,11 +181,18 @@ const WFX = { was: false, z0: null, flapS: 0, trail: 0 };
   const glide0 = WF.on && !WF.lift && pmove.moving ? WF.z : null;
   u0(fdt); if (!S) return; const p = S.player;
   if (glide0 !== null && WF.on && !WF.lift && WF.z < glide0) WF.z = glide0 - (glide0 - WF.z) * 0.65; // el avance sostiene
-  if (WF.on && !WFX.was) { WFX.z0 = view.z; fxBurst(p.x, p.y + 8, 16, { col: 'rgba(220,210,190,.9)', sp: 90, life: 0.5, size: 2.4, drag: 2 }); tone(520, 0.12, 'sine', 0.035, 1.8); }
+  if (WF.on && !WFX.was) { fxBurst(p.x, p.y + 8, 16, { col: 'rgba(220,210,190,.9)', sp: 90, life: 0.5, size: 2.4, drag: 2 }); tone(520, 0.12, 'sine', 0.035, 1.8); }
   if (!WF.on && WFX.was) { dust(p.x, p.y + 8, 12); shake = Math.max(shake || 0, 0.06); tone(110, 0.12, 'triangle', 0.05, 0.6); }
   WFX.was = WF.on;
   // cámara
-  if (WFX.z0) { const alt = WF.on ? Math.min(1, WF.z / 194) : 0, want = WFX.z0 * (1 - alt * 0.22); view.z += (want - view.z) * Math.min(1, fdt * 3); if (!WF.on && Math.abs(view.z - WFX.z0) < 0.005) { view.z = WFX.z0; WFX.z0 = null; } }
+  // La altura aleja la cámara un poco; en cuanto mueves tú la rueda, tu zoom manda y ya no se toca hasta aterrizar
+  { const alt = WF.on ? Math.min(1, WF.z / 194) : 0, wantF = 1 - alt * 0.22;
+    if (WFX.applied !== undefined && Math.abs(view.z - WFX.applied) > 1e-6) WFX.user = true; // has movido el zoom tú: a partir de ahí manda el tuyo
+    if (WFX.user) { WFX.base = WFX.applied = undefined; WFX.f = 1; if (!WF.on) WFX.user = false; } else {
+    if (WFX.base === undefined) WFX.base = view.z;
+    WFX.f = (WFX.f || 1) + (wantF - (WFX.f || 1)) * Math.min(1, fdt * 3);
+    if (!WF.on && Math.abs(WFX.f - 1) < 0.002) { view.z = WFX.base; WFX.f = 1; WFX.base = undefined; WFX.applied = undefined; }
+    else { view.z = WFX.base * WFX.f; WFX.applied = view.z; } } }
   if (!WF.on) return;
   // aletazos con sonido
   const sp = Math.sin(WF.ph); if (WFX.flapS < 0 && sp >= 0 && WF.rate >= 6) tone(170 + Math.random() * 40, 0.07, 'sine', 0.018, 0.5); WFX.flapS = sp;
@@ -193,3 +200,38 @@ const WFX = { was: false, z0: null, flapS: 0, trail: 0 };
   if (pmove.moving || (WF.boost && WF.boost.spd)) { WFX.trail -= fdt; if (WFX.trail <= 0) { WFX.trail = 0.04; const a = (P.faceA || 0) + Math.PI, off = (Math.random() - 0.5) * 20; fxAdd({ x: p.x + Math.cos(a) * 8 - Math.sin(a) * off, y: p.y - P.z - 10 + Math.cos(a) * off * 0.5, vx: Math.cos(a) * 90, vy: Math.sin(a) * 90, life: 0.35, t: 0, size: 1.4, col: 'rgba(255,255,255,.55)', drag: 1 }); } }
 }; }
 { const s0 = speedMul; speedMul = () => s0() * (WF.on ? 1 + Math.min(1, WF.z / 194) * 0.25 : 1); }
+// ---------- Más vida al volar ----------
+//  · El cuerpo se inclina hacia donde giras/avanzas y se estira al despegar, se aplasta al aterrizar.
+//  · Al encender un cohete: temblor, llamarada desde los pies y estela de fuego mientras dura.
+//  · Por encima de las copas pasan nubes por la pantalla (más cuanto más alto), en sentido contrario a tu avance.
+const WFA = { tilt: 0, sq: 0, boost: null, clouds: [], cx: 0, cy: 0 };
+{ const u0 = updatePlayer; updatePlayer = fdt => {
+  const was = WF.on; u0(fdt); if (!S) return; const p = S.player;
+  if (WF.on && !was) WFA.sq = 1; if (!WF.on && was) WFA.sq = -1;
+  WFA.sq += (0 - WFA.sq) * Math.min(1, fdt * 7);
+  const want = WF.on && pmove.moving ? Math.max(-1, Math.min(1, Math.cos(P.faceA || 0))) * (WF.boost && WF.boost.spd ? 0.26 : 0.16) : 0;
+  WFA.tilt += (want - WFA.tilt) * Math.min(1, fdt * 6);
+  const B = WF.boost && WF.boost.t > 0 ? WF.boost : null;
+  if (B && B !== WFA.boost && B.spd) { shake = Math.max(shake || 0, 0.18 + Math.min(0.3, B.spd * 0.03)); fxBurst(p.x, p.y - P.z + 4, 22, { col: '#ffb040', sp: 120, life: 0.5, glow: 1, size: 2.6, drag: 3 }); tone(80, 0.35, 'sawtooth', 0.05, 2.4); }
+  WFA.boost = B;
+  if (B && B.spd && WF.on) for (let i = 0; i < 2; i++) { const a = (P.faceA || 0) + Math.PI + (Math.random() - 0.5) * 0.5, v = 60 + Math.random() * 60; fxAdd({ x: p.x + (Math.random() - 0.5) * 6, y: p.y - P.z + 2, vx: Math.cos(a) * v, vy: Math.sin(a) * v + 30, life: 0.3 + Math.random() * 0.25, t: 0, size: 1.8 + Math.random() * 2, col: Math.random() < 0.5 ? '#ffd860' : '#ff7a30', glow: 1, drag: 2.5 }); }
+  const sp = WF.on ? (B && B.spd ? 2.6 : 1) : 0, a = P.faceA || 0;
+  if (pmove.moving) { WFA.cx -= Math.cos(a) * 140 * sp * fdt; WFA.cy -= Math.sin(a) * 70 * sp * fdt; }
+  WFA.cx -= 12 * fdt;
+}; }
+{ const d0 = drawAvatar; drawAvatar = (...a) => {
+  const [ctx, , equip, x, y] = a; if (!ctx || !S || equip !== S.equip || (Math.abs(WFA.tilt) < 0.002 && Math.abs(WFA.sq) < 0.01)) return d0(...a);
+  const k = WFA.sq * 0.14; ctx.save(); ctx.translate(x, y); ctx.rotate(WFA.tilt); ctx.scale(1 - k * 0.6, 1 + k); ctx.translate(-x, -y);
+  try { return d0(...a); } finally { ctx.restore(); }
+}; }
+{ const w0 = drawWeatherScreen; drawWeatherScreen = (ctx, dt) => { w0(ctx, dt);
+  const m = WF.on ? WF.z / ALT_Z : 0, al = Math.min(1, Math.max(0, (m - 12) / 18)); if (!ctx || al < 0.01) return;
+  if (!WFA.clouds.length) for (let i = 0; i < 9; i++) WFA.clouds.push({ x: Math.random(), y: Math.random(), r: 60 + Math.random() * 110, d: 0.4 + Math.random() * 0.8 });
+  const w = ctx.canvas.width, h = ctx.canvas.height, pad = 260; ctx.save();
+  for (const c of WFA.clouds) {
+    const X = (((c.x * (w + pad * 2) + WFA.cx * c.d) % (w + pad * 2)) + w + pad * 2) % (w + pad * 2) - pad, Y = (((c.y * (h + pad * 2) + WFA.cy * c.d) % (h + pad * 2)) + h + pad * 2) % (h + pad * 2) - pad;
+    ctx.globalAlpha = al * 0.22 * c.d; ctx.fillStyle = '#fff';
+    for (let j = 0; j < 4; j++) { ctx.beginPath(); ctx.ellipse(X + (j - 1.5) * c.r * 0.45, Y + Math.sin(j * 1.7) * c.r * 0.12, c.r * 0.5, c.r * 0.28, 0, 0, Math.PI * 2); ctx.fill(); }
+  }
+  ctx.restore();
+}; }
