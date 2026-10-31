@@ -22,20 +22,25 @@ const KEY_ACTIONS = [
 ];
 const KEY_NAME = k => ({ ' ': 'Espacio', enter: 'Intro', escape: 'Esc', arrowup: '↑', arrowdown: '↓', arrowleft: '←', arrowright: '→', backspace: 'Retroceso', tab: 'Tab', control: 'Ctrl', alt: 'Alt' }[k] || k.toUpperCase());
 const KEY_EVT = k => ({ ' ': ' ', enter: 'Enter' }[k] || k);
-let KMAP = new Map(); // tecla física → tecla original (null = bloqueada)
+// Cada acción tiene un id propio (su tecla original, o «spell1»… para los hechizos), así dos acciones que
+// compartían tecla se pueden separar. KMAP: tecla física → ids que dispara (vacío = tecla bloqueada).
+const actDef = id => /^spell[1-4]$/.test(id) ? SPELL_KEYS[+id[5] - 1] : id;
+const actKey = id => (OPT.keys || {})[id] || actDef(id);
+let KMAP = new Map();
 function keymapBuild() {
-  KMAP = new Map(); const custom = OPT.keys || {};
-  for (const orig in custom) { const p = custom[orig]; if (!p || p === orig) continue; KMAP.set(p, orig); if (!KMAP.has(orig)) KMAP.set(orig, null); }
-  // Si una tecla original sigue asignada a sí misma por otra acción, no se bloquea
-  for (const [p, o] of [...KMAP]) if (o === null && Object.values(custom).includes(p)) KMAP.delete(p);
+  KMAP = new Map(); const ids = new Set(KEY_ACTIONS.flatMap(g => g[1].map(a => a[0]))); if (typeof SPELL_KEYS !== 'undefined') for (let i = 1; i <= 4; i++) ids.add('spell' + i);
+  for (const id of ids) { const p = actKey(id); if (!KMAP.has(p)) KMAP.set(p, []); KMAP.get(p).push(id); }
+  for (const id of ids) { const d = actDef(id); if (!KMAP.has(d)) KMAP.set(d, []); } // tecla original que ya no usa nadie: bloqueada
+  // Las teclas que solo hacen lo de siempre pasan tal cual
+  for (const [p, l] of [...KMAP]) if (l.length === 1 && l[0] === p) KMAP.delete(p);
 }
 keymapBuild();
 const _typing = e => { const t = e.target, tg = t && t.tagName; return tg === 'INPUT' || tg === 'TEXTAREA' || tg === 'SELECT' || (t && t.isContentEditable); };
 for (const type of ['keydown', 'keyup']) addEventListener(type, e => {
-  if (e.__tc || _typing(e) || !KMAP.size || e.ctrlKey || e.metaKey) return;
+  if (e.__tc || _typing(e) || e.ctrlKey || e.metaKey) return;
   const k = e.key.toLowerCase(); if (!KMAP.has(k)) return;
-  const to = KMAP.get(k); e.stopImmediatePropagation(); e.preventDefault(); if (to === null) return;
-  const ev = new KeyboardEvent(type, { key: KEY_EVT(to), shiftKey: e.shiftKey, altKey: e.altKey, repeat: e.repeat, bubbles: true, cancelable: true }); ev.__tc = 1; dispatchEvent(ev);
+  e.stopImmediatePropagation(); e.preventDefault();
+  for (const to of KMAP.get(k)) { const ev = new KeyboardEvent(type, { key: KEY_EVT(to), shiftKey: e.shiftKey, altKey: e.altKey, repeat: e.repeat, bubbles: true, cancelable: true }); ev.__tc = 1; dispatchEvent(ev); }
 }, true);
 // ---------- Aplicar ----------
 // Filtro del canvas del mundo: solo si hace algo. Un filtro CSS (aunque sea «brightness(1)») obliga a la

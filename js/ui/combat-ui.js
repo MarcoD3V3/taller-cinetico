@@ -184,7 +184,7 @@ function refreshSpellBar() {
   if (!st || !st.known.length || ui.open === 'title') { el.hidden = true; return; } el.hidden = false;
   const sig = st.slots.join() + Object.keys(P.scd).map(k => P.scd[k] > 0 ? Math.ceil(P.scd[k] * 4) : 0).join() + (S.pc ? Math.floor(S.pc.mana) : 0);
   if (sig === _spSig) return; _spSig = sig;
-  el.innerHTML = st.slots.map((k, i) => { const s = k && SPELLS[k], cd = k ? Math.max(0, P.scd[k] || 0) : 0, low = s && S.pc && S.pc.mana < s.m; return `<div class="spl ${low ? 'low' : ''}" title="${s ? esc(s.n) + ' · ' + s.m + ' maná' : 'Vacío'}" style="--c:${s ? s.c : '#444'}"><span>${s ? s.i : ''}</span><kbd>${SPELL_KEYS[i].toUpperCase()}</kbd>${cd > 0 ? `<i style="height:${Math.min(100, cd / s.cd * 100)}%"></i>` : ''}</div>`; }).join('');
+  el.innerHTML = st.slots.map((k, i) => { const s = k && SPELLS[k], cd = k ? Math.max(0, P.scd[k] || 0) : 0, low = s && S.pc && S.pc.mana < s.m; return `<div class="spl ${low ? 'low' : ''}" title="${s ? esc(s.n) + ' · ' + s.m + ' maná' : 'Vacío'}" style="--c:${s ? s.c : '#444'}"><span>${s ? s.i : ''}</span><kbd>${KEY_NAME(actKey('spell' + (i + 1)))}</kbd>${cd > 0 ? `<i style="height:${Math.min(100, cd / s.cd * 100)}%"></i>` : ''}</div>`; }).join('');
 }
 // Ficha del personaje: hechizos y mascotas
 function charExtraHTML() {

@@ -21,7 +21,7 @@ function openPause(pane) { if (!S || ui.open === 'title') return; if (ui.open &&
 const IC = { play: 'M8 5l11 7-11 7V5z', inv: HUD_IC.bInv[0], book: HUD_IC.bBook[0], map: HUD_IC.bMap[0], char: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21c0-4 4-6 8-6s8 2 8 6', lore: HUD_IC.bLore[0], help: HUD_IC.bHelp[0], opts: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7 7 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z', lan: 'M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M3 19c0-3 2.5-5 5-5s5 2 5 5 M13 15c1-.7 2-1 3-1 2.5 0 5 2 5 5', acc: 'M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z M9 12l2 2 4-4', save: HUD_IC.bSave[0], quit: 'M10 4H5v16h5 M14 8l4 4-4 4 M18 12H9', chat: 'M4 5h16v11H9l-5 4V5z' };
 function pzNav() {
   const it = (k, n, key, cls) => `<button data-pz="${k}" class="${PZ.pane === k ? 'on' : ''} ${cls || ''}">${svgI(IC[k] || IC.play, 16)}<span>${n}</span>${key ? `<kbd>${esc(key)}</kbd>` : ''}</button>`;
-  const kn = o => KEY_NAME((OPT.keys || {})[o] || o);
+  const kn = o => KEY_NAME(actKey(o));
   return `<div class="pzbrand">Taller Cinético</div>` + it('main', 'Volver al juego', 'Esc', 'pri') + '<hr>' +
     it('inv', 'Inventario', kn('e')) + it('book', 'Recetario', kn('b')) + it('map', 'Mapa', kn('m')) + it('char', 'Personaje', kn('c')) + it('lore', 'Crónicas', kn('j')) + it('chat', 'Chat', kn('enter')) + it('help', 'Ayuda', kn('h')) + '<hr>' +
     it('opts', 'Ajustes') + it('lan', inGame() ? (NET.game.host ? 'Tu mundo en red' : 'Partida en línea') : 'Abrir en red', kn('u')) + it('acc', 'Cuenta y Discord') + '<hr>' +
@@ -69,8 +69,8 @@ function optsHTML(inPause) {
   return h + '</div>';
 }
 function keysHTML() {
-  const used = {}; for (const [, list] of KEY_ACTIONS) for (const [o] of list) { const p = OPT.keys[o] || o; (used[p] = used[p] || []).push(o); }
-  return `<div class="cssub">Teclas · clic en una para cambiarla</div>` + KEY_ACTIONS.map(([g, list]) => `<div class="kgroup"><small>${g}</small>${list.map(([o, n]) => { const p = OPT.keys[o] || o, dup = used[p].length > 1; return `<div class="krow"><span>${n}</span><button data-key="${esc(o)}" class="${PZ.bind === o ? 'wait' : ''} ${dup ? 'dup' : ''}" title="${dup ? 'Esta tecla la usan varias acciones' : ''}">${PZ.bind === o ? 'Pulsa una tecla…' : esc(KEY_NAME(p))}</button></div>`; }).join('')}</div>`).join('') + `<div class="orow"><span class="mut small">Esc siempre abre este menú. Ratón: clic izquierdo rompe, pica y ataca; derecho coloca y usa; rueda: objeto; Ctrl + rueda: zoom.</span><button data-oact="keys">Teclas por defecto</button></div>`;
+  const used = {}; for (const [, list] of KEY_ACTIONS) for (const [o] of list) { const p = actKey(o); (used[p] = used[p] || []).push(o); }
+  return `<div class="cssub">Teclas · clic en una para cambiarla</div>` + KEY_ACTIONS.map(([g, list]) => `<div class="kgroup"><small>${g}</small>${list.map(([o, n]) => { const p = actKey(o), dup = used[p].length > 1; return `<div class="krow"><span>${n}</span><button data-key="${esc(o)}" class="${PZ.bind === o ? 'wait' : ''} ${dup ? 'dup' : ''}" title="${dup ? 'Esta tecla la usan varias acciones' : ''}">${PZ.bind === o ? 'Pulsa una tecla…' : esc(KEY_NAME(p))}</button></div>`; }).join('')}</div>`).join('') + `<div class="orow"><span class="mut small">Esc siempre abre este menú. Ratón: clic izquierdo rompe, pica y ataca; derecho coloca y usa; rueda: objeto; Ctrl + rueda: zoom.</span><button data-oact="keys">Teclas por defecto</button></div>`;
 }
 function bindRanges(root) { root.querySelectorAll('input[type=range][data-opt]').forEach(i => i.style.setProperty('--p', ((i.value - i.min) / (i.max - i.min) * 100) + '%')); }
 function optSet(k, v) {
@@ -215,7 +215,7 @@ document.addEventListener('keydown', e => { if (e.target.closest && e.target.clo
 // ---------- Teclado: Esc abre el menú, U el multijugador, asignar teclas ----------
 addEventListener('keydown', e => {
   if (PZ.bind && (ui.open === 'pause' || $('titleOpts'))) { e.stopImmediatePropagation(); e.preventDefault(); const k = e.key.toLowerCase();
-    if (k !== 'escape' && !['shift', 'control', 'alt', 'meta'].includes(k)) { if (k === PZ.bind) delete OPT.keys[PZ.bind]; else OPT.keys[PZ.bind] = k; optSave(); keymapBuild(); toast(`Tecla asignada: ${KEY_NAME(k)}`); }
+    if (k !== 'escape' && !['shift', 'control', 'alt', 'meta'].includes(k)) { if (k === actDef(PZ.bind)) delete OPT.keys[PZ.bind]; else OPT.keys[PZ.bind] = k; optSave(); keymapBuild(); toast(`Tecla asignada: ${KEY_NAME(k)}`); }
     PZ.bind = null; rerenderOpts(); return; }
   if (e.key === 'Escape' && S && !ui.open && !CHAT.open) { e.stopImmediatePropagation(); e.preventDefault(); openPause(); return; }
   if (!S || ui.open || CHAT.open || e.ctrlKey || e.metaKey || _typing(e)) return;

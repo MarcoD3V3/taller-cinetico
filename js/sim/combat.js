@@ -327,7 +327,7 @@ function spellState() { return S.spells || (S.spells = { known: [], slots: [null
 function learnSpell(k) {
   const st = spellState(); if (st.known.includes(k)) { toastErr('Ya conoces ' + SPELLS[k].n); return false; }
   st.known.push(k); const free = st.slots.indexOf(null); if (free >= 0) st.slots[free] = k;
-  toast(`✦ Has aprendido ${SPELLS[k].n}${free >= 0 ? ' (tecla ' + SPELL_KEYS[free].toUpperCase() + ')' : ''}`, true); vitalsDirty = true; return true;
+  toast(`✦ Has aprendido ${SPELLS[k].n}${free >= 0 ? ' (tecla ' + KEY_NAME(actKey('spell' + (free + 1))) + ')' : ''}`, true); vitalsDirty = true; return true;
 }
 function castSpell(slot) {
   const st = spellState(), k = st.slots[slot]; if (!k) { toastErr('Ese hueco no tiene hechizo: asígnalo en la ficha (C)'); return; }

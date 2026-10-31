@@ -83,12 +83,12 @@ const PERF = { low: ['Ligero', 'Para equipos modestos', { particles: 0.3, shake:
 const perfNow = () => Object.keys(PERF).find(p => Object.entries(PERF[p][2]).every(([k, v]) => OPT[k] === v));
 
 // ---------- Teclas ----------
-KEY_ACTIONS.push(['Hechizos', SPELL_KEYS.map((k, i) => [k, `Hechizo ${i + 1}`])], ['Otros', [['o', 'Ordenar inventario (con él abierto)'], ['p', 'Mostrar FPS']]]);
+KEY_ACTIONS.push(['Hechizos', SPELL_KEYS.map((k, i) => ['spell' + (i + 1), `Hechizo ${i + 1}`])], ['Otros', [['o', 'Ordenar inventario (con él abierto)'], ['p', 'Mostrar FPS']]]);
 KEY_ACTIONS[1][1].push(...'123456789'.split('').map(n => [n, `Hueco ${n} de la barra`]));
 const KGROUP_C = { Movimiento: '#7cc4ff', Acciones: '#e0b54c', Ventanas: '#7fd07a', Hechizos: '#b48cff', Otros: '#a39d8f' };
 const KB_ROWS = [['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'], ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'], ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'ñ'], ['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', 'enter'], [' ', 'arrowleft', 'arrowup', 'arrowdown', 'arrowright']];
-const KEY_PRESETS = { def: ['WASD', 'Por defecto', {}], arrows: ['Flechas', 'Moverse con ←↑↓→', { w: 'arrowup', a: 'arrowleft', s: 'arrowdown', d: 'arrowright' }], azerty: ['AZERTY', 'Teclados franceses (ZQSD)', { w: 'z', a: 'q', q: 'a', z: 'w' }] };
-const keyOf = o => OPT.keys[o] || o;
+const KEY_PRESETS = { def: ['WASD', 'Por defecto', {}], arrows: ['Flechas', 'Moverse con ←↑↓→', { w: 'arrowup', a: 'arrowleft', s: 'arrowdown', d: 'arrowright' }], azerty: ['AZERTY', 'Teclados franceses (ZQSD)', { w: 'z', a: 'q', q: 'a', z: 'w', spell1: 'w' }] };
+const keyOf = actKey;
 function keysPane() {
   const byKey = {}; for (const [g, list] of KEY_ACTIONS) for (const [o, n] of list) (byKey[keyOf(o)] = byKey[keyOf(o)] || []).push([o, n, g]);
   const act = PZ.bind && KEY_ACTIONS.flatMap(x => x[1]).find(a => a[0] === PZ.bind);
@@ -97,8 +97,8 @@ function keysPane() {
   h += `<div class="kbbanner ${act ? 'on' : ''}">${act ? `${svgI('M3 7h18v10H3z M7 11h.01 M11 11h.01 M15 11h.01 M8 14h8', 18)} Pulsa la tecla nueva para <b>${esc(act[1])}</b> · o haz clic en el teclado · <kbd>Esc</kbd> cancela` : 'Pasa el ratón por una acción para ver su tecla. Los colores dicen de qué grupo es cada tecla.'}</div>`;
   h += `<div class="kb ${act ? 'bind' : ''}">${KB_ROWS.map(r => `<div class="kbr">${r.map(k => { const a = byKey[k] || [], c = a.length ? KGROUP_C[a[0][2]] : '', dup = a.length > 1; return `<button class="kk ${k === ' ' ? 'sp' : ''} ${a.length ? 'used' : ''} ${dup ? 'dup' : ''}" data-kb="${esc(k)}" style="${c ? '--kc:' + c : ''}" title="${esc(a.map(x => x[1]).join(' · ') || 'Libre')}"><span>${esc(KEY_NAME(k))}</span>${a.length ? `<small>${esc(a.map(x => x[1].split(' (')[0]).join(' / '))}</small>` : ''}</button>`; }).join('')}</div>`).join('')}</div>`;
   h += `<div class="kleg">${Object.entries(KGROUP_C).map(([g, c]) => `<span><i style="--c:${c}"></i>${g}</span>`).join('')}<span><i class="dupi"></i>Tecla repetida</span></div>`;
-  h += KEY_ACTIONS.map(([g, list]) => `<div class="kgrp" style="--kc:${KGROUP_C[g]}"><div class="kgh">${g}</div>${list.map(([o, n]) => { const p = keyOf(o), dup = byKey[p].length > 1, ch = OPT.keys[o] && OPT.keys[o] !== o;
-    return `<div class="krow2 srow ${PZ.bind === o ? 'wait' : ''} ${dup ? 'dup' : ''}" data-ka="${esc(p)}" data-s="${esc((n + ' ' + g + ' ' + KEY_NAME(p)).toLowerCase())}"><span>${esc(n)}${dup ? `<small class="bad">También la usa: ${esc(byKey[p].filter(x => x[0] !== o).map(x => x[1]).join(', '))}</small>` : ''}</span><button data-key="${esc(o)}" class="kcap">${PZ.bind === o ? '…' : esc(KEY_NAME(p))}</button><button class="srst ${ch ? '' : 'off'}" data-kreset="${esc(o)}" title="Volver a ${esc(KEY_NAME(o))}">↺</button></div>`; }).join('')}</div>`).join('');
+  h += KEY_ACTIONS.map(([g, list]) => `<div class="kgrp" style="--kc:${KGROUP_C[g]}"><div class="kgh">${g}</div>${list.map(([o, n]) => { const p = keyOf(o), dup = byKey[p].length > 1, ch = OPT.keys[o] && OPT.keys[o] !== actDef(o);
+    return `<div class="krow2 srow ${PZ.bind === o ? 'wait' : ''} ${dup ? 'dup' : ''}" data-ka="${esc(p)}" data-s="${esc((n + ' ' + g + ' ' + KEY_NAME(p)).toLowerCase())}"><span>${esc(n)}${dup ? `<small class="bad">También la usa: ${esc(byKey[p].filter(x => x[0] !== o).map(x => x[1]).join(', '))}</small>` : ''}</span><button data-key="${esc(o)}" class="kcap">${PZ.bind === o ? '…' : esc(KEY_NAME(p))}</button><button class="srst ${ch ? '' : 'off'}" data-kreset="${esc(o)}" title="Volver a ${esc(KEY_NAME(actDef(o)))}">↺</button></div>`; }).join('')}</div>`).join('');
   return h + `<p class="mut small sthint">Esc siempre abre el menú. Ratón: clic izquierdo rompe, pica y ataca · derecho coloca y usa · rueda: objeto · Ctrl + rueda: zoom.</p>`;
 }
 
@@ -148,7 +148,7 @@ document.addEventListener('input', e => { if (e.target.id === 'stQ') stSearch(e.
 const stMark = k => { const r = document.querySelector(`.srow[data-k="${k}"]`); if (r) r.classList.toggle('mod', isMod(k)); const pv = $('stPrev'); if (pv) pv.style.filter = $('c').style.filter; };
 { const s0 = optSet; let tick = 0; optSet = (k, v) => { s0(k, v); stMark(k); if ((k === 'sfx' || k === 'master') && performance.now() - tick > 120) { tick = performance.now(); try { tone(660, 0.06, 'sine', 0.05); } catch (e) { } } }; }
 // ---------- Clics nuevos ----------
-const stAssign = k => { if (k === PZ.bind) delete OPT.keys[PZ.bind]; else OPT.keys[PZ.bind] = k; optSave(); toast(`Tecla asignada: ${KEY_NAME(k)}`); PZ.bind = null; rerenderOpts(); };
+const stAssign = k => { if (k === actDef(PZ.bind)) delete OPT.keys[PZ.bind]; else OPT.keys[PZ.bind] = k; optSave(); toast(`Tecla asignada: ${KEY_NAME(k)}`); PZ.bind = null; rerenderOpts(); };
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-oset],[data-oreset],[data-kreset],[data-kb],[data-kpre],[data-perf],[data-oact2]'); if (!t) return; const d = t.dataset;
   if (d.oset) { const [k, v] = d.oset.split(':'); optSet(k, v); rerenderOpts(); return; }
@@ -164,4 +164,4 @@ document.addEventListener('click', e => {
 });
 // Al pasar por una acción, se ilumina su tecla en el teclado
 document.addEventListener('mouseover', e => { const r = e.target.closest && e.target.closest('.krow2'); document.querySelectorAll('.kk.hl').forEach(k => k.classList.remove('hl')); if (r) { const k = document.querySelector(`.kk[data-kb="${CSS.escape(r.dataset.ka)}"]`); if (k) k.classList.add('hl'); } });
-optApply();
+optApply(); keymapBuild();

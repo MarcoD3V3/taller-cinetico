@@ -8,7 +8,7 @@
 // =====================================================================================
 const KH = { open: false, sig: '', el: null };
 try { KH.open = localStorage.getItem('tc-keyhud') === '1'; KH.hide = localStorage.getItem('tc-keyhud-off') === '1'; } catch (e) { }
-const khKey = orig => { const p = (OPT.keys && OPT.keys[orig]) || orig; return KEY_NAME(p); };
+const khKey = orig => { const p = actKey(orig); return KEY_NAME(p); };
 const khCap = (k, wide) => `<kbd class="khk${wide ? ' w' : ''}" data-khk="${esc(String(k).toLowerCase())}">${esc(k)}</kbd>`;
 // Ratón dibujado: L (izquierdo), R (derecho), W (rueda)
 const khMouse = b => `<svg class="khm" viewBox="0 0 16 22"><rect x="1" y="1" width="14" height="20" rx="7" /><path d="M8 1v8M1 9h14" /><rect class="${b === 'L' ? 'on' : ''}" x="1.6" y="1.6" width="5.8" height="7" rx="3" /><rect class="${b === 'R' ? 'on' : ''}" x="8.6" y="1.6" width="5.8" height="7" rx="3" /><rect class="${b === 'W' ? 'on' : ''}" x="7" y="3" width="2" height="4" rx="1" /></svg>`;
