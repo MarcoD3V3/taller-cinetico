@@ -1768,3 +1768,56 @@ body.hudmin { --hud: rgba(14, 15, 17, .74); }
 @media (max-width: 800px) { .st { grid-template-columns: 1fr; } .stnav { flex-direction: row; overflow-x: auto; } .stq { min-width: 160px; } .stnav button span { white-space: nowrap; } .rng { width: 180px; } .srow { grid-template-columns: 1fr 26px; } .srow .sc { grid-column: 1; grid-row: 2; } .kk small { display: none; } .kk { height: 36px; } .perf, .kbpre { grid-template-columns: 1fr; } }
 
 .srow .sl { display: block; width: auto; min-width: 0; grid-template-columns: none; } .srow .sl b { justify-content: flex-start; }
+
+/* ===== Grimorio de combate (sim/spellcraft.js) ===== */
+#wandPanel { position: fixed; left: 50%; bottom: calc(132px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 6; width: min(560px, calc(100vw - 24px)); padding: 8px 10px 7px; border-radius: 16px; background: linear-gradient(180deg, #1b1630f0, #100d1cf0); border: 1px solid #b48cff44; box-shadow: 0 10px 30px #0009, 0 0 24px #8a5aff22, inset 0 1px #ffffff12; }
+#wandPanel[hidden] { display: none; } #wandPanel.in { animation: wpin .28s cubic-bezier(.2, 1.4, .4, 1); }
+@keyframes wpin { from { opacity: 0; transform: translate(-50%, 16px) scale(.94); } }
+.wptop { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; } .wpt { font: 700 11px var(--display); letter-spacing: .12em; text-transform: uppercase; color: #d8c4ff; }
+.wpmana { flex: 1; position: relative; height: 10px; border-radius: 5px; background: #ffffff12; overflow: hidden; } .wpmana i { position: absolute; inset: 0; transform-origin: 0 50%; background: linear-gradient(90deg, #4a7aff, #b48cff); box-shadow: 0 0 10px #7a8aff; transition: transform .15s; }
+.wpmana b { position: absolute; right: 6px; top: -1px; font: 700 9px var(--display); color: #fff; text-shadow: 0 1px 2px #000; }
+.wpslots { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+.wps { position: relative; aspect-ratio: 1; padding: 0; border-radius: 12px; display: grid; place-items: center; background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--c) 30%, #1a1626), #12101a); border: 2px solid color-mix(in srgb, var(--c) 45%, #ffffff10); overflow: hidden; transition: transform .12s, border-color .15s, box-shadow .15s; }
+.wps .ico { font-size: 22px; line-height: 1; filter: drop-shadow(0 0 6px var(--c)); transition: transform .2s; }
+.wps kbd { position: absolute; left: 3px; top: 2px; font: 700 9px var(--display); padding: 0 3px; border-radius: 4px; background: #000a; color: #fff; }
+.wps em { position: absolute; right: 3px; bottom: 2px; font: 700 9px var(--display); font-style: normal; color: #9ab8ff; }
+.wps .cdw { position: absolute; inset: 0; background: conic-gradient(#000000b0 calc(var(--cd, 0) * 360deg), transparent 0); pointer-events: none; }
+.wps.xtra::after { content: "✦"; position: absolute; right: 3px; top: 1px; font-size: 8px; color: #d8c4ff99; }
+.wps:hover { transform: translateY(-2px); } .wps.empty { opacity: .55; border-style: dashed; } .wps.empty .ico { font-size: 18px; color: #ffffff60; filter: none; }
+.wps.sel { border-color: var(--c); transform: translateY(-4px) scale(1.06); box-shadow: 0 0 0 2px #00000080, 0 0 18px var(--c); } .wps.sel .ico { transform: scale(1.15); }
+.wps.ready.sel .ico { animation: wpready 1.4s ease-in-out infinite; } @keyframes wpready { 50% { transform: scale(1.28); } }
+.wps.low { filter: grayscale(.8) brightness(.7); }
+.wpinfo { display: flex; justify-content: space-between; gap: 10px; margin-top: 6px; min-height: 16px; font-size: 12px; } .wpname { font: 700 13px var(--display); } .wpcombo { color: #ffe08a; font-size: 11.5px; animation: wpc 1s ease-in-out infinite; } @keyframes wpc { 50% { opacity: .6; } }
+.wphelp { margin-top: 3px; font-size: 10.5px; color: #a89cc0; } .wphelp b { color: #fff; }
+.wppick { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; padding-top: 7px; border-top: 1px solid #ffffff14; max-height: 120px; overflow-y: auto; animation: wpin .2s ease; }
+.wppick button { display: flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; font-size: 12px; border-color: color-mix(in srgb, var(--c) 50%, transparent); } .wppick button span { filter: drop-shadow(0 0 4px var(--c)); } .wppick em { font-style: normal; font-size: 10px; color: #9ab8ff; }
+/* ===== La Gran Oleada (sim/waves.js) ===== */
+#wvHud { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 7; width: min(520px, calc(100vw - 24px)); padding: 9px 14px 10px; border-radius: 14px; background: #0d0e12e8; border: 1px solid color-mix(in srgb, var(--c) 50%, transparent); box-shadow: 0 8px 26px #000a, 0 0 22px color-mix(in srgb, var(--c) 25%, transparent); pointer-events: none; }
+#wvHud[hidden] { display: none; }
+.wvt { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; } .wvt b { font: 700 15px var(--display); color: var(--c); } .wvt span { font-size: 12px; color: #e8e0d0; }
+.wvbar { height: 8px; margin: 6px 0 5px; border-radius: 4px; background: #ffffff14; overflow: hidden; } .wvbar i { display: block; height: 100%; transform-origin: 0 50%; background: linear-gradient(90deg, color-mix(in srgb, var(--c) 60%, #000), var(--c)); box-shadow: 0 0 10px var(--c); transition: transform .25s; }
+.wvs { display: flex; gap: 14px; align-items: center; font-size: 12px; color: #cfc8b8; } .wvs .lives, .wvdin .lives { color: #ff5a6a; letter-spacing: 1px; } .lives s { color: #ffffff30; text-decoration: none; }
+.wvres { margin-left: auto; display: flex; gap: 4px; } .wvres span { padding: 1px 6px; border-radius: 6px; font-weight: 700; } .wvres .r { background: #ff6b5b30; color: #ffb0a8; } .wvres .w { background: #7fd07a30; color: #b8f0b0; }
+.wvmini { margin-top: 8px; padding-top: 7px; border-top: 1px solid #ffffff14; } .wvmini b { font: 700 13px var(--display); color: #ff8a7a; } .wvmini small { font-size: 11px; color: #ffd0a0; }
+.wvmb { height: 10px; margin: 4px 0 3px; border-radius: 5px; background: #ffffff14; overflow: hidden; } .wvmb i { display: block; height: 100%; transform-origin: 0 50%; background: linear-gradient(90deg, #8a0a1a, #ff3a3a); box-shadow: 0 0 10px #ff3a3a; transition: transform .2s; }
+#wvBanner { position: fixed; left: 0; right: 0; top: 30%; z-index: 30; text-align: center; pointer-events: none; opacity: 0; }
+#wvBanner.on { animation: wvb 3.2s ease forwards; }
+#wvBanner h1 { margin: 0; font: 800 clamp(26px, 5vw, 52px) var(--display); color: #fff; text-shadow: 0 0 22px var(--c), 0 0 6px var(--c), 0 4px 0 #000; letter-spacing: .04em; }
+#wvBanner p { margin: 8px auto 0; max-width: 640px; font-size: 15px; color: #f4ecd8; text-shadow: 0 2px 4px #000; }
+@keyframes wvb { 0% { opacity: 0; transform: scale(1.6); filter: blur(6px); } 12% { opacity: 1; transform: scale(1); filter: none; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-20px); } }
+#wvPick, #wvDead { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: radial-gradient(circle, #1a0a0acc, #000000ee); animation: mpin .3s ease; }
+#wvPick[hidden], #wvDead[hidden] { display: none; }
+.wvpin { width: min(1080px, calc(100vw - 24px)); max-height: calc(100vh - 40px); overflow-y: auto; text-align: center; }
+.wvpin h2 { margin: 0; font: 800 30px var(--display); color: #ffd0a0; text-shadow: 0 0 20px #ff5a1a; }
+.wvcards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin: 18px 0 14px; }
+.wvcard { position: relative; display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 18px 12px 14px; border-radius: 16px; text-align: center; background: linear-gradient(180deg, color-mix(in srgb, var(--c) 20%, #14151a), #0e0f13); border: 1px solid color-mix(in srgb, var(--c) 45%, transparent); transition: transform .2s, box-shadow .2s; }
+.wvcard:hover { transform: translateY(-6px); box-shadow: 0 14px 30px #000a, 0 0 26px color-mix(in srgb, var(--c) 45%, transparent); }
+.wvcard .ic { font-size: 40px; filter: drop-shadow(0 0 12px var(--c)); } .wvcard b { font: 700 16px var(--display); color: var(--c); } .wvcard small { font-size: 11.5px; color: #cfc8b8; line-height: 1.4; }
+.wvcard .stars { color: #ffd34a; letter-spacing: 2px; } .wvcard em { font-style: normal; font-size: 10.5px; color: var(--muted); } .wvcard .won { position: absolute; top: 8px; right: 10px; font-style: normal; font-size: 11px; color: #ffd34a; }
+.wvdin { width: min(460px, calc(100vw - 24px)); padding: 26px; border-radius: 18px; text-align: center; background: #121318; border: 1px solid color-mix(in srgb, var(--c) 50%, transparent); box-shadow: 0 0 40px color-mix(in srgb, var(--c) 30%, transparent); }
+.wvdin h2 { margin: 0 0 8px; font: 800 22px var(--display); } .wvdin .lives { font-size: 26px; margin: 10px 0 16px; } .wvdin .row { justify-content: center; }
+#wvPortal { position: fixed; inset: 0; z-index: 35; pointer-events: none; opacity: 0; background: radial-gradient(circle, transparent 0, var(--c) 40%, #000 75%); }
+#wvPortal.on { animation: wvpo .65s ease-in forwards; } #wvPortal.out { animation: wvpi .7s ease-out forwards; }
+@keyframes wvpo { from { opacity: 0; transform: scale(2.5) rotate(0); } to { opacity: 1; transform: scale(1) rotate(25deg); } }
+@keyframes wvpi { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(3) rotate(-25deg); } }
+@media (max-width: 900px) { .wvcards { grid-template-columns: repeat(2, 1fr); } }

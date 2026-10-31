@@ -24,11 +24,11 @@ const KEY_NAME = k => ({ ' ': 'Espacio', enter: 'Intro', escape: 'Esc', arrowup:
 const KEY_EVT = k => ({ ' ': ' ', enter: 'Enter' }[k] || k);
 // Cada acción tiene un id propio (su tecla original, o «spell1»… para los hechizos), así dos acciones que
 // compartían tecla se pueden separar. KMAP: tecla física → ids que dispara (vacío = tecla bloqueada).
-const actDef = id => /^spell[1-4]$/.test(id) ? SPELL_KEYS[+id[5] - 1] : id;
+const actDef = id => /^spell[1-8]$/.test(id) ? SPELL_KEYS[+id[5] - 1] : id;
 const actKey = id => (OPT.keys || {})[id] || actDef(id);
 let KMAP = new Map();
 function keymapBuild() {
-  KMAP = new Map(); const ids = new Set(KEY_ACTIONS.flatMap(g => g[1].map(a => a[0]))); if (typeof SPELL_KEYS !== 'undefined') for (let i = 1; i <= 4; i++) ids.add('spell' + i);
+  KMAP = new Map(); const ids = new Set(KEY_ACTIONS.flatMap(g => g[1].map(a => a[0]))); if (typeof SPELL_KEYS !== 'undefined') for (let i = 1; i <= SPELL_KEYS.length; i++) ids.add('spell' + i);
   for (const id of ids) { const p = actKey(id); if (!KMAP.has(p)) KMAP.set(p, []); KMAP.get(p).push(id); }
   for (const id of ids) { const d = actDef(id); if (!KMAP.has(d)) KMAP.set(d, []); } // tecla original que ya no usa nadie: bloqueada
   // Las teclas que solo hacen lo de siempre pasan tal cual

@@ -146,7 +146,7 @@ addEventListener('keydown', e => {
   else if (k === 'c') openChar();
   else if (k === 'j') openLore();
   else if (k === ' ') { if (e.shiftKey) dash(); else tryJump(); }
-  else if (/^spell[1-4]$/.test(k)) castSpell(+k[5] - 1);
+  else if (/^spell[1-8]$/.test(k)) castSpell(+k[5] - 1);
   else if (k === 'n') { $('mini').hidden = !$('mini').hidden; }
   else if (k === 'p' || k === 'f3') { ui.fps = !ui.fps; $('fps').hidden = !ui.fps; e.preventDefault(); }
   if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'tab', 'alt'].includes(k)) e.preventDefault();

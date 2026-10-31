@@ -184,7 +184,7 @@ function refreshSpellBar() {
   if (!st || !st.known.length || ui.open === 'title') { el.hidden = true; return; } el.hidden = false;
   const sig = st.slots.join() + Object.keys(P.scd).map(k => P.scd[k] > 0 ? Math.ceil(P.scd[k] * 4) : 0).join() + (S.pc ? Math.floor(S.pc.mana) : 0);
   if (sig === _spSig) return; _spSig = sig;
-  el.innerHTML = st.slots.map((k, i) => { const s = k && SPELLS[k], cd = k ? Math.max(0, P.scd[k] || 0) : 0, low = s && S.pc && S.pc.mana < s.m; return `<div class="spl ${low ? 'low' : ''}" title="${s ? esc(s.n) + ' · ' + s.m + ' maná' : 'Vacío'}" style="--c:${s ? s.c : '#444'}"><span>${s ? s.i : ''}</span><kbd>${KEY_NAME(actKey('spell' + (i + 1)))}</kbd>${cd > 0 ? `<i style="height:${Math.min(100, cd / s.cd * 100)}%"></i>` : ''}</div>`; }).join('');
+  el.innerHTML = st.slots.slice(0, 4).map((k, i) => { const s = k && SPELLS[k], cd = k ? Math.max(0, P.scd[k] || 0) : 0, low = s && S.pc && S.pc.mana < s.m; return `<div class="spl ${low ? 'low' : ''}" title="${s ? esc(s.n) + ' · ' + s.m + ' maná' : 'Vacío'}" style="--c:${s ? s.c : '#444'}"><span>${s ? s.i : ''}</span><kbd>${KEY_NAME(actKey('spell' + (i + 1)))}</kbd>${cd > 0 ? `<i style="height:${Math.min(100, cd / s.cd * 100)}%"></i>` : ''}</div>`; }).join('');
 }
 // Ficha del personaje: hechizos y mascotas
 function charExtraHTML() {
@@ -193,7 +193,7 @@ function charExtraHTML() {
   h += `<div class="cstats"><span title="Defensa de la armadura">🛡 ${cm.def}</span><span title="Daño cuerpo a cuerpo">⚔ ${Math.round(cm.melee * 100)} %</span><span title="Velocidad por rasgos y armadura">👟 ${Math.round(cm.speed * 100)} %</span><span title="Abrigo">🧥 ${cm.warm >= 0 ? '+' : ''}${cm.warm}°</span></div>`;
   const st = spellState(); h += '<div class="cat">Hechizos</div>';
   if (!st.known.length) h += '<div class="mut small">Lee pergaminos de hechizo (F) para aprenderlos.</div>';
-  for (const k of st.known) { const s = SPELLS[k]; h += `<div class="spr"><span style="color:${s.c}">${s.i}</span><span>${esc(s.n)} <span class="mut">· ${s.m} ✦</span></span><span>${SPELL_KEYS.map((key, i) => `<button class="${st.slots[i] === k ? 'on' : ''}" data-slot="${k}|${i}">${key.toUpperCase()}</button>`).join('')}</span></div>`; }
+  for (const k of st.known) { const s = SPELLS[k]; h += `<div class="spr"><span style="color:${s.c}">${s.i}</span><span>${esc(s.n)} <span class="mut">· ${s.m} ✦</span></span><span>${SPELL_KEYS.map((key, i) => `<button class="${st.slots[i] === k ? 'on' : ''}" data-slot="${k}|${i}" title="${i >= 4 ? 'Hueco ' + (i + 1) + ': solo con varita' : 'Hueco ' + (i + 1)}">${KEY_NAME(actKey('spell' + (i + 1)))}</button>`).join('')}</span></div>`; }
   h += '<div class="cat">Mascotas</div>';
   if (!(S.pets || []).length) h += '<div class="mut small">Pulsa F sobre un animal con su comida favorita en la mano.</div>';
   (S.pets || []).forEach((pt, i) => { const tm = TAME[pt.sp]; h += `<div class="spr"><span>${tm.role === 'mount' ? '🐎' : tm.role === 'farm' ? '🌾' : '⚔'}</span><span>${esc(SPECIES[pt.sp].n)} <span class="mut">· ${Math.round(pt.hp)}/${pt.mhp}</span></span><span><button data-pet="${i}">${pt.ride ? 'Bajar' : pt.mode === 'stay' ? 'Seguir' : 'Quieto'}</button><button data-free="${i}" title="Liberar">✕</button></span></div>`; });
@@ -201,7 +201,7 @@ function charExtraHTML() {
 }
 $('mChar').addEventListener('click', e => {
   if (e.target.closest('[data-look]')) { closeModal(); openCharCreator('look'); return; }
-  const sl = e.target.closest('[data-slot]'); if (sl) { const [k, i] = sl.dataset.slot.split('|'), st = spellState(); for (let j = 0; j < 4; j++) if (st.slots[j] === k) st.slots[j] = null; st.slots[+i] = k; _charSig = ''; _spSig = ''; refreshChar(); return; }
+  const sl = e.target.closest('[data-slot]'); if (sl) { const [k, i] = sl.dataset.slot.split('|'), st = spellState(); for (let j = 0; j < st.slots.length; j++) if (st.slots[j] === k) st.slots[j] = null; st.slots[+i] = k; _charSig = ''; _spSig = ''; refreshChar(); return; }
   const pb = e.target.closest('[data-pet]'); if (pb) { const pt = S.pets[+pb.dataset.pet]; if (pt.ride) pt.ride = false; else pt.mode = pt.mode === 'stay' ? 'follow' : 'stay'; _charSig = ''; refreshChar(); return; }
   const fr = e.target.closest('[data-free]'); if (fr) { const pt = S.pets.splice(+fr.dataset.free, 1)[0]; ANIMALS.push({ sp: pt.sp, x: pt.x, y: pt.y, tx: 0, ty: 0, t: 0, face: 1, ph: 0 }); _charSig = ''; refreshChar(); }
 });
