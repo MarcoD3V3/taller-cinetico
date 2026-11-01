@@ -49,11 +49,18 @@ function pfMigrate() {
     PF.list.push(c); PF.active = c.id; pfSaveLocal(); } catch (e) { }
 }
 // ---------- Del personaje al mundo y del mundo al personaje ----------
+// Dos mochilas por personaje: una para los mundos con trucos y otra para los mundos sin trucos.
+// Lo que sacas con trucos se queda en los mundos con trucos: nunca llega a un mundo de supervivencia limpio.
+// Los mundos de antes de existir la opción permitían comandos, así que cuentan como «con trucos».
+const vaultOf = () => S && S.cheats === false ? 'legit' : 'cheat';
+const vaultPick = o => { const v = {}; for (const k of CH_KEYS) if (o[k] !== undefined) v[k] = clone(o[k]); return v; };
 const worldKeyNow = () => currentWorld && String(currentWorld).startsWith('mp-') ? null : currentWorld;
 function pfApply() {
   const c = activeChar(); if (!c || !S) return;
   S._cid = c.id; // de quién son el inventario y la salud que hay ahora en el mundo
-  S.char = { ...clone(c.char), made: true }; for (const k of CH_KEYS) { if (c[k] !== undefined) S[k] = clone(c[k]); else if (k === 'inv') S.inv = new Array(INV_N).fill(null); else if (k === 'equip') S.equip = {}; else delete S[k]; }
+  if (!c.vaults) c.vaults = { cheat: vaultPick(c) }; // personajes de antes: lo que llevaban venía de mundos con comandos
+  const vb = vaultOf(), src = c.vaults[vb] || {}; if (vb === 'legit' && !c.vaults.legit) setTimeout(() => toast('Mundo sin trucos: tu personaje empieza con la mochila vacía. Lo de los mundos con trucos se queda allí.', true), 1500);
+  S.char = { ...clone(c.char), made: true }; for (const k of CH_KEYS) { if (src[k] !== undefined) S[k] = clone(src[k]); else if (k === 'inv') S.inv = new Array(INV_N).fill(null); else if (k === 'equip') S.equip = {}; else delete S[k]; }
   delete S.nick; charData(); if (!S.pc) pcInit(); _cmKey = '';
   const wk = worldKeyNow(), wd = wk && c.worlds && c.worlds[wk];
   if (wd && wd.x !== undefined) { S.player.x = wd.x; S.player.y = wd.y; }
@@ -66,6 +73,7 @@ function pfCapture() {
   // Siempre al personaje que entró en este mundo, aunque ya hayas elegido otro en el menú
   const c = S && PF.list.find(x => x.id === S._cid); if (!c || !S.char) return;
   c.char = clone(S.char); for (const k of CH_KEYS) if (S[k] !== undefined) c[k] = clone(S[k]);
+  (c.vaults || (c.vaults = {}))[vaultOf()] = vaultPick(S); // a la mochila de este tipo de mundo
   const now = performance.now(); c.playMs = (c.playMs || 0) + Math.max(0, now - _pfT0); _pfT0 = now; c.played = Date.now();
   const wk = worldKeyNow(); if (wk) (c.worlds || (c.worlds = {}))[wk] = { ...((c.worlds || {})[wk] || {}), x: Math.round(S.player.x), y: Math.round(S.player.y), name: S.name, at: Date.now(), kit: 1 };
   else if (inGame()) (c.worlds || (c.worlds = {}))['online'] = { name: 'En línea · ' + (S.name || ''), at: Date.now() };
@@ -86,7 +94,7 @@ createFromForm = () => {
   if (!activeChar()) { showChars(); return; }
   const gen = previewGen(), id = newWorldId(); if (S && currentWorld) saveGame(true);
   newGame(gen, { name: (cwS.name || '').trim() || 'Mi mundo', kit: 'empty', alwaysDay: cwS.alwaysDay, sandbox: cwS.sandbox, surv: cwS.surv !== false });
-  S.created = Date.now(); currentWorld = id; { const dl = S.gen.dayLen || DAY_LEN; S.time = ((cwS.startHour ?? 7) / 24) * dl; }
+  S.created = Date.now(); currentWorld = id; S.cheats = !!(cwS.cheats || cwS.sandbox); // «Permitir comandos y trucos» (el modo libre ya es creativo) { const dl = S.gen.dayLen || DAY_LEN; S.time = ((cwS.startHour ?? 7) / 24) * dl; }
   enterWorld(); if (!saveGame(true)) toast('Aviso: este navegador no permite guardar; la partida se perderá al cerrar'); openModal('help');
 };
 // ---------- Crear personaje (sin mundo abierto: se usa un mundo de mentira solo para montarlo) ----------
