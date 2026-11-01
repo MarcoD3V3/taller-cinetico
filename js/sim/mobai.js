@@ -142,11 +142,13 @@ function panicHerd(a, sp) {
   neighbors(a, 6 * T, q => { if (q.sp === a.sp && q.mode !== 'flee') { q.mode = 'alert'; q.al = 0.1 + Math.random() * 0.35; } });
 }
 // ---------- Enemigos ----------
+// Una zona protegida no deja entrar, pero los que ya estaban dentro del Santuario se mueven libres por ella (si no, se quedaban quietos)
+function wardBlocks(f, x, y) { const w = wardAt(x, y, true); if (!w) return false; if (!w.type && typeof WARD_IN !== 'undefined') { const ins = WARD_IN.get(w); if (ins && ins.has(f)) return false; } return true; }
 const foeWho = D => D.phase ? { phase: 1, fly: 1 } : D.shape === 'fly' ? { fly: 1 } : null;
 // Movimiento hacia (o lejos de) el objetivo: cada uno por su flanco, los de distancia en círculo
 function foeMove(f, tx, ty, td, want, sp, dt) {
   const D = f.D; if (!f.pers) { f.pers = mobPers(f, 7703); f.rad = D.s; }
-  const P2 = f.pers, who = foeWho(D), ok = (x, y) => passable(x, y, who) && !wardAt(x, y, true);
+  const P2 = f.pers, who = foeWho(D), ok = (x, y) => passable(x, y, who) && !wardBlocks(f, x, y);
   let a = Math.atan2(ty - f.y, tx - f.x);
   // Heridos: algunos se retiran un momento para volver luego
   if (!f.minion && !D.undead && f.hp < f.mhp * 0.25 && P2.bold < 0.5 && !f.fled) { f.fled = 1; f.retT = 1.5 + P2.lazy * 1.5; }
@@ -163,7 +165,7 @@ function foeMove(f, tx, ty, td, want, sp, dt) {
 // Patrulla tranquila mientras no te han visto
 function foeWander(f, dt) {
   const D = f.D; if (!f.pers) { f.pers = mobPers(f, 7703); f.rad = D.s; }
-  const who = foeWho(D), ok = (x, y) => passable(x, y, who) && !wardAt(x, y, true);
+  const who = foeWho(D), ok = (x, y) => passable(x, y, who) && !wardBlocks(f, x, y);
   f.wt = (f.wt || 0) - dt; if (f.wt <= 0) { f.wt = 2 + Math.random() * 3 + f.pers.lazy * 3; f.wa = Math.random() * 7; f.idle = Math.random() < 0.3 + f.pers.lazy * 0.3; }
   if (f.idle) { f.vs = 0; return; }
   steerMove(f, f.wa, D.v * T * 0.35 * f.pers.spd, dt, ok, D.s + 10, 1);
