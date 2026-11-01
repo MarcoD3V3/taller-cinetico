@@ -89,7 +89,9 @@ function render(fdt) {
     let c = cm.get(key);
     if (!c && _buildBudget > 0) { _buildBudget--; c = buildChunk(cx, cy, sc); }
     else if (c && sc === 1 && _staleCh.has(key) && _staleBudget-- > 0) { _staleCh.delete(key); c = buildChunk(cx, cy, 1); }
-    if (c) ctx.drawImage(c, cx * CH * T, cy * CH * T, CH * T + 2, CH * T + 2); // +2: sin rendijas negras entre trozos con zoom fraccionario
+    if (c) { const X = cx * CH * T, Y = cy * CH * T, W = CH * T; ctx.drawImage(c, X, Y, W, W); // a su tamaño exacto (estirarlo descuadraba las casillas)
+      // Rendija entre trozos con zoom fraccionario: se tapa repitiendo su última columna y fila 1,5 px, sin mover nada
+      ctx.drawImage(c, c.width - 1, 0, 1, c.height, X + W - 0.25, Y, 1.5, W); ctx.drawImage(c, 0, c.height - 1, c.width, 1, X, Y + W - 0.25, W + 1.25, 1.5); }
     else { ctx.fillStyle = '#3d5e37'; ctx.fillRect(cx * CH * T, cy * CH * T, CH * T + 0.5, CH * T + 0.5); } // se dibuja en el siguiente fotograma
     const wcn = peekChunk((cx * CH) >> CSH, (cy * CH) >> CSH);
     if (!detail && wcn && wcn.nb) ctx.drawImage(blockChunk(cx, cy, now), cx * CH * T, cy * CH * T, CH * T, CH * T);
