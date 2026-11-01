@@ -100,7 +100,7 @@ function wpRender() {
     return `<button class="wps ${i === WP.sel ? 'sel' : ''} ${s ? '' : 'empty'} ${i >= 4 ? 'xtra' : ''}" data-wps="${i}" style="--c:${s ? s.c : '#555'}" title="${s ? esc(s.n) + ' · ' + s.m + ' maná · ' + s.cd + ' s' : 'Vacío: clic para elegir hechizo'}"><span class="ico">${s ? s.i : '+'}</span><kbd>${esc(KEY_NAME(actKey('spell' + (i + 1))))}</kbd>${s ? `<em>${s.m}</em>` : ''}<i class="cdw"></i></button>`; }).join('')}</div>
     <div class="wpinfo"><span class="wpname"></span><span class="wpcombo"></span></div>
     ${WP.pick >= 0 ? `<div class="wppick">${st.known.length ? st.known.map(k => `<button data-wpk="${k}" style="--c:${SPELLS[k].c}"><span>${SPELLS[k].i}</span>${esc(SPELLS[k].n)}<em>${SPELLS[k].m}</em></button>`).join('') : '<span class="mut small">Aún no conoces hechizos: lee pergaminos (F).</span>'}</div>` : ''}`;
-  WP.sig = st.slots.join() + WP.sel + '|' + WP.pick + st.known.length + KMAP.size;
+  WP.sig = st.slots.join() + WP.sel + '|' + WP.pick + st.known.length + KMAP.size; WP.btns = null;
 }
 function wpTick() {
   const el = wpEl(), on = wandHeld() && !ui.open && ui.open !== 'title'; document.documentElement.classList.toggle('wandon', on);
@@ -108,8 +108,9 @@ function wpTick() {
   if (!on) { WP.hold = false; WP.pick = -1; return; }
   const st = spellState(); if (WP.sig !== st.slots.join() + WP.sel + '|' + WP.pick + st.known.length + KMAP.size) wpRender();
   const pc = S.pc, mm = typeof maxMana === 'function' ? maxMana() : 100, mf = pc ? Math.max(0, Math.min(1, pc.mana / mm)) : 1;
-  const mi = el.querySelector('.wpmana i'); if (mi) { mi.style.transform = `scaleY(${mf.toFixed(3)})`; el.querySelector('.wpmana b').textContent = pc ? `${Math.floor(pc.mana)} / ${Math.round(mm)}` : '∞'; }
-  el.querySelectorAll('.wps').forEach((b, i) => { const k = st.slots[i], s = k && SPELLS[k], cd = k ? Math.max(0, P.scd[k] || 0) : 0; b.style.setProperty('--cd', s ? (cd / s.cd).toFixed(3) : 0); b.classList.toggle('low', !!(s && pc && survOn() && pc.mana < s.m)); b.classList.toggle('ready', !!s && cd <= 0); });
+  const mi = el.querySelector('.wpmana i'), mv = mf.toFixed(2); if (mi && mi._v !== mv) { mi._v = mv; mi.style.transform = `scaleY(${mv})`; }
+  if (!WP.btns || WP.btns[0] && !WP.btns[0].isConnected) WP.btns = [...el.querySelectorAll('.wps')]; // solo cambia lo que cambia (antes se reescribía todo en cada fotograma)
+  WP.btns.forEach((b, i) => { const k = st.slots[i], s = k && SPELLS[k], cd = k ? Math.max(0, P.scd[k] || 0) : 0, v = s ? (cd / s.cd).toFixed(2) : '0', low = !!(s && pc && survOn() && pc.mana < s.m), rd = !!s && cd <= 0; if (b._v !== v) { b._v = v; b.style.setProperty('--cd', v); } if (b._l !== low) { b._l = low; b.classList.toggle('low', low); } if (b._r !== rd) { b._r = rd; b.classList.toggle('ready', rd); } });
   const s = SPELLS[st.slots[WP.sel]], nm = el.querySelector('.wpname'); if (nm) { const t = s ? `${s.i} ${s.n}` : 'Hueco vacío'; if (nm.textContent !== t) { nm.textContent = t; nm.style.color = s ? s.c : ''; } }
   const ch = comboHint(), co = el.querySelector('.wpcombo'); if (co && co._v !== ch) { co._v = ch; co.innerHTML = ch; }
   if (WP.hold && s && !((P.scd[st.slots[WP.sel]] || 0) > 0) && (!survOn() || !S.pc || S.pc.mana >= s.m)) castSpell(WP.sel);

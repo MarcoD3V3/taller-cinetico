@@ -11,7 +11,8 @@
 //    relámpagos; y un tinte de escena por bioma, amanecer y atardecer.
 // =====================================================================================
 const FXP = []; const FX_MAX = 700;
-function fxAdd(o) { if (FXP.length >= FX_MAX) FXP.shift(); FXP.push(o); return o; }
+// Con muchas partículas en pantalla se descartan algunas nuevas al azar (antes se llegaba a 700 y bajaban los FPS)
+function fxAdd(o) { const n = FXP.length; if (n > 420 && Math.random() < (n - 420) / 280) return o; if (n >= FX_MAX) FXP.shift(); FXP.push(o); return o; }
 // Ráfaga: n partículas en todas direcciones
 function fxBurst(x, y, n, o = {}) {
   for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, s = (o.sp || 60) * (0.4 + Math.random() * 0.8);
@@ -25,12 +26,20 @@ function fxTick(dt) {
     if (p.sway) p.vx = Math.sin(p.t * 2.5 + p.sway) * 14;
     p.vy += (p.grav || 0) * dt; const dr = Math.exp(-(p.drag || 0) * dt); p.vx *= dr; p.vy *= dr; p.x += p.vx * dt; p.y += p.vy * dt; }
 }
+// Halo de brillo ya dibujado (uno por color): mucho más barato que un círculo con mezcla «lighter» por partícula
+const _glowSpr = new Map();
+function fxGlowSpr(col) { let c = _glowSpr.get(col); if (c) return c; c = mkCanvas(32, 32); const g = c.getContext('2d'), gr = g.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, col); gr.addColorStop(0.45, col); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 32, 32); if (_glowSpr.size > 300) _glowSpr.clear(); _glowSpr.set(col, c); return c; }
 function drawFxWorld(ctx) {
-  for (const p of FXP) { const k = p.t / p.life, a = p.smoke ? (1 - k) * 0.35 : p.ring ? 1 - k : Math.min(1, (1 - k) * 2);
+  // Solo lo que se ve; primero todos los halos (un único cambio de mezcla), luego las partículas
+  const hw = innerWidth / 2 / view.z + 60, hh = innerHeight / 2 / view.z + 60, vx0 = view.x - hw, vx1 = view.x + hw, vy0 = view.y - hh, vy1 = view.y + hh;
+  ctx.globalCompositeOperation = 'lighter';
+  for (const p of FXP) { if (!p.glow || p.ring || p.smoke || p.x < vx0 || p.x > vx1 || p.y < vy0 || p.y > vy1) continue; const k = p.t / p.life, r = p.size * 3;
+    ctx.globalAlpha = Math.min(1, (1 - k) * 2) * (p.fly ? 0.5 + 0.5 * Math.sin(p.t * 6 + p.x) : 1); ctx.drawImage(fxGlowSpr(p.col), p.x - r, p.y - r, r * 2, r * 2); }
+  ctx.globalCompositeOperation = 'source-over';
+  for (const p of FXP) { if (p.x < vx0 || p.x > vx1 || p.y < vy0 || p.y > vy1) continue; const k = p.t / p.life, a = p.smoke ? (1 - k) * 0.35 : p.ring ? 1 - k : Math.min(1, (1 - k) * 2);
     if (p.ring) { ctx.strokeStyle = p.col; ctx.globalAlpha = a; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p.x, p.y, p.ring * (0.3 + k), 0, 7); ctx.stroke(); continue; }
     if (p.smoke) { ctx.fillStyle = p.col + a.toFixed(3) + ')'; ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(p.x, p.y, p.size + (p.grow || 0) * k, 0, 7); ctx.fill(); continue; }
     ctx.globalAlpha = a * (p.fly ? 0.5 + 0.5 * Math.sin(p.t * 6 + p.x) : 1);
-    if (p.glow) { ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = p.col; ctx.beginPath(); ctx.arc(p.x, p.y, p.size * 2.2, 0, 7); ctx.fill(); ctx.globalCompositeOperation = 'source-over'; }
     ctx.fillStyle = p.col;
     if (p.shape === 'leaf') { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.t * 3 + p.sway); ctx.beginPath(); ctx.ellipse(0, 0, 3, 1.5, 0, 0, 7); ctx.fill(); ctx.restore(); }
     else if (p.shape === 'star') { ctx.fillRect(p.x - p.size, p.y - 0.5, p.size * 2, 1); ctx.fillRect(p.x - 0.5, p.y - p.size, 1, p.size * 2); }

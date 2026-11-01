@@ -293,7 +293,7 @@ document.addEventListener('click', e => { const b = e.target.closest('[data-wva]
 { const w0 = drawWeatherScreen; drawWeatherScreen = (ctx, dt) => { w0(ctx, dt); if (!ctx || !inArena()) return; const A = arenaAtTile(Math.floor(S.player.x / T), Math.floor(S.player.y / T)), W = ctx.canvas.width, H = ctx.canvas.height, L = WV.amb;
   if (L.k !== A.k) { L.length = 0; L.k = A.k; for (let i = 0; i < 90; i++) L.push({ x: Math.random() * W, y: Math.random() * H, s: rnd(0.5, 1.5), p: Math.random() * 6 }); }
   const d = dt || 0.016; ctx.save();
-  const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, A.c + '55'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  const vk = W + 'x' + H + A.c; if (WV.vigK !== vk) { WV.vigK = vk; const c = WV.vig = mkCanvas(W, H), g2 = c.getContext('2d'), g = g2.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, A.c + '55'); g2.fillStyle = g; g2.fillRect(0, 0, W, H); } ctx.drawImage(WV.vig, 0, 0); // viñeta hecha una vez, no en cada fotograma
   for (const o of L) { o.p += d;
     if (A.amb === 'snow') { o.y += 40 * o.s * d; o.x += Math.sin(o.p) * 20 * d - 15 * d; ctx.fillStyle = '#ffffffc0'; ctx.fillRect(o.x, o.y, 2 * o.s + 1, 2 * o.s + 1); }
     else if (A.amb === 'embers') { o.y -= 35 * o.s * d; o.x += Math.sin(o.p * 2) * 15 * d; ctx.fillStyle = o.s > 1 ? '#ffb040' : '#ff5a1a'; ctx.globalAlpha = 0.5 + 0.5 * Math.sin(o.p * 5); ctx.fillRect(o.x, o.y, 2 * o.s, 2 * o.s); ctx.globalAlpha = 1; }

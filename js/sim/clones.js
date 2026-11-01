@@ -8,7 +8,9 @@
 //  · Cada variante: cuerpo a cuerpo, arqueros o magos, con su efecto (quemar, frenar, robar
 //    vida, furia, provocar, curar…). Se dibujan como tú, con un aura de su color y su vida.
 // =====================================================================================
-const CLONES = [];
+const CLONES = [], CL_MAX = 18;
+// Formación de guardia cuando no pelean: anillos ordenados a tu alrededor (8, 14 y 20 huecos), mirando hacia fuera
+function clSlot(i) { let ring = 0, n = 8, k = i; while (k >= n) { k -= n; ring++; n += 6; } const r = 58 + ring * 34, a = k / n * 6.283 + ring * 0.2; return [Math.cos(a) * r, Math.sin(a) * r * 0.7, a]; }
 const clAlive = c => c && c.hp > 0 && CLONES.includes(c);
 const clHeld = { melee: () => ITEMS.ironSword ? 'ironSword' : Object.keys(ITEMS).find(k => ITEMS[k].s === 'sword'), ranged: () => Object.keys(ITEMS).find(k => ITEMS[k].s === 'bow'), caster: () => Object.keys(ITEMS).find(k => ITEMS[k].s === 'staff') };
 SK.clones = s => {
@@ -16,6 +18,7 @@ SK.clones = s => {
   for (let i = 0; i < s.k; i++) { const a = i / s.k * 6.283; let x = p.x + Math.cos(a) * 34, y = p.y + Math.sin(a) * 24; if (!passable(x, y, { fly: 1 })) { x = p.x; y = p.y; }
     CLONES.push({ s, x, y, hp: s.hp * pwr(), mhp: s.hp * pwr(), t: s.t, cd: rnd(0, 0.4), fa: a, walk: 0, mv: false, sw: 0, flash: 0, held, i, tg: null, born: 0 });
     sparkRing(x, y - 10, 18, s.c, 120, { life: 0.5 }); FX.push({ x, y, ring: 22, t: 0.4, c: s.c }); }
+  while (CLONES.length > CL_MAX) clDie(CLONES[0], true); // como mucho CL_MAX a la vez: se van los más viejos
   SFX.sig.push({ x: p.x, y: p.y, c: s.c, t: 0, life: 1.1, r: 48, rot: 0 }); screenFlash(s.c, 0.18); shake = Math.max(shake || 0, 0.2);
   tone(440, 0.25, 'triangle', 0.05, 1.5); tone(660, 0.25, 'triangle', 0.04, 1.5, 0.08); clAssign(true);
 };
@@ -30,10 +33,10 @@ function clAssign(all) {
 }
 // Los enemigos con clon asignado van a por él (te dejan en paz)
 { const t0 = foeTarget; foeTarget = f => { if (f.clT && clAlive(f.clT)) { const c = f.clT; return { tx: c.x, ty: c.y, td: dist(f.x, f.y, c.x, c.y), tgt: c }; } if (f.clT) f.clT = null; return t0(f); }; }
-function clDie(c) {
+function clDie(c, quiet) {
   const s = c.s; sparkRing(c.x, c.y - 10, 24, s.c, 140, { life: 0.6 }); for (let i = 0; i < 4; i++) fxSmoke(c.x, c.y, 'rgba(160,160,180,', 5);
-  if (s.boom) { for (const f of foesIn(c.x, c.y, s.boom)) mHit(f, s.dmg * 2.5 * pwr(), 'fire'); FX.push({ x: c.x, y: c.y, ring: s.boom, t: 0.45, c: s.c }); shake = Math.max(shake || 0, 0.2); sfx('boom'); }
-  if (s.nova) { for (const f of foesIn(c.x, c.y, 80)) mHit(f, s.dmg * 2 * pwr(), 'holy'); if (S.pc && dist(c.x, c.y, S.player.x, S.player.y) < 120) S.pc.hp = Math.min(maxHp(), S.pc.hp + 12); FX.push({ x: c.x, y: c.y, ring: 80, t: 0.5, c: '#fff' }); }
+  if (s.boom && !quiet) { for (const f of foesIn(c.x, c.y, s.boom)) mHit(f, s.dmg * 2.5 * pwr(), 'fire'); FX.push({ x: c.x, y: c.y, ring: s.boom, t: 0.45, c: s.c }); shake = Math.max(shake || 0, 0.2); sfx('boom'); }
+  if (s.nova && !quiet) { for (const f of foesIn(c.x, c.y, 80)) mHit(f, s.dmg * 2 * pwr(), 'holy'); if (S.pc && dist(c.x, c.y, S.player.x, S.player.y) < 120) S.pc.hp = Math.min(maxHp(), S.pc.hp + 12); FX.push({ x: c.x, y: c.y, ring: 80, t: 0.5, c: '#fff' }); }
   CLONES.splice(CLONES.indexOf(c), 1); for (const f of FOES) if (f.clT === c) f.clT = null; clAssign(false);
 }
 function clTick(dt) {
@@ -51,13 +54,13 @@ function clTick(dt) {
           if (Math.random() < 0.5) sparkRing(f.x, f.y, 6, s.c, 80, { life: 0.25 }); }
         else if (s.v === 'ranged') { const a = Math.atan2(f.y - c.y, f.x - c.x); mProj({ x: c.x, y: c.y - 10, vx: Math.cos(a) * 22 * T, vy: Math.sin(a) * 22 * T, r: 3, dmg: s.dmg * pwr(), c: s.c, el: s.el, life: 1, pierce: 1 }, s); }
         else { const a = Math.atan2(f.y - c.y, f.x - c.x); mProj({ x: c.x, y: c.y - 10, vx: Math.cos(a) * 13 * T, vy: Math.sin(a) * 13 * T, r: 6, dmg: s.dmg * pwr(), c: s.c, el: 'fire', life: 1.4, boom: 50 }, s); sparkRing(c.x, c.y - 14, 10, s.c, 70, { life: 0.3 }); } } }
-    else { const a = c.i / s.k * 6.283 + performance.now() / 2000; tx = p.x + Math.cos(a) * 40; ty = p.y + Math.sin(a) * 28; want = dist(c.x, c.y, tx, ty) > 10 ? 1 : 0; }
+    else { const idle = CLONES.filter(o => !o.tg), [ox, oy, oa] = clSlot(Math.max(0, idle.indexOf(c))); tx = p.x + ox; ty = p.y + oy; c.guardA = oa; want = dist(c.x, c.y, tx, ty) > 6 ? Math.min(1, dist(c.x, c.y, tx, ty) / 30) : 0; }
     // Moverse, sin amontonarse con los otros clones
     let mx = 0, my = 0; if (want) { const a = Math.atan2(ty - c.y, tx - c.x); mx = Math.cos(a) * want; my = Math.sin(a) * want; }
-    for (const o of CLONES) if (o !== c) { const d = dist(c.x, c.y, o.x, o.y); if (d < 22 && d > 0) { mx += (c.x - o.x) / d * 0.8; my += (c.y - o.y) / d * 0.8; } }
+    for (const o of CLONES) if (o !== c) { const d = dist(c.x, c.y, o.x, o.y); if (d < 28 && d > 0) { mx += (c.x - o.x) / d * 1.2 * (1 - d / 28); my += (c.y - o.y) / d * 1.2 * (1 - d / 28); } }
     const L = Math.hypot(mx, my); c.mv = L > 0.1;
     // Hacia dónde mira: al enemigo si está peleando; si no, hacia donde camina (con giro suave)
-    const want2 = f && (c.near || !c.mv) ? Math.atan2(f.y - c.y, f.x - c.x) : c.mv ? Math.atan2(my, mx) : c.fa; c.fa += Math.atan2(Math.sin(want2 - c.fa), Math.cos(want2 - c.fa)) * Math.min(1, dt * 12); if (c.mv) { const v = 2.9 * T * (s.spd || 1) * dt / Math.max(1, L), nx = c.x + mx * v, ny = c.y + my * v; const W2 = { fly: 1 }; if (passable(nx, ny, W2)) { c.x = nx; c.y = ny; } else if (passable(nx, c.y, W2)) c.x = nx; else if (passable(c.x, ny, W2)) c.y = ny; /* flotan sobre rocas y agua (si no, se atascaban si volabas) */ c.walk += dt * 8 * (s.spd || 1); }
+    const want2 = f && (c.near || !c.mv) ? Math.atan2(f.y - c.y, f.x - c.x) : c.mv ? Math.atan2(my, mx) : !f && c.guardA !== undefined ? c.guardA : c.fa; /* en guardia miran hacia fuera */ c.fa += Math.atan2(Math.sin(want2 - c.fa), Math.cos(want2 - c.fa)) * Math.min(1, dt * 12); if (c.mv) { const v = 2.9 * T * (s.spd || 1) * dt / Math.max(1, L), nx = c.x + mx * v, ny = c.y + my * v; const W2 = { fly: 1 }; if (passable(nx, ny, W2)) { c.x = nx; c.y = ny; } else if (passable(nx, c.y, W2)) c.x = nx; else if (passable(c.x, ny, W2)) c.y = ny; /* flotan sobre rocas y agua (si no, se atascaban si volabas) */ c.walk += dt * 8 * (s.spd || 1); }
     if (Math.random() < 0.25) fxAdd({ x: c.x + rnd(-8, 8), y: c.y - rnd(0, 22), vx: 0, vy: rnd(-25, -10), life: 0.5, t: 0, size: 1.8, col: s.c, glow: 1, drag: 0.5 });
   }
   // Los proyectiles enemigos también les dan
@@ -65,11 +68,16 @@ function clTick(dt) {
 }
 // Los golpes cuerpo a cuerpo de los enemigos ya los descuentan (contactHit resta tgt.hp); aquí solo el destello
 { const u0 = updatePlayer; updatePlayer = fdt => { u0(fdt); if (S) clTick(fdt); }; }
-{ const d0 = drawFxWorld; drawFxWorld = ctx => { d0(ctx); if (!CLONES.length || !S) return; let look; try { look = charData().look; } catch (e) { return; } const eq = { ...S.equip };
+{ const d0 = drawFxWorld; drawFxWorld = ctx => { d0(ctx); if (!CLONES.length || !S) return; let look; try { look = charData().look; } catch (e) { return; } const eq = clEquip();
   for (const c of [...CLONES].sort((a, b) => a.y - b.y)) { const s = c.s, sc = 1.6 / (s.sc ? 1.45 : 1), app = Math.min(1, c.born * 4), fade = Math.min(1, c.t * 2);
     ctx.save(); ctx.globalCompositeOperation = 'lighter'; disk(ctx, c.x, c.y - 12, 20 + Math.sin(c.born * 6 + c.i) * 2, s.c, 0.18 * fade); ctx.globalAlpha = 0.5 * fade; ctx.strokeStyle = s.c; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(c.x, c.y + 2, 12, 5, 0, 0, 7); ctx.stroke(); ctx.restore();
     ctx.save(); ctx.globalAlpha = 0.82 * app * fade; try { drawAvatar(ctx, look, eq, c.x, c.y, c.fa, c.walk, c.mv, sc, c.held, c.sw); } catch (e) { } ctx.restore();
     if (c.flash > 0) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; disk(ctx, c.x, c.y - 12, 14, '#ff4040', c.flash * 3); ctx.restore(); }
     const w = 22, k = Math.max(0, c.hp / c.mhp); ctx.save(); ctx.globalAlpha = fade; ctx.fillStyle = '#000a'; ctx.fillRect(c.x - w / 2, c.y - 36, w, 3); ctx.fillStyle = s.c; ctx.fillRect(c.x - w / 2, c.y - 36, w * k, 3); ctx.restore(); } }; }
+// Rendimiento: el equipo de los clones es un objeto fijo (sin alas, que se dibujaban 12 veces) y su hoja de dibujo se guarda;
+// antes se convertía el equipo a texto en cada clon y cada fotograma
+let _clEq = null, _clEqK = '';
+function clEquip() { const k = JSON.stringify(S.equip); if (k !== _clEqK) { _clEqK = k; _clEq = { ...S.equip, back: null, _clone: 1 }; } return _clEq; }
+{ const a0 = avatarSheet, wm = new WeakMap(); avatarSheet = (look, equip) => { if (equip && equip._clone) { let s = wm.get(equip); if (!s || s._look !== look) { s = a0(look, equip); s._look = look; wm.set(equip, s); } return s; } return a0(look, equip); }; }
 // Al morir el jugador o terminar una oleada no quedan clones sueltos
 { const r0 = respawn; respawn = () => { CLONES.length = 0; r0(); }; }
