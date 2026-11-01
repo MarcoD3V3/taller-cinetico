@@ -1840,9 +1840,9 @@ body.hudmin { --hud: rgba(14, 15, 17, .74); }
 .hdmore { width: 100%; margin-top: 8px; font-size: 12px; }
 
 /* ===== Grimorio vertical y compacto, a la izquierda ===== */
-#wandPanel { left: 10px; top: 50%; bottom: auto; transform: translateY(-50%); width: 54px !important; box-sizing: border-box; padding: 7px 6px; border-radius: 14px; background: #120f1ce6; }
+#wandPanel { left: 10px; top: 50%; bottom: auto; transform: translateY(-50%); width: 62px !important; box-sizing: border-box; display: flex; gap: 5px; align-items: stretch; padding: 7px 6px; border-radius: 14px; background: #120f1ce6; }
 #wandPanel.in { animation: wpin2 .25s cubic-bezier(.2, 1.3, .4, 1); } @keyframes wpin2 { from { opacity: 0; transform: translate(-14px, -50%); } }
-#wandPanel .wptop { margin: 0 0 6px; } #wandPanel .wpmana { height: 4px; border-radius: 2px; } #wandPanel .wpmana b { display: none; }
+#wandPanel .wptop { margin: 0; display: flex; align-items: stretch; } #wandPanel .wpmana { flex: none; width: 5px; height: auto; border-radius: 3px; } #wandPanel .wpmana i { transform-origin: 50% 100%; background: linear-gradient(0deg, #4a7aff, #b48cff); } #wandPanel .wpmana b { display: none; }
 #wandPanel .wpslots { grid-template-columns: 40px; gap: 5px; }
 #wandPanel .wps { width: 40px; height: 40px; aspect-ratio: auto; border-radius: 10px; border-width: 1.5px; }
 #wandPanel .wps .ico { font-size: 17px; } #wandPanel .wps kbd { font-size: 8px; left: 2px; top: 1px; padding: 0 2px; } #wandPanel .wps em { font-size: 8px; right: 2px; bottom: 1px; }

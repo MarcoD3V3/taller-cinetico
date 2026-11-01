@@ -108,7 +108,7 @@ function wpTick() {
   if (!on) { WP.hold = false; WP.pick = -1; return; }
   const st = spellState(); if (WP.sig !== st.slots.join() + WP.sel + '|' + WP.pick + st.known.length + KMAP.size) wpRender();
   const pc = S.pc, mm = typeof maxMana === 'function' ? maxMana() : 100, mf = pc ? Math.max(0, Math.min(1, pc.mana / mm)) : 1;
-  const mi = el.querySelector('.wpmana i'); if (mi) { mi.style.transform = `scaleX(${mf.toFixed(3)})`; el.querySelector('.wpmana b').textContent = pc ? `${Math.floor(pc.mana)} / ${Math.round(mm)}` : '∞'; }
+  const mi = el.querySelector('.wpmana i'); if (mi) { mi.style.transform = `scaleY(${mf.toFixed(3)})`; el.querySelector('.wpmana b').textContent = pc ? `${Math.floor(pc.mana)} / ${Math.round(mm)}` : '∞'; }
   el.querySelectorAll('.wps').forEach((b, i) => { const k = st.slots[i], s = k && SPELLS[k], cd = k ? Math.max(0, P.scd[k] || 0) : 0; b.style.setProperty('--cd', s ? (cd / s.cd).toFixed(3) : 0); b.classList.toggle('low', !!(s && pc && survOn() && pc.mana < s.m)); b.classList.toggle('ready', !!s && cd <= 0); });
   const s = SPELLS[st.slots[WP.sel]], nm = el.querySelector('.wpname'); if (nm) { const t = s ? `${s.i} ${s.n}` : 'Hueco vacío'; if (nm.textContent !== t) { nm.textContent = t; nm.style.color = s ? s.c : ''; } }
   const ch = comboHint(), co = el.querySelector('.wpcombo'); if (co && co._v !== ch) { co._v = ch; co.innerHTML = ch; }
