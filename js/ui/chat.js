@@ -55,6 +55,7 @@ function runCmd(raw) {
   chatPush('cmd', '/' + raw);
   const parts = raw.match(/"[^"]*"|\S+/g) || [], name = normTxt(parts.shift() || ''), args = parts.map(p => p.replace(/^"|"$/g, ''));
   const c = CMDS[name]; if (!c) { errMsg(`No existe el comando /${name}. Escribe /ayuda.`); return; }
+  if (c.cheat && S && S.cheats === false) { errMsg('Este mundo se creó sin comandos activados: aquí no se pueden usar trucos (como /modo creativo).'); return; }
   if (c.cheat && !cheatsOK()) { errMsg('En esta partida los trucos están desactivados (solo el anfitrión puede activarlos).'); return; }
   try { const r = c.run(args, raw); if (r && r.kind === 'err') return; if (typeof r === 'string') okMsg(r); if (c.cheat) cheatUsed(c.alias || name, raw); } catch (e) { errMsg('Error: ' + e.message); }
 }

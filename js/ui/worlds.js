@@ -92,6 +92,7 @@ function showCreate() {
       <label class="chk"><input type="checkbox" id="cwSurv" checked> Supervivencia: vida, hambre, sed, heridas y animales peligrosos</label>
       <label class="chk"><input type="checkbox" id="cwDay"> Siempre de día</label>
       <label class="chk"><input type="checkbox" id="cwSand"> Modo libre: todo desbloqueado, sin objetivos</label>
+      <label class="chk"><input type="checkbox" id="cwCmd"> Permitir comandos y trucos (modo creativo, /dar, /oleada…). Si no lo marcas, en este mundo no se podrán usar nunca</label>
     </div>
   </div><div class="cprev"><div class="row gap"><button data-w="pv:near" class="on" id="pvNear">Zona de inicio</button><button data-w="pv:far" id="pvFar">Mapa de biomas</button></div><canvas id="cwPrev" width="352" height="352"></canvas><p class="mut small" id="pvCap"></p><div id="pvQuirks" class="pvq"></div><div id="pvBiomes" class="pvb"></div><button class="pri big" data-w="create">Crear mundo y jugar</button></div></div>`;
   $('tBody').innerHTML = h; syncSliders(); schedulePreview();
@@ -142,7 +143,7 @@ function createFromForm() {
   const gen = previewGen(), id = newWorldId();
   if (S && currentWorld) saveGame(true);
   newGame(gen, { name: (cwS.name || '').trim() || 'Mi mundo', kit: cwS.kit, alwaysDay: cwS.alwaysDay, sandbox: cwS.sandbox, surv: cwS.surv !== false });
-  S.created = Date.now(); currentWorld = id;
+  S.created = Date.now(); currentWorld = id; S.cheats = !!(cwS.cheats || cwS.sandbox); // el modo libre ya es creativo
   if (!saveGame(true)) toast('Aviso: este navegador no permite guardar; la partida se perderá al cerrar');
   openCharCreator('new', () => { saveGame(true); enterWorld(); openModal('help'); });
 }
@@ -234,6 +235,7 @@ $('mTitle').addEventListener('change', e => {
   if (t.id === 'cwHour') cwS.startHour = +t.value;
   if (t.id === 'cwDay') cwS.alwaysDay = t.checked;
   if (t.id === 'cwSand') cwS.sandbox = t.checked;
+  if (t.id === 'cwCmd') cwS.cheats = t.checked;
   if (t.id === 'cwSpawn') { cwS.spawnKit = t.checked; schedulePreview(); }
   if (t.id === 'cwSafe') { cwS.safeSpawn = t.checked; schedulePreview(); }
   if (t.id === 'cwDiff') cwS.diff = +t.value;

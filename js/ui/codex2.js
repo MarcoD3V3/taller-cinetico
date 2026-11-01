@@ -22,6 +22,7 @@ function cxCreAllowed() {
   return !!(g && g.perm && g.perm.mode === 'creative');
 }
 function cxSetCreative(on) {
+  if (on && S && S.cheats === false && !S.creative) { toastErr('Este mundo se creó sin comandos activados: no se puede usar el modo creativo'); return; }
   if (on && !cxCreAllowed()) { toastErr('En esta partida en línea el anfitrión no permite el modo creativo'); return; }
   S.creative = S.sandbox = !!on; vitalsDirty = true; toast(on ? '🎨 Modo creativo: saca lo que quieras del recetario; nada de lo que usas se gasta y no recibes daño' : '⚔ Modo supervivencia', true); renderBook();
 }
