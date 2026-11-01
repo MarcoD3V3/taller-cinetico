@@ -173,7 +173,9 @@ function wvSpawn(k, x, y) {
   sparkRing(x, y, 16, A.c, 90, { life: 0.5 }); return f;
 }
 // Portales: avisan 1,2 s antes por dónde vienen
-function wvPortal(x, y, list) { WV.pend.push({ x, y, t: 0, life: 1.2, list }); HAZ.push({ x, y, r: 26, t: 1.2, dl: 1.2, kind: 'warn', c: curA().c }); }
+// Dentro de la arena siempre (antes el minijefe podía salir al otro lado del muro y quedarse atascado)
+function wvInside(x, y, m = 3) { const A = curA(), cx = (A.x + 0.5) * T, cy = (WV_Y + 0.5) * T, d = Math.hypot(x - cx, y - cy), mx = (WV_R - m) * T; return d > mx ? [cx + (x - cx) / d * mx, cy + (y - cy) / d * mx] : [x, y]; }
+function wvPortal(x, y, list) { [x, y] = wvInside(x, y, list.some(k => ENEMIES[k] && ENEMIES[k].mini) ? 5 : 3); WV.pend.push({ x, y, t: 0, life: 1.2, list }); HAZ.push({ x, y, r: 26, t: 1.2, dl: 1.2, kind: 'warn', c: curA().c }); }
 function wvBurst() {
   const A = curA(), p = S.player, n = Math.min(WV.quota.length, 5 + WV.wave * 2), dirs = 2 + Math.min(3, (Math.random() * (2 + WV.wave)) | 0), base = Math.random() * 6.28;
   for (let d = 0; d < dirs; d++) { const a = base + d / dirs * 6.28 + rnd(-0.3, 0.3), r = rnd(11, 16) * T; let x = p.x + Math.cos(a) * r, y = p.y + Math.sin(a) * r;
@@ -203,6 +205,8 @@ function wvMiniTick(f, dt) {
   }
 }
 function wvShot(f, a, m) { const pr = f.D.proj || { c: f.D.c2 || '#ff5a3a', spd: 11, dmg: f.D.dmg * 0.5 }; PROJ.push({ x: f.x, y: f.y, vx: Math.cos(a) * pr.spd * T * 0.8, vy: Math.sin(a) * pr.spd * T * 0.8, r: 6, dmg: (pr.dmg || f.D.dmg * 0.5) * m * 1.4, c: pr.c, team: 'e', life: 3, el: f.D.el, wound: f.D.wound || 'cut', src: f.D.n }); }
+// Los de la oleada nunca se borran por estar lejos (el combate quita a los que se alejan 34 casillas): se les acerca
+{ const s0 = stepFoe; stepFoe = (f, dt) => { if (f.wv && S && dist(f.x, f.y, S.player.x, S.player.y) > 26 * T) { const a = Math.atan2(f.y - S.player.y, f.x - S.player.x); [f.x, f.y] = wvInside(S.player.x + Math.cos(a) * 20 * T, S.player.y + Math.sin(a) * 20 * T, 2); } return s0(f, dt); }; }
 // Tras matar a cada enemigo de la oleada
 { const k0 = killFoe; killFoe = f => { const was = FOES.includes(f); k0(f); if (was && !FOES.includes(f) && f.wv && f.wv === WV.id) { WV.kills++; if (f.mini) { if (f.k === curW().mini) WV.miniDone = true; wvBanner(`☠ ${f.D.n} ha caído`, '', curA().c, 2.6); sparkRing(f.x, f.y, 90, curA().c, 300, { life: 1.2, size: 3 }); screenFlash(curA().c, 0.35); shake = Math.max(shake || 0, 0.6); } else if (Math.random() < 0.5) sparkRing(f.x, f.y, 8, curA().c, 60, { life: 0.35 }); } }; }
 function wvTick(dt) {
@@ -218,7 +222,7 @@ function wvTick(dt) {
   if (!WV.on || WV.st === 'away') return; WV.t += dt;
   for (const f of FOES) if (!f.wv && inArena() && dist(f.x, f.y, S.player.x, S.player.y) < 40 * T) { f.wv = WV.id; f.minion = 1; f.ag = 1; } // hijos de los que se dividen
   for (let i = WV.pend.length - 1; i >= 0; i--) { const o = WV.pend[i]; o.t += dt; if (o.t >= o.life) { WV.pend.splice(i, 1); o.list.forEach((k, j) => { const a = j / o.list.length * 6.28; const f = wvSpawn(k, o.x + Math.cos(a) * 14 * (j ? 1 : 0), o.y + Math.sin(a) * 14 * (j ? 1 : 0)); if (f.mini && k === curW().mini) { WV.mini = f; wvBanner(`⚠ ${f.D.n}`, 'MINIJEFE', curA().c, 3); bossRoar(); shake = Math.max(shake || 0, 0.7); screenFlash(curA().c, 0.3); } }); } }
-  for (const f of FOES) if (f.mini && f.wv === WV.id) wvMiniTick(f, dt);
+  for (const f of FOES) if (f.wv === WV.id) { const [x, y] = wvInside(f.x, f.y, 1.5); if (x !== f.x || y !== f.y) { f.x = x; f.y = y; } if (f.mini) wvMiniTick(f, dt); }
   if (WV.st === 'intro') { WV.introT -= dt; if (WV.introT <= 0) wvBeginWave(WV.wave); return; }
   if (WV.st === 'rest') { WV.restT -= dt; if (WV.restT <= 0) wvBeginWave(WV.wave + 1); return; }
   if (WV.st === 'won') { WV.restT -= dt; if (WV.restT <= 0) wvEnd(true); return; }
@@ -226,6 +230,8 @@ function wvTick(dt) {
   const alive = wvAlive().length; WV.burstT -= dt;
   if (WV.quota.length && WV.burstT <= 0 && alive < 34 + WV.wave * 4) { WV.burstT = Math.max(3.2, 7 - WV.wave * 0.6); wvBurst(); }
   const W = curW();
+  // Si el minijefe desapareció sin morir (o su portal se perdió), vuelve a salir: la oleada no se queda atascada
+  if (W.mini && !WV.miniDone && WV.mini && (WV.mini === 'coming' ? !WV.pend.length : !FOES.includes(WV.mini))) WV.mini = null;
   if (!WV.quota.length && !WV.pend.length && W.mini && !WV.mini && !WV.miniDone) { const a = Math.random() * 6.28; wvPortal(S.player.x + Math.cos(a) * 9 * T, S.player.y + Math.sin(a) * 9 * T, [W.mini]); WV.mini = 'coming'; }
   if (!WV.quota.length && !WV.pend.length && !alive && WV.miniDone) {
     if (WV.wave >= 5) { WV.st = 'won'; WV.restT = 6; wvBanner('🏆 ¡HAS SOBREVIVIDO A LA GRAN OLEADA!', `${curA().n} conquistado en ${fmtT(WV.t)} · ${WV.deaths} caída${WV.deaths === 1 ? '' : 's'}`, '#ffd34a', 6); wvReward(); bossMusic(false); return; }

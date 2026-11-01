@@ -17,7 +17,7 @@ const HUD_ROWS = [
 ];
 ST_CATS.ui[3].splice(1, 0, ...HUD_ROWS); // justo después del tamaño de la interfaz
 { const a0 = optApply; optApply = () => { a0(); const h = document.documentElement, c = !!OPT.hudClean;
-  h.style.setProperty('--hud', OPT.hudScale);
+  h.style.setProperty('--hudz', OPT.hudScale);
   h.classList.toggle('h-clean', c); h.classList.toggle('h-goal', !OPT.hudGoal || c); h.classList.toggle('h-clock', !OPT.hudClock || c);
   h.classList.toggle('h-keys', !OPT.hudKeys || c); h.classList.toggle('h-wcomp', !!OPT.wandCompact || c); hudBtnSync(); }; }
 // ---------- Botón desplegable ----------

@@ -89,7 +89,7 @@ function render(fdt) {
     let c = cm.get(key);
     if (!c && _buildBudget > 0) { _buildBudget--; c = buildChunk(cx, cy, sc); }
     else if (c && sc === 1 && _staleCh.has(key) && _staleBudget-- > 0) { _staleCh.delete(key); c = buildChunk(cx, cy, 1); }
-    if (c) ctx.drawImage(c, cx * CH * T, cy * CH * T, CH * T + 0.5, CH * T + 0.5);
+    if (c) ctx.drawImage(c, cx * CH * T, cy * CH * T, CH * T + 2, CH * T + 2); // +2: sin rendijas negras entre trozos con zoom fraccionario
     else { ctx.fillStyle = '#3d5e37'; ctx.fillRect(cx * CH * T, cy * CH * T, CH * T + 0.5, CH * T + 0.5); } // se dibuja en el siguiente fotograma
     const wcn = peekChunk((cx * CH) >> CSH, (cy * CH) >> CSH);
     if (!detail && wcn && wcn.nb) ctx.drawImage(blockChunk(cx, cy, now), cx * CH * T, cy * CH * T, CH * T, CH * T);

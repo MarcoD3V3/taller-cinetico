@@ -96,16 +96,15 @@ function comboHint() { const st = spellState(), last = P.lastEl; if (!last || S.
 function wpRender() {
   const el = wpEl(), st = spellState(), pc = S.pc;
   if (WP.sel >= 8 || !st.slots[WP.sel]) { const f = st.slots.findIndex(Boolean); if (f >= 0 && !st.slots[WP.sel]) WP.sel = f; }
-  el.innerHTML = `<div class="wptop"><span class="wpt">✦ Grimorio de combate</span><span class="wpmana"><i></i><b></b></span></div><div class="wpslots">${st.slots.map((k, i) => { const s = k && SPELLS[k];
+  el.innerHTML = `<div class="wptop" title="Rueda: elegir · Clic derecho: lanzar (mantén para repetir) · Shift + rueda: cambiar de objeto"><span class="wpmana"><i></i><b></b></span></div><div class="wpslots">${st.slots.map((k, i) => { const s = k && SPELLS[k];
     return `<button class="wps ${i === WP.sel ? 'sel' : ''} ${s ? '' : 'empty'} ${i >= 4 ? 'xtra' : ''}" data-wps="${i}" style="--c:${s ? s.c : '#555'}" title="${s ? esc(s.n) + ' · ' + s.m + ' maná · ' + s.cd + ' s' : 'Vacío: clic para elegir hechizo'}"><span class="ico">${s ? s.i : '+'}</span><kbd>${esc(KEY_NAME(actKey('spell' + (i + 1))))}</kbd>${s ? `<em>${s.m}</em>` : ''}<i class="cdw"></i></button>`; }).join('')}</div>
-    <div class="wpinfo"><span class="wpname"></span><span class="wpcombo"></span></div><div class="wphelp">Rueda: elegir · <b>Clic derecho</b>: lanzar (mantén para repetir) · Shift + rueda: cambiar de objeto</div>
+    <div class="wpinfo"><span class="wpname"></span><span class="wpcombo"></span></div>
     ${WP.pick >= 0 ? `<div class="wppick">${st.known.length ? st.known.map(k => `<button data-wpk="${k}" style="--c:${SPELLS[k].c}"><span>${SPELLS[k].i}</span>${esc(SPELLS[k].n)}<em>${SPELLS[k].m}</em></button>`).join('') : '<span class="mut small">Aún no conoces hechizos: lee pergaminos (F).</span>'}</div>` : ''}`;
   WP.sig = st.slots.join() + WP.sel + '|' + WP.pick + st.known.length + KMAP.size;
 }
 function wpTick() {
-  const el = wpEl(), on = wandHeld() && !ui.open && ui.open !== 'title';
+  const el = wpEl(), on = wandHeld() && !ui.open && ui.open !== 'title'; document.documentElement.classList.toggle('wandon', on);
   if (el.hidden === on) { el.hidden = !on; if (on) { el.classList.remove('in'); void el.offsetWidth; el.classList.add('in'); } }
-  const sb = $('spellBar'); if (sb && on) sb.hidden = true;
   if (!on) { WP.hold = false; WP.pick = -1; return; }
   const st = spellState(); if (WP.sig !== st.slots.join() + WP.sel + '|' + WP.pick + st.known.length + KMAP.size) wpRender();
   const pc = S.pc, mm = typeof maxMana === 'function' ? maxMana() : 100, mf = pc ? Math.max(0, Math.min(1, pc.mana / mm)) : 1;
@@ -124,6 +123,6 @@ document.addEventListener('click', e => {
 document.addEventListener('contextmenu', e => { const b = e.target.closest && e.target.closest('[data-wps]'); if (!b) return; e.preventDefault(); spellState().slots[+b.dataset.wps] = null; _spSig = ''; });
 cv.addEventListener('wheel', e => { if (!wandHeld() || e.ctrlKey || e.shiftKey || ui.open) return; e.preventDefault(); e.stopImmediatePropagation();
   const st = spellState(), dir = e.deltaY > 0 ? 1 : -1; for (let n = 1; n <= 8; n++) { const j = (WP.sel + dir * n + 16) % 8; if (st.slots[j]) { WP.sel = j; break; } } tone(520 + WP.sel * 40, 0.04, 'sine', 0.03); }, { capture: true, passive: false });
-cv.addEventListener('mousedown', e => { if (e.button !== 2 || !wandHeld() || ui.open) return; e.stopImmediatePropagation(); WP.hold = true; const st = spellState(); if (st.slots[WP.sel]) castSpell(WP.sel); else toastErr('Ese hueco está vacío: haz clic en él en el grimorio'); }, true);
+cv.addEventListener('mousedown', e => { if (e.button !== 2 || !wandHeld() || ui.open) return; e.stopImmediatePropagation(); WP.hold = true; const st = spellState(); if (st.slots[WP.sel] || (typeof megaHeld === 'function' && megaHeld())) castSpell(WP.sel); else toastErr('Ese hueco está vacío: haz clic en él en el grimorio'); }, true);
 addEventListener('mouseup', e => { if (e.button === 2) WP.hold = false; });
 addEventListener('blur', () => { WP.hold = false; });
