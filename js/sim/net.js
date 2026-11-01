@@ -289,7 +289,7 @@ function sendWd() { const g = NET.game; if (g && g.host) { const o = g.opt; netE
 // ---------- Tu presencia: dónde estás, cómo te mueves y qué haces ----------
 let _prT = 0, _prS = '', _prSeq = 0;
 function myPresence(dt) {
-  const g = NET.game; if (!inGame() || g.waiting || (_prT += dt) < 0.05) return; _prT = 0;
+  const g = NET.game; if (!inGame() || g.waiting || (_prT += dt) < 0.04) return; _prT = 0; // 0,04 y no 0,05: el temporizador también va cada 50 ms y, por redondeo, saltaba uno de cada dos envíos
   const p = S.player, pc = S.pc || {}, ch = charData(), m = typeof mountPet === 'function' ? mountPet() : null;
   const mining = (ui.mine && ui.mine.t > 0) || (ui.bb && ui.bb.t > 0);
   const pr = { nick: myNick(), c: myColor(), host: !!g.host, x: Math.round(p.x), y: Math.round(p.y), vx: Math.round(P.mvx || 0), vy: Math.round(P.mvy || 0),
