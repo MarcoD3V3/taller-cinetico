@@ -36,6 +36,7 @@ const SPELLS2 = {
   timeBubble: { n: 'Burbuja temporal', i: '◷', el: 'time', m: 28, cd: 12, kind: 'slowfield', r: 120, t: 6, c: '#ffe0ff', d: 'Una burbuja donde los enemigos van a cámara lenta.' },
   crystalShards: { n: 'Esquirlas de cristal', i: '✦', el: 'frost', m: 14, cd: 1.4, kind: 'shards', dmg: 11, n2: 9, c: '#b090ff', d: '9 esquirlas en abanico, como una escopeta.' },
   frostBloom: { n: 'Flor de escarcha', i: '❉', el: 'frost', m: 18, cd: 2.5, kind: 'splitter', dmg: 24, n2: 4, c: '#8ad8ff', d: 'Al chocar se abre en 4 lanzas de hielo.' },
+  astralTrail: { n: 'Estela Astral', i: '☄', el: 'mind', m: 45, cd: 14, kind: 'cursorOrb', dmg: 34, t: 6, c: '#ff7aff', d: 'Un astro vivo sigue tu cursor durante 6 s: arrasa todo lo que toca, deja una estela que quema y al final estalla.' },
   // ---------- Mortales ----------
   apocalypse: { n: 'Apocalipsis', i: '☄', el: 'fire', m: 90, cd: 70, kind: 'm_apoc', dmg: 90, t: 4, mortal: 1, c: '#ff5a10', q: 'El cielo arde y cae sobre la tierra.', d: '24 meteoritos caen sobre toda la zona durante 4 s.' },
   divineJudgment: { n: 'Juicio Divino', i: '✝', el: 'holy', m: 85, cd: 60, kind: 'm_judgment', dmg: 420, r: 160, mortal: 1, c: '#fffbe0', q: 'Que la luz decida quién vive.', d: 'Una columna de luz colosal desde el cielo sobre el cursor.' },
@@ -61,7 +62,7 @@ const SPELL2_RECIPE = {
   venomDart: ['runeLife', 'arcaneInk,venom'], bouncer: ['runeStorm', 'arcaneInk,copperWire'], beeSwarm: ['runeLife', 'arcaneInk,honeycomb'], earthSpikes: ['runeEarth', 'arcaneInk,gargoyleStone'],
   tornado: ['runeStorm', 'arcaneInk,griffinFeather,feather'], gravityWell: ['runeVoid', 'arcaneInk,shadowEssence,obsidian'], shadowStep: ['runeVoid', 'arcaneInk,ectoplasm,batWing'], sunPillar: ['runeLife', 'arcaneInk,holyWater,fireblossom'],
   mirrorBlades: ['runeMind', 'arcaneInk,spiritOrb,ironIngot'], manaShield: ['runeMind', 'arcaneInk,manaCrystal,manaCrystal'], purify: ['runeLife', 'arcaneInk,holyWater,herbs'], timeBubble: ['runeTime', 'arcaneInk,timeCrystal'],
-  crystalShards: ['runeFrost', 'arcaneInk,crystal,crystal'], frostBloom: ['runeFrost', 'arcaneInk,frostleaf,frozenHeart'],
+  astralTrail: ['runeMind', 'arcaneInk,manaCrystal,spiritOrb,prism'], crystalShards: ['runeFrost', 'arcaneInk,crystal,crystal'], frostBloom: ['runeFrost', 'arcaneInk,frostleaf,frozenHeart'],
   apocalypse: ['runeFire', 'arcaneInk,demonHorn,essenceFire,phoenixFeather,obsidian'], divineJudgment: ['runeLife', 'arcaneInk,holyWater,holyWater,spiritOrb,goldIngot'], supernova: ['runeFire', 'arcaneInk,essenceFire,essenceFire,phoenixFeather,manaCrystal'],
   singularity: ['runeVoid', 'arcaneInk,singularity,singularity,voidCore,shadowEssence'], heavenWrath: ['runeStorm', 'arcaneInk,essenceStorm,essenceStorm,griffinFeather,manaCrystal'], eternalIce: ['runeFrost', 'arcaneInk,frozenHeart,frozenHeart,frostFang,manaCrystal'],
   fireDragon: ['runeFire', 'arcaneInk,dragonEye,drakeScale,essenceFire,phoenixFeather'], arcaneTsunami: ['runeMind', 'arcaneInk,manaCrystal,manaCrystal,spiritOrb,manaDust'], cataclysm: ['runeEarth', 'arcaneInk,gargoyleStone,gargoyleStone,obsidian,mandrake'],
