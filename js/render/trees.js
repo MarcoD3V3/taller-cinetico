@@ -126,7 +126,8 @@ function drawTrees(ctx, k, ox, oy, x0, y0, x1, y1, front) {
       const list = tileTrees.get(chunkKey(cx, cy)); if (!list) continue;
       for (let i = 0; i < list.length; i += 4) { const tx = list[i], ty = list[i + 1]; if (Math.abs(tx - ptx) > 3 || ty < pty0 - 1 || ty > pty0 + 5) continue; const baseY = ty * T + 26; if (baseY <= pty) continue; const k2 = treeSprite(list[i + 2], list[i + 3] & 3, list[i + 3] >> 2).k; if (Math.abs(p.x - (tx * T + 16)) < 40 * k2 && pty > baseY - 112 * k2) covered = true; }
     }
-    const target = covered ? 1 : 0; _xray += (target - _xray) * Math.min(1, dt * 7); if (Math.abs(target - _xray) < 0.003) _xray = target;
+    const target = covered && !((P.z || 0) > 6) ? 1 : 0; _xray += // volando vas por encima: sin círculo transparente (descuadraba las rocas)
+      (target - _xray) * Math.min(1, dt * 7); if (Math.abs(target - _xray) < 0.003) _xray = target;
     // Sin círculo que recortar, los árboles van directos a la pantalla (sin capa extra a pantalla completa)
     layer = _xray > 0.01;
   }
