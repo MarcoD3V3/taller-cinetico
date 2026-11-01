@@ -6,8 +6,11 @@
 // =====================================================================================
 const EFX = [];
 const efx = o => { o.t = 0; EFX.push(o); return o; };
-const mHit = (f, d, el) => { if (!f || f.hp <= 0) return; const s0 = WV_SRC; WV_SRC = 'magic'; damageFoe(f, d, el); WV_SRC = s0; };
-const foesIn = (x, y, r) => FOES.filter(f => f.hp > 0 && dist(x, y, f.x, f.y) < r + f.D.s);
+// Los animales también reciben los hechizos: entran en las zonas como «fichas» que reenvían el golpe a hitAnimal
+const beastHit = (an, d) => { if (!ANIMALS.includes(an)) return; hitAnimal(an, d, null); if (Math.random() < 0.5) sparkRing(an.x, an.y, 6, '#ffffff', 60, { life: 0.25 }); };
+const beastsIn = (x, y, r) => ANIMALS.filter(an => dist(x, y, an.x, an.y) < r + 8).map(an => ({ an, beast: 1, x: an.x, y: an.y, hp: 1, mhp: 1, D: { s: 8, n: 'animal' }, stun: 0, frz: 0, slow: 0, root: 0, burn: 0 }));
+const mHit = (f, d, el) => { if (f && f.beast) { beastHit(f.an, d); return; } if (!f || f.hp <= 0) return; const s0 = WV_SRC; WV_SRC = 'magic'; damageFoe(f, d, el); WV_SRC = s0; };
+const foesIn = (x, y, r) => FOES.filter(f => f.hp > 0 && dist(x, y, f.x, f.y) < r + f.D.s).concat(beastsIn(x, y, r));
 const bigFoe = f => f.boss || f.mini;
 const onScreen = f => Math.abs(f.x - view.x) < innerWidth / 2 / view.z + 40 && Math.abs(f.y - view.y) < innerHeight / 2 / view.z + 40;
 const mProj = (o, s) => { const pj = Object.assign({ r: 5, team: 'p', life: 1.6, pierce: 0, boom: 0, glow: 1, hit: new SrcSet('magic') }, o); PROJ.push(pj); SFX.proj.set(pj, { s, x: pj.x, y: pj.y }); return pj; };
@@ -182,3 +185,20 @@ function efxTick(dt) {
   if (CINE.t < CINE.life) { const k = CINE.t / CINE.life, e = k < 0.2 ? k / 0.2 : k > 0.8 ? (1 - k) / 0.2 : 1, bh = H * 0.1 * e; ctx.globalAlpha = 1; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, bh); ctx.fillRect(0, H - bh, W, bh); ctx.globalAlpha = 0.6 * e; ctx.fillStyle = CINE.c; ctx.fillRect(0, bh - 2, W, 2); ctx.fillRect(0, H - bh, W, 2); }
   for (const o of EFX) if (o.screen) { try { o.screen(ctx, W, H); } catch (e) { } }
   ctx.restore(); }; }
+
+// ---------- Hechizos contra cualquier ser vivo ----------
+// Proyectiles mágicos, explosiones, charcos y agujeros, meteoritos, novas, rayos y combos también hieren a los animales.
+function beastsAt(x, y, r, d) { for (const an of ANIMALS.slice()) if (dist(x, y, an.x, an.y) < r + 8) beastHit(an, d); }
+{ const e0 = explode; explode = (x, y, r, dmg, team, el) => { e0(x, y, r, dmg, team, el); if (team === 'p') beastsAt(x, y, r, dmg); }; }
+{ const c0 = comboFx; comboFx = (c, at2) => { c0(c, at2); if (c.dmg) beastsAt(at2.x, at2.y, c.r || 80, c.dmg); }; }
+{ const c0 = castSpell; castSpell = slot => { const st = spellState(), k = st.slots[slot], s = k && SPELLS[k], ready = s && !((P.scd[k] || 0) > 0); c0(slot); if (!ready || !(P.scd[k] > 0) || (typeof megaHeld === 'function' && megaHeld())) return;
+  const p = S.player, mw = mouseWorld();
+  if (s.kind === 'nova' && s.dmg) beastsAt(p.x, p.y, s.r, s.dmg * pwr());
+  if (s.kind === 'chain' || s.kind === 'drain') { const an = ANIMALS.filter(a => dist(mw.x, mw.y, a.x, a.y) < 3 * T).sort((a, b) => dist(mw.x, mw.y, a.x, a.y) - dist(mw.x, mw.y, b.x, b.y))[0]; if (an && !nearestFoe(mw.x, mw.y, 3 * T)) { addBolt(p.x, p.y - 8, an.x, an.y, s.c, 0.3); beastHit(an, s.dmg * pwr()); } } }; }
+const _bWarn = new Set();
+function beastSpellTick(dt) {
+  for (const pj of PROJ) { if (pj.team !== 'p' || !(pj.hit instanceof SrcSet) || pj.hit.s !== 'magic') continue; /* solo los mágicos: las flechas ya cazan por su cuenta */ for (const an of ANIMALS) { if (dist(pj.x, pj.y, an.x, an.y) > (pj.r || 4) + 8) continue; const hs = pj._ah || (pj._ah = new Set()); if (hs.has(an)) continue; hs.add(an); beastHit(an, pj.dmg || 10); if (pj.boom) beastsAt(pj.x, pj.y, pj.boom, pj.dmg); if (!pj.pierce) { pj.life = 0; break; } } }
+  for (const h of HAZ) { if (h.team !== 'p') continue; if (h.kind === 'warn' && h.dmg) _bWarn.add(h); else if (h.dps) for (const an of ANIMALS.slice()) if (dist(h.x, h.y, an.x, an.y) < h.r + 8) { an._hz = (an._hz || 0) + h.dps * dt; if (an._hz >= 4) { beastHit(an, an._hz); an._hz = 0; } } }
+  for (const h of _bWarn) if (!HAZ.includes(h)) { _bWarn.delete(h); beastsAt(h.x, h.y, h.r, h.dmg); }
+}
+{ const u0 = updatePlayer; updatePlayer = fdt => { u0(fdt); if (S) beastSpellTick(fdt); }; }
