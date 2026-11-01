@@ -14,17 +14,17 @@ function clSlot(i) { let ring = 0, n = 8, k = i; while (k >= n) { k -= n; ring++
 const clAlive = c => c && c.hp > 0 && CLONES.includes(c);
 const clHeld = { melee: () => ITEMS.ironSword ? 'ironSword' : Object.keys(ITEMS).find(k => ITEMS[k].s === 'sword'), ranged: () => Object.keys(ITEMS).find(k => ITEMS[k].s === 'bow'), caster: () => Object.keys(ITEMS).find(k => ITEMS[k].s === 'staff') };
 SK.clones = s => {
-  const p = S.player, held = (clHeld[s.v] || clHeld.melee)();
+  const p = cp(), held = (clHeld[s.v] || clHeld.melee)();
   for (let i = 0; i < s.k; i++) { const a = i / s.k * 6.283; let x = p.x + Math.cos(a) * 34, y = p.y + Math.sin(a) * 24; if (!passable(x, y, { fly: 1 })) { x = p.x; y = p.y; }
-    CLONES.push({ s, x, y, hp: s.hp * pwr(), mhp: s.hp * pwr(), t: s.t, cd: rnd(0, 0.4), fa: a, walk: 0, mv: false, sw: 0, flash: 0, held, i, tg: null, born: 0 });
+    CLONES.push({ s, x, y, hp: s.hp * pwr(), mhp: s.hp * pwr(), own: SCX, ghost: SGH, t: s.t, cd: rnd(0, 0.4), fa: a, walk: 0, mv: false, sw: 0, flash: 0, held, i, tg: null, born: 0 });
     sparkRing(x, y - 10, 18, s.c, 120, { life: 0.5 }); FX.push({ x, y, ring: 22, t: 0.4, c: s.c }); }
-  while (CLONES.length > CL_MAX) clDie(CLONES[0], true); // como mucho CL_MAX a la vez: se van los más viejos
+  for (let mine = CLONES.filter(o => o.own === SCX); mine.length > CL_MAX; mine.shift()) clDie(mine[0], true); // como mucho CL_MAX a la vez: se van los más viejos
   SFX.sig.push({ x: p.x, y: p.y, c: s.c, t: 0, life: 1.1, r: 48, rot: 0 }); screenFlash(s.c, 0.18); shake = Math.max(shake || 0, 0.2);
   tone(440, 0.25, 'triangle', 0.05, 1.5); tone(660, 0.25, 'triangle', 0.04, 1.5, 0.08); clAssign(true);
 };
 // Reparto: cada enemigo al clon con menos carga (y cerca); los «provocadores» atraen más
 function clAssign(all) {
-  const live = CLONES.filter(c => c.hp > 0); if (!live.length) return; const load = new Map(live.map(c => [c, 0]));
+  const live = CLONES.filter(c => c.hp > 0 && !c.ghost); /* los clones de otro jugador no atraen a tus enemigos */ if (!live.length) return; const load = new Map(live.map(c => [c, 0]));
   for (const f of FOES) if (clAlive(f.clT)) load.set(f.clT, (load.get(f.clT) || 0) + 1);
   const p = S.player, cand = FOES.filter(f => f.hp > 0 && !f.boss && dist(f.x, f.y, p.x, p.y) < 16 * T && (all || !clAlive(f.clT))).sort((a, b) => dist(a.x, a.y, p.x, p.y) - dist(b.x, b.y, p.x, p.y));
   for (const f of cand) { let best = null, bs = 1e9; for (const c of live) { const sc = dist(f.x, f.y, c.x, c.y) / T + load.get(c) * (c.s.taunt ? 1.5 : 4); if (sc < bs) { bs = sc; best = c; } } if (best) { f.clT = best; load.set(best, load.get(best) + 1); } }
@@ -36,25 +36,25 @@ function clAssign(all) {
 function clDie(c, quiet) {
   const s = c.s; sparkRing(c.x, c.y - 10, 24, s.c, 140, { life: 0.6 }); for (let i = 0; i < 4; i++) fxSmoke(c.x, c.y, 'rgba(160,160,180,', 5);
   if (s.boom && !quiet) { for (const f of foesIn(c.x, c.y, s.boom)) mHit(f, s.dmg * 2.5 * pwr(), 'fire'); FX.push({ x: c.x, y: c.y, ring: s.boom, t: 0.45, c: s.c }); shake = Math.max(shake || 0, 0.2); sfx('boom'); }
-  if (s.nova && !quiet) { for (const f of foesIn(c.x, c.y, 80)) mHit(f, s.dmg * 2 * pwr(), 'holy'); if (S.pc && dist(c.x, c.y, S.player.x, S.player.y) < 120) S.pc.hp = Math.min(maxHp(), S.pc.hp + 12); FX.push({ x: c.x, y: c.y, ring: 80, t: 0.5, c: '#fff' }); }
+  if (s.nova && !quiet) { for (const f of foesIn(c.x, c.y, 80)) mHit(f, s.dmg * 2 * pwr(), 'holy'); if (S.pc && !c.ghost && dist(c.x, c.y, S.player.x, S.player.y) < 120) S.pc.hp = Math.min(maxHp(), S.pc.hp + 12); FX.push({ x: c.x, y: c.y, ring: 80, t: 0.5, c: '#fff' }); }
   CLONES.splice(CLONES.indexOf(c), 1); for (const f of FOES) if (f.clT === c) f.clT = null; clAssign(false);
 }
 function clTick(dt) {
   if (!CLONES.length) return; if (every(clTick, 'ra', dt, 0.6)) clAssign(false);
-  for (const c of CLONES.slice()) { const s = c.s; c.t -= dt; c.born += dt; c.cd -= dt; c.sw = Math.max(0, c.sw - dt * 4); c.flash = Math.max(0, c.flash - dt);
+  for (const c of CLONES.slice()) { const s = c.s; SGH = !!c.ghost; SCX = c.own || null; c.t -= dt; c.born += dt; c.cd -= dt; c.sw = Math.max(0, c.sw - dt * 4); c.flash = Math.max(0, c.flash - dt);
     if (c.hp <= 0 || c.t <= 0) { clDie(c); continue; }
     // Objetivo: primero los enemigos que le tocan; si no, el más cercano sin dueño
     if (!c.tg || c.tg.hp <= 0 || !FOES.includes(c.tg)) { let best = null, bd = 1e9; for (const f of FOES) { if (f.hp <= 0) continue; const own = f.clT === c, free = !clAlive(f.clT); if (!own && !free) continue; const d = dist(c.x, c.y, f.x, f.y) * (own ? 1 : 1.8); if (d < bd && d < 16 * T) { bd = d; best = f; } } c.tg = best; }
-    const f = c.tg, p = S.player; let tx, ty, want = 0;
+    const f = c.tg, p = cp(); let tx, ty, want = 0;
     if (f) { const d = dist(c.x, c.y, f.x, f.y), reach = s.v === 'melee' ? f.D.s + 16 : s.v === 'ranged' ? 5 * T : 6 * T; tx = f.x; ty = f.y; c.near = d <= reach + 24;
       if (s.v === 'melee') want = d > reach ? 1 : 0; else want = d > reach ? 1 : d < 3 * T ? -1 : 0;
       if (d <= reach + 4 && c.cd <= 0) { const rage = s.rage ? 1 + (1 - c.hp / c.mhp) * 1.5 : 1; c.cd = s.acd; c.sw = 1;
         if (s.v === 'melee') { mHit(f, s.dmg * rage * pwr(), s.el); efx({ life: 0.18, x: c.x, y: c.y - 10, a: c.fa, col: s.c, draw(ctx) { ctx.globalAlpha = 1 - this.t / 0.18; ctx.strokeStyle = this.col; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(this.x, this.y, 18, this.a - 1, this.a + 1); ctx.stroke(); } });
-          if (s.burn) f.burn = 3; if (s.chill) { f.slow = 2; if (Math.random() < 0.15 && !bigFoe(f)) f.frz = 1.2; } if (s.stun && !bigFoe(f)) f.stun = Math.max(f.stun, s.stun); if (s.steal && S.pc) S.pc.hp = Math.min(maxHp(), S.pc.hp + s.dmg * s.steal); if (s.heal && S.pc) S.pc.hp = Math.min(maxHp(), S.pc.hp + s.heal);
+          if (s.burn) f.burn = 3; if (s.chill) { f.slow = 2; if (Math.random() < 0.15 && !bigFoe(f)) f.frz = 1.2; } if (s.stun && !bigFoe(f)) f.stun = Math.max(f.stun, s.stun); if (s.steal && S.pc && !c.ghost) S.pc.hp = Math.min(maxHp(), S.pc.hp + s.dmg * s.steal); if (s.heal && S.pc && !c.ghost) S.pc.hp = Math.min(maxHp(), S.pc.hp + s.heal);
           if (Math.random() < 0.5) sparkRing(f.x, f.y, 6, s.c, 80, { life: 0.25 }); }
         else if (s.v === 'ranged') { const a = Math.atan2(f.y - c.y, f.x - c.x); mProj({ x: c.x, y: c.y - 10, vx: Math.cos(a) * 22 * T, vy: Math.sin(a) * 22 * T, r: 3, dmg: s.dmg * pwr(), c: s.c, el: s.el, life: 1, pierce: 1 }, s); }
         else { const a = Math.atan2(f.y - c.y, f.x - c.x); mProj({ x: c.x, y: c.y - 10, vx: Math.cos(a) * 13 * T, vy: Math.sin(a) * 13 * T, r: 6, dmg: s.dmg * pwr(), c: s.c, el: 'fire', life: 1.4, boom: 50 }, s); sparkRing(c.x, c.y - 14, 10, s.c, 70, { life: 0.3 }); } } }
-    else { const idle = CLONES.filter(o => !o.tg), [ox, oy, oa] = clSlot(Math.max(0, idle.indexOf(c))); tx = p.x + ox; ty = p.y + oy; c.guardA = oa; want = dist(c.x, c.y, tx, ty) > 6 ? Math.min(1, dist(c.x, c.y, tx, ty) / 30) : 0; }
+    else { const idle = CLONES.filter(o => !o.tg && o.own === c.own), [ox, oy, oa] = clSlot(Math.max(0, idle.indexOf(c))); tx = p.x + ox; ty = p.y + oy; c.guardA = oa; want = dist(c.x, c.y, tx, ty) > 6 ? Math.min(1, dist(c.x, c.y, tx, ty) / 30) : 0; }
     // Moverse, sin amontonarse con los otros clones
     let mx = 0, my = 0; if (want) { const a = Math.atan2(ty - c.y, tx - c.x); mx = Math.cos(a) * want; my = Math.sin(a) * want; }
     for (const o of CLONES) if (o !== c) { const d = dist(c.x, c.y, o.x, o.y); if (d < 28 && d > 0) { mx += (c.x - o.x) / d * 1.2 * (1 - d / 28); my += (c.y - o.y) / d * 1.2 * (1 - d / 28); } }
@@ -63,6 +63,7 @@ function clTick(dt) {
     const want2 = f && (c.near || !c.mv) ? Math.atan2(f.y - c.y, f.x - c.x) : c.mv ? Math.atan2(my, mx) : !f && c.guardA !== undefined ? c.guardA : c.fa; /* en guardia miran hacia fuera */ c.fa += Math.atan2(Math.sin(want2 - c.fa), Math.cos(want2 - c.fa)) * Math.min(1, dt * 12); if (c.mv) { const v = 2.9 * T * (s.spd || 1) * dt / Math.max(1, L), nx = c.x + mx * v, ny = c.y + my * v; const W2 = { fly: 1 }; if (passable(nx, ny, W2)) { c.x = nx; c.y = ny; } else if (passable(nx, c.y, W2)) c.x = nx; else if (passable(c.x, ny, W2)) c.y = ny; /* flotan sobre rocas y agua (si no, se atascaban si volabas) */ c.walk += dt * 8 * (s.spd || 1); }
     if (Math.random() < 0.25) fxAdd({ x: c.x + rnd(-8, 8), y: c.y - rnd(0, 22), vx: 0, vy: rnd(-25, -10), life: 0.5, t: 0, size: 1.8, col: s.c, glow: 1, drag: 0.5 });
   }
+  SGH = false; SCX = null;
   // Los proyectiles enemigos también les dan
   for (const pj of PROJ) { if (pj.team !== 'e' || pj.life <= 0) continue; for (const c of CLONES) if (dist(pj.x, pj.y, c.x, c.y - 8) < 12) { c.hp -= pj.dmg || 8; c.flash = 0.15; pj.life = 0; break; } }
 }

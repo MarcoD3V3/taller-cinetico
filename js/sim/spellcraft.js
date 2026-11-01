@@ -10,6 +10,10 @@
 //    meteoritos que caen del cielo, rayos ramificados, burbuja de escudo, espirales, destellos…
 // =====================================================================================
 SPELL_KEYS.push('k', 'l', 'i', 'o');
+// Quién lanza: tú (SCX = null) u otro jugador cuyo hechizo se repite aquí. SGH: modo fantasma = solo se ve,
+// no hace daño (ya lo hace su dueño), ni te cura, ni te mueve, ni te gasta nada.
+let SCX = null, SGH = false;
+const cp = () => SCX ? SCX.p : S.player, cm = () => SCX ? SCX.m : mouseWorld();
 const isWand = id => { const it = id && ITEMS[id]; return !!(it && it.weapon && (it.s === 'wand' || it.s === 'staff' || (typeof TR !== 'undefined' && TR[id] && TR[id].fam === 'wand'))); };
 const wandHeld = () => !!S && !ui.hand && isWand(heldId());
 { const s0 = spellState; spellState = () => { const st = s0(); while (st.slots.length < 8) st.slots.push(null); return st; }; }
@@ -28,12 +32,12 @@ function screenFlash(c, a) { SFX.flash = Math.max(SFX.flash, a); SFX.flashC = c;
 function boltPath(x1, y1, x2, y2, rough) { const n = Math.max(4, Math.round(Math.hypot(x2 - x1, y2 - y1) / 14)), pts = [[x1, y1]]; for (let i = 1; i < n; i++) { const k = i / n; pts.push([x1 + (x2 - x1) * k + rnd(-rough, rough), y1 + (y2 - y1) * k + rnd(-rough, rough)]); } pts.push([x2, y2]); return pts; }
 function addBolt(x1, y1, x2, y2, c, life = 0.28) { const pts = boltPath(x1, y1, x2, y2, 9), br = []; for (let i = 0; i < 2; i++) { const j = 1 + ((Math.random() * (pts.length - 2)) | 0), [bx, by] = pts[j], a = Math.random() * 6.28, L = rnd(14, 34); br.push(boltPath(bx, by, bx + Math.cos(a) * L, by + Math.sin(a) * L, 5)); } SFX.bolts.push({ pts, br, c, t: 0, life }); }
 function castFx(s, ox, oy, np, nh) {
-  const p = S.player, mw = mouseWorld(), big = s.m >= 35, c = s.c;
+  const p = cp(), mw = cm(), big = s.m >= 35, c = s.c;
   SFX.sig.push({ x: ox, y: oy, c, t: 0, life: big ? 1.1 : 0.7, r: big ? 34 : 22, rot: Math.random() * 6 });
   sparkRing(ox, oy - 6, big ? 26 : 12, c, big ? 120 : 70, { life: 0.5 });
   screenFlash(c, big ? 0.22 : 0.08); if (big) shake = Math.max(shake || 0, 0.25);
-  for (let i = np; i < PROJ.length; i++) { const pj = PROJ[i]; if (pj.team === 'p') SFX.proj.set(pj, { s, x: pj.x, y: pj.y }); }
-  for (let i = nh; i < HAZ.length; i++) if (HAZ[i].team === 'p') { HAZ[i]._fx = s; SFX.haz.add(HAZ[i]); }
+  for (let i = np; i < PROJ.length; i++) { const pj = PROJ[i]; if (pj.team !== 'e') SFX.proj.set(pj, { s, x: pj.x, y: pj.y }); }
+  for (let i = nh; i < HAZ.length; i++) if (HAZ[i].team !== 'e') { HAZ[i]._fx = s; SFX.haz.add(HAZ[i]); }
   switch (s.kind) {
     case 'proj': case 'missiles': { const a = Math.atan2(mw.y - oy, mw.x - ox); for (let i = 0; i < 14; i++) { const aa = a + rnd(-0.45, 0.45), v = rnd(80, 190); fxAdd({ x: ox + Math.cos(a) * 10, y: oy + Math.sin(a) * 10, vx: Math.cos(aa) * v, vy: Math.sin(aa) * v, life: 0.35, t: 0, size: 2.4, col: c, glow: 1, drag: 4 }); } break; }
     case 'nova': for (let i = 0; i < 3; i++) setTimeout(() => FX.push({ x: p.x, y: p.y, ring: s.r * (0.55 + i * 0.25), t: 0.5, c }), i * 90);
@@ -45,7 +49,7 @@ function castFx(s, ox, oy, np, nh) {
     case 'meteor': SFX.met.push({ x: mw.x, y: mw.y, c, t: 0, life: 0.9, r: s.boom }); break;
     case 'summon': SFX.sig.push({ x: p.x + 20, y: p.y, c, t: 0, life: 1.2, r: 26, rot: 0 }); sparkRing(p.x + 20, p.y, 24, c, 70, { up: 40, life: 0.8 }); break;
     case 'storm': screenFlash('#f0f05a', 0.3); shake = Math.max(shake || 0, 0.3); break;
-    case 'buff': case 'ward': SFX.auraT = 2.5; SFX.auraC = c; sparkRing(p.x, p.y, 36, c, 80, { up: 30, life: 0.9 }); break;
+    case 'buff': case 'ward': if (!SGH) { SFX.auraT = 2.5; SFX.auraC = c; } sparkRing(p.x, p.y, 36, c, 80, { up: 30, life: 0.9 }); break;
     case 'drain': case 'chain': break;
   }
 }

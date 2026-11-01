@@ -296,20 +296,29 @@ function myPresence(dt) {
     fa: +(P.faceA || 0).toFixed(2), mv: pmove.moving ? 1 : 0, run: pmove.sprint ? 1 : 0, z: Math.round(P.z || 0), sw: P.swim || 0, h: ui.hand ? null : heldId(),
     sg: P.swing > 0 ? +P.swing.toFixed(2) : 0, mn: mining ? 1 : 0, ht: P.hurtT > 0 ? 1 : 0, mt: m ? m.sp : null, fs: typeof FSH !== 'undefined' && FSH.st ? [Math.round(FSH.bx), Math.round(FSH.by)] : null,
     hp: Math.round(pc.hp ?? 100), mhp: Math.round(maxHp()), ty: CHAT.open ? 1 : 0, ps: ui.open === 'pause' ? 1 : 0, look: ch.look, eq: S.equip, dc: typeof dcTag === 'function' ? dcTag() || null : null };
-  const s = JSON.stringify(pr); if (s === _prS) return; _prS = s; pr.q = ++_prSeq; g.r.presence(pr).catch(() => { });
+  // Hacia dónde apunta (para que sus hechizos sigan su cursor), cohete encendido y lo que acaba de hacer (sim/netfx.js)
+  const mw = mouseWorld(); pr.ax = Math.round(mw.x); pr.ay = Math.round(mw.y); if (typeof WF !== 'undefined' && WF.on && WF.boost && WF.boost.spd && WF.boost.t > 0) pr.bo = WF.boost.c; if (typeof netFxList === 'function') { const ev = netFxList(); if (ev.length) pr.ev = ev; }
+  const s = JSON.stringify(pr); if (s === _prS) return; _prS = s; pr.q = ++_prSeq; pr.ts = Math.round(performance.now()); g.r.presence(pr).catch(() => { }); // ts: su reloj, para colocar cada muestra en su momento real
 }
 // ---------- Los demás: posición suavizada (se dibujan ~100 ms en el pasado, entre dos muestras reales) ----------
 const PEER_DELAY = 110;
 function peerSample(o, pr) {
   if (!pr || pr.x === undefined || pr.q === o.lastQ) return; o.lastQ = pr.q;
   const now = performance.now(), b = o.buf || (o.buf = []);
-  b.push({ t: now, x: pr.x, y: pr.y, vx: pr.vx || 0, vy: pr.vy || 0 }); while (b.length > 12) b.shift();
+  // Reloj del otro → el nuestro: el menor desfase visto es el más fiable (el que menos esperó en la red); se deja derivar despacio
+  let t = now; if (pr.ts) { if (o.lastTs && pr.ts < o.lastTs && pr.ts > o.lastTs - 5000) return; // llegó tarde y desordenado: ya tenemos uno más nuevo
+    const off = now - pr.ts; o.off = o.off === undefined || pr.ts < o.lastTs ? off : Math.min(off, o.off + 0.4); o.lastTs = pr.ts; o.jit = (o.jit || 0) * 0.9 + Math.abs(off - o.off) * 0.1; t = pr.ts + o.off; }
+  if (b.length && t <= b[b.length - 1].t) t = b[b.length - 1].t + 1;
+  b.push({ t, x: pr.x, y: pr.y, vx: pr.vx || 0, vy: pr.vy || 0, z: pr.z || 0 }); while (b.length > 16) b.shift();
+  if (typeof netFxRecv === 'function') netFxRecv(o, pr);
   if (o.rx === undefined || Math.hypot(pr.x - o.rx, pr.y - o.ry) > 8 * T) { o.rx = pr.x; o.ry = pr.y; o.buf = [b[b.length - 1]]; } // teletransporte: sin deslizarse
 }
+// Retraso de dibujo: el intervalo entre envíos (50 ms) + lo que varía la red, con margen. Así casi siempre hay una muestra por delante
+const peerDelay = o => Math.max(95, Math.min(320, 75 + (o.jit || 0) * 3));
 function peerPos(o, now) {
-  const b = o.buf; if (!b || !b.length) return null; const t = now - PEER_DELAY;
+  const b = o.buf; if (!b || !b.length) return null; const t = now - peerDelay(o); // retraso justo para que siempre haya dos muestras entre las que moverse
   if (t <= b[0].t) return b[0];
-  for (let i = b.length - 1; i > 0; i--) { const a = b[i - 1], c = b[i]; if (t >= a.t && t <= c.t) { const k = (t - a.t) / Math.max(1, c.t - a.t); return { x: a.x + (c.x - a.x) * k, y: a.y + (c.y - a.y) * k }; } }
+  for (let i = b.length - 1; i > 0; i--) { const a = b[i - 1], c = b[i]; if (t >= a.t && t <= c.t) { const k = (t - a.t) / Math.max(1, c.t - a.t); return { x: a.x + (c.x - a.x) * k, y: a.y + (c.y - a.y) * k, z: a.z + (c.z - a.z) * k }; } }
   const l = b[b.length - 1], ex = Math.min(0.15, (t - l.t) / 1000); return { x: l.x + l.vx * ex, y: l.y + l.vy * ex }; // un poco por delante si faltan datos
 }
 { const d0 = drawPlayer; drawPlayer = ctx => { d0(ctx); if (inGame()) drawPeers(ctx); }; }
@@ -317,11 +326,11 @@ function drawPeers(ctx) {
   const now = performance.now(), showNames = typeof OPT === 'undefined' || OPT.names !== false, dt = Math.min(0.1, (now - (drawPeers.t || now)) / 1000); drawPeers.t = now;
   // Orden por profundidad: el de más abajo se dibuja encima
   const list = [...NET.peers.values()].filter(o => o.pr && o.pr.x !== undefined);
-  for (const o of list) { const q = peerPos(o, now) || o.pr; const ox = o.rx ?? q.x, oy = o.ry ?? q.y; o.rx = q.x; o.ry = q.y; const moved = Math.hypot(o.rx - ox, o.ry - oy); o.wk = (o.wk || 0) + (o.pr.mv ? moved / (o.pr.sw === 2 ? 15 : o.pr.run ? 13 : 10.5) : 0); o.moved = moved; }
+  for (const o of list) { const q = peerPos(o, now) || o.pr; const ox = o.rx ?? q.x, oy = o.ry ?? q.y; o.rx = q.x; o.ry = q.y; const fa = +o.pr.fa || 0; o.fa = o.fa === undefined ? fa : o.fa + Math.atan2(Math.sin(fa - o.fa), Math.cos(fa - o.fa)) * Math.min(1, dt * 14); o.z = (o.z ?? 0) + ((q.z ?? o.pr.z ?? 0) - (o.z ?? 0)) * Math.min(1, dt * 12); const moved = Math.hypot(o.rx - ox, o.ry - oy); o.wk = (o.wk || 0) + (o.pr.mv ? moved / (o.pr.sw === 2 ? 15 : o.pr.run ? 13 : 10.5) : 0); o.moved = moved; }
   list.sort((a, b) => a.ry - b.ry);
   for (const o of list) {
     const pr = o.pr, x = o.rx, y0 = o.ry; if (Math.abs(x - S.player.x) > 30 * T || Math.abs(y0 - S.player.y) > 20 * T) continue;
-    const z = pr.z || 0, swm = pr.mt ? 0 : pr.sw || 0, bob = swm === 2 ? Math.sin(now / 320 + x) * 1.3 : 0, by = pr.mt ? -8 : 0, y = y0 + by;
+    const z = o.z || 0, swm = pr.mt ? 0 : pr.sw || 0, bob = swm === 2 ? Math.sin(now / 320 + x) * 1.3 : 0, by = pr.mt ? -8 : 0, y = y0 + by;
     // Montura
     if (pr.mt && typeof animalSprite === 'function' && SPECIES[pr.mt]) { try { const spr = animalSprite(pr.mt), s = spr.size, fr = spr.f[(o.wk | 0) % spr.f.length] || spr.f[0]; ctx.save(); ctx.translate(x, y0 + 6); if (Math.cos(pr.fa || 0) < 0) ctx.scale(-1, 1); ctx.drawImage(fr, -s / 2, s / 2 - spr.h, s, spr.h); ctx.restore(); } catch (e) { } }
     // Sombra (no en el agua), ondas al nadar y polvo al correr
@@ -333,9 +342,11 @@ function drawPeers(ctx) {
     if (pr.ht && ((now / 33) | 0) % 2) ctx.globalAlpha = 0.55;
     const wl = swm === 2 ? y + 1 + bob : y + 6;
     if (swm) { ctx.save(); ctx.beginPath(); ctx.rect(x - 60, y - 90, 120, wl - (y - 90)); ctx.clip(); }
-    try { drawAvatar(ctx, pr.look || DEFAULT_LOOK, pr.eq || {}, x, y + 8 - z + (swm === 2 ? 9 + bob : swm ? 2 : 0), +pr.fa || 0, z > 0.5 ? 1.2 : o.wk || 0, (!!pr.mv || z > 0.5) && !pr.mt, 1.6, swm === 2 ? null : pr.h && ITEMS[pr.h] ? pr.h : null, sw2); } catch (e) { circ(ctx, x, y, 9, o.c); }
+    try { drawAvatar(ctx, pr.look || DEFAULT_LOOK, pr.eq || {}, x, y + 8 - z + (swm === 2 ? 9 + bob : swm ? 2 : 0), o.fa ?? (+pr.fa || 0), z > 0.5 ? 1.2 : o.wk || 0, (!!pr.mv || z > 0.5) && !pr.mt, 1.6, swm === 2 ? null : pr.h && ITEMS[pr.h] ? pr.h : null, sw2); } catch (e) { circ(ctx, x, y, 9, o.c); }
     if (swm) { ctx.restore(); ctx.fillStyle = 'rgba(120,180,230,.35)'; ctx.beginPath(); ctx.ellipse(x, wl, 11, 3.6, 0, 0, 7); ctx.fill(); ctx.strokeStyle = 'rgba(230,246,255,.75)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(x, wl, 11 + Math.sin(now / 400) * 0.8, 3.6, 0, 0, 7); ctx.stroke(); }
     ctx.globalAlpha = 1;
+    // Cohete encendido: llamarada a su espalda
+    if (pr.bo && typeof fxAdd === 'function') for (let i = 0; i < 2; i++) { const a = (o.fa || 0) + Math.PI + (Math.random() - 0.5) * 0.5, v = 60 + Math.random() * 60; fxAdd({ x: x + (Math.random() - 0.5) * 6, y: y - z + 2, vx: Math.cos(a) * v, vy: Math.sin(a) * v + 30, life: 0.35, t: 0, size: 2 + Math.random() * 2, col: Math.random() < 0.5 ? '#ffd860' : pr.bo, glow: 1, drag: 2.5 }); }
     // Sedal de pesca
     if (pr.fs) { ctx.strokeStyle = 'rgba(240,240,240,.7)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x + Math.cos(pr.fa) * 14, y - 18); ctx.quadraticCurveTo((x + pr.fs[0]) / 2, Math.max(y, pr.fs[1]) + 10, pr.fs[0], pr.fs[1]); ctx.stroke(); circ(ctx, pr.fs[0], pr.fs[1] + Math.sin(now / 300) * 1.2, 2.2, '#e8473a'); }
     // Nombre: pequeño, se desvanece con la distancia; vida solo si está herido
