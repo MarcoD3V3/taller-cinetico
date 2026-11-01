@@ -104,7 +104,7 @@ function wardTick(dt) {
   _wardT -= dt; if (_wardT > 0) return; _wardT = 1;
   if (S.wards) for (let i = S.wards.length - 1; i >= 0; i--) if ((S.wards[i].t -= 1) <= 0) { toast('La zona protegida se ha desvanecido'); S.wards.splice(i, 1); }
   for (const k of ['spawnSuppressor', 'holyBeacon']) for (const b of L[k] || []) { const need = WARD_DEF[k].pw; b.won = runnable(b) && (b.E || 0) >= need; if (b.won) b.E -= need; }
-  for (const f of FOES.slice()) { if (f.boss || f.owner) continue; const w = wardAt(f.x, f.y, true); if (!w) continue; f.fade = (f.fade || 0) + 1; if (f.fade >= 2 || (w.type === 'holyBeacon' && f.D.undead)) { FX.push({ x: f.x, y: f.y, ring: f.D.s * 1.5, t: 0.4, c: '#fff6b0' }); FOES.splice(FOES.indexOf(f), 1); } }
+  for (const f of FOES.slice()) { if (f.boss || f.owner || f.wv || f.mini) continue; const w = wardAt(f.x, f.y, true); /* la Gran Oleada no se borra con zonas protegidas */ if (!w) continue; f.fade = (f.fade || 0) + 1; if (f.fade >= 2 || (w.type === 'holyBeacon' && f.D.undead)) { FX.push({ x: f.x, y: f.y, ring: f.D.s * 1.5, t: 0.4, c: '#fff6b0' }); FOES.splice(FOES.indexOf(f), 1); } }
 }
 function addWard(x, y, r, t, n) { (S.wards || (S.wards = [])).push({ x, y, r, t, n }); FX.push({ x, y, ring: r * T, t: 1, c: '#fff6b0' }); toast(`🛡 ${n}: nada aparecerá a ${r} casillas durante ${Math.round(t / 60)} min`, true); }
 // ---------- Daño ----------

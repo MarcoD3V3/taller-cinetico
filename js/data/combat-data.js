@@ -337,8 +337,8 @@ IT('potionStealth', 'Poción de sigilo', '#5a6a7a', 'potion', C_CAT, 'Durante 4 
 ITEMS.potionStealth.use = { buff: 'stealth', t: 240 };
 RM('alchemy', { vial: 1, shadowEssence: 1, nightshade: 1 }, { potionStealth: 1 }, 4, { water: 100 });
 RM('alchemy', { vial: 1, batWing: 2, herbs: 2 }, { potionStealth: 1 }, 4, { water: 100 });
-SPELLS.sanctuary = { n: 'Santuario', i: '⛨', el: 'holy', m: 40, cd: 120, kind: 'ward', r: 20, t: 300, c: '#fff6b0' };
-IT('spell_sanctuary', 'Hechizo: Santuario', '#fff6b0', 'scroll', C_CAT, 'Léelo con F para aprenderlo. Crea una zona de 20 casillas donde no aparece nada durante 5 minutos (40 de maná).');
+SPELLS.sanctuary = { n: 'Santuario', i: '⛨', el: 'holy', m: 90, cd: 300, kind: 'ward', r: 8, t: 45, c: '#fff6b0' }; // antes 40 de maná, 20 casillas y 5 min: vaciaba zonas enteras
+IT('spell_sanctuary', 'Hechizo: Santuario', '#fff6b0', 'scroll', C_CAT, 'Léelo con F para aprenderlo. Crea una zona de 8 casillas donde no aparece nada y se desvanecen los monstruos durante 45 s (90 de maná, recarga 5 min). No afecta a la Gran Oleada ni a los jefes.');
 ITEMS.spell_sanctuary.learn = 'sanctuary';
 RB('spell_sanctuary', 1, 'runeLife', 'parchment,holyWater,wardstone', 0, 4);
 NPCS.mage.offers.push([{ coin: 30 }, { spell_sanctuary: 1 }]);
