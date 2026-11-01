@@ -113,16 +113,25 @@ WV_KEYS.forEach((k, i) => { const A = ARENAS[k]; A.k = k; A.x = 200000 + i * 400
 const arenaAtTile = (tx, ty) => { if (Math.abs(ty - WV_Y) > 96) return null; for (const k of WV_KEYS) if (Math.abs(tx - ARENAS[k].x) <= 96) return ARENAS[k]; return null; };
 const inArena = () => !!(S && S.player && arenaAtTile(Math.floor(S.player.x / T), Math.floor(S.player.y / T)));
 // Suelo plano y liso del tipo de la arena (centro y borde con el secundario); fuera del círculo, muro
-{ const g0 = genChunkTiles; genChunkTiles = c => { const A = arenaAtTile(c.cx * CS + 16, c.cy * CS + 16); if (!A) return g0(c);
+function arenaFill(c, A) {
+  c.h = new Uint8Array(CS * CS); // sin relieve: ni terrazas ni acantilados
   for (let y = 0; y < CS; y++) for (let x = 0; x < CS; x++) { const tx = c.cx * CS + x, ty = c.cy * CS + y, dx = tx - A.x, dy = ty - WV_Y, d = Math.hypot(dx, dy), i = (y << CSH) | x;
     let t = d > WV_R ? A.wallI : A.gI;
     if (d <= WV_R && (d < 2.5 || d > WV_R - 1.2)) t = A.altI; // centro y borde marcados; el resto, liso
-    c.g[i] = t; c.bio[i] = A.bio; c.t[i] = GI[t].hp || 0; } }; }
+    c.g[i] = t; c.bio[i] = A.bio; c.t[i] = GI[t].hp || 0; }
+}
+// La altura del terreno de la zona se calcula aparte (sim/motion.js): en la arena, siempre plana
+{ const l0 = chunkLv; chunkLv = c => arenaAtTile(c.cx * CS + 16, c.cy * CS + 16) ? (c.h = new Uint8Array(CS * CS)) : l0(c); }
+{ const g0 = genChunkTiles; genChunkTiles = c => { const A = arenaAtTile(c.cx * CS + 16, c.cy * CS + 16); if (A) arenaFill(c, A); else g0(c); }; }
+// Los trozos de arena guardados se rehacen limpios (si no, cogían el bioma natural de esa zona: animales, frío, bordes)
+{ const b0 = computeChunkBiomes; computeChunkBiomes = c => { const A = arenaAtTile(c.cx * CS + 16, c.cy * CS + 16); if (A) { arenaFill(c, A); c.mod = false; } else b0(c); }; }
 // En la arena no aparece nada por su cuenta, el clima no hiela ni quema y siempre hay luz
 { const s0 = spawnTick; spawnTick = dt => { if (!inArena()) s0(dt); }; }
 { const e0 = envCheck; envCheck = () => { if (!inArena()) e0(); }; }
 { const d0 = daylight; daylight = () => inArena() ? 0.9 : d0(); }
 
+// El muro de la arena no se cruza de ninguna forma: ni volando, ni con alas, ni los fantasmas
+{ const p0 = passable; passable = (x, y, who) => { const tx = Math.floor(x / T), ty = Math.floor(y / T); if (Math.abs(ty - WV_Y) <= 96) { const A = arenaAtTile(tx, ty); if (A && Math.hypot(tx + 0.5 - A.x - 0.5, ty + 0.5 - WV_Y - 0.5) > WV_R) return false; } return p0(x, y, who); }; }
 // ---------- Origen del daño (para las resistencias) ----------
 let WV_SRC = null;
 class SrcSet extends Set { constructor(s) { super(); this.s = s; } add(v) { WV_SRC = this.s; return super.add(v); } }
@@ -203,6 +212,9 @@ function wvTick(dt) {
     if (day >= 100 && day % 100 === 0 && S.wvDay !== day && !ui.open) { S.wvDay = day; openPick(true); } }
   // Partida guardada dentro de la arena sin evento: de vuelta a casa
   if (!WV.on && inArena() && WV.st !== 'away') { const h = S.wvHome || { x: 0, y: 0 }; S.player.x = h.x; S.player.y = h.y; view.x = h.x; view.y = h.y; S.wvHome = null; for (const f of FOES.slice()) if (f.wv) FOES.splice(FOES.indexOf(f), 1); }
+  if (inArena()) for (let i = ANIMALS.length - 1; i >= 0; i--) { const an = ANIMALS[i]; if (arenaAtTile(Math.floor(an.x / T), Math.floor(an.y / T))) ANIMALS.splice(i, 1); } // ni un animal en la arena
+  if (!WV.on && !BOSS && typeof _mus !== 'undefined' && _mus && WV.musOff !== 1) { WV.musOff = 1; bossMusic(false); } // por si quedó sonando la música de la oleada
+  if (WV.on) WV.musOff = 0;
   if (!WV.on || WV.st === 'away') return; WV.t += dt;
   for (const f of FOES) if (!f.wv && inArena() && dist(f.x, f.y, S.player.x, S.player.y) < 40 * T) { f.wv = WV.id; f.minion = 1; f.ag = 1; } // hijos de los que se dividen
   for (let i = WV.pend.length - 1; i >= 0; i--) { const o = WV.pend[i]; o.t += dt; if (o.t >= o.life) { WV.pend.splice(i, 1); o.list.forEach((k, j) => { const a = j / o.list.length * 6.28; const f = wvSpawn(k, o.x + Math.cos(a) * 14 * (j ? 1 : 0), o.y + Math.sin(a) * 14 * (j ? 1 : 0)); if (f.mini && k === curW().mini) { WV.mini = f; wvBanner(`⚠ ${f.D.n}`, 'MINIJEFE', curA().c, 3); bossRoar(); shake = Math.max(shake || 0, 0.7); screenFlash(curA().c, 0.3); } }); } }
@@ -293,10 +305,10 @@ document.addEventListener('click', e => { const b = e.target.closest('[data-wva]
   ctx.restore(); }; }
 { const u0 = updatePlayer; updatePlayer = fdt => { u0(fdt); if (!S) return; wvTick(fdt); wvHud(); const pk = $('wvPick'); if (pk && !pk.hidden && pk._forced) { pk._t -= fdt; const t = $('wvPickT'); if (t) t.textContent = `Si no eliges, en ${Math.ceil(pk._t)} s te llevará a una al azar`; if (pk._t <= 0) wvStart(WV_KEYS[(Math.random() * WV_KEYS.length) | 0]); } }; }
 // ---------- Comando ----------
-cmd('oleada', { a: ['wave', 'horda'], u: '/oleada [mutant|infernal|frozen|void|machine|salir|siguiente]', d: 'Fuerza la Gran Oleada: sin nada abre la elección de arena; con un nombre entra directo. «salir» la abandona; «siguiente» salta a la siguiente oleada.', cheat: 1, run(a) {
+cmd('oleada', { a: ['wave', 'horda'], u: '/oleada [mutant|infernal|frozen|void|machine|fin|siguiente]', d: 'Fuerza la Gran Oleada: sin nada abre la elección de arena; con un nombre entra directo. «fin» (o «salir») la termina y para la música; «siguiente» salta a la siguiente oleada.', cheat: 1, run(a) {
   const q = normTxt(a[0] || '');
   if (!q) { if (WV.on) return errMsg('Ya estás en la Gran Oleada (usa /oleada salir)'); openPick(false); return 'Elige tu arena.'; }
-  if (q === 'salir' || q === 'quit') { if (!WV.on) return errMsg('No hay ninguna oleada en marcha'); wvEnd(false, 'quit'); return 'Has salido de la Gran Oleada.'; }
+  if (['salir', 'fin', 'terminar', 'parar', 'stop', 'quit', 'end'].includes(q)) { if (!WV.on) return errMsg('No hay ninguna oleada en marcha'); wvEnd(false, 'quit'); return 'Has salido de la Gran Oleada.'; }
   if (q === 'siguiente' || q === 'next') { if (!WV.on) return errMsg('No hay ninguna oleada en marcha'); wvClear(); WV.quota = []; WV.miniDone = true; WV.mini = null; return 'Oleada terminada.'; }
   const k = WV_KEYS.find(k => k === q || normTxt(ARENAS[k].n).includes(q)); if (!k) return errMsg('Arenas: ' + WV_KEYS.join(', '));
   if (WV.on) return errMsg('Ya estás en la Gran Oleada'); wvStart(k); return `Entrando en ${ARENAS[k].n}…`; } });
