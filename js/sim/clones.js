@@ -43,7 +43,7 @@ function clTick(dt) {
     // Objetivo: primero los enemigos que le tocan; si no, el más cercano sin dueño
     if (!c.tg || c.tg.hp <= 0 || !FOES.includes(c.tg)) { let best = null, bd = 1e9; for (const f of FOES) { if (f.hp <= 0) continue; const own = f.clT === c, free = !clAlive(f.clT); if (!own && !free) continue; const d = dist(c.x, c.y, f.x, f.y) * (own ? 1 : 1.8); if (d < bd && d < 16 * T) { bd = d; best = f; } } c.tg = best; }
     const f = c.tg, p = S.player; let tx, ty, want = 0;
-    if (f) { const d = dist(c.x, c.y, f.x, f.y), reach = s.v === 'melee' ? f.D.s + 16 : s.v === 'ranged' ? 5 * T : 6 * T; tx = f.x; ty = f.y; c.fa = Math.atan2(f.y - c.y, f.x - c.x);
+    if (f) { const d = dist(c.x, c.y, f.x, f.y), reach = s.v === 'melee' ? f.D.s + 16 : s.v === 'ranged' ? 5 * T : 6 * T; tx = f.x; ty = f.y; c.near = d <= reach + 24;
       if (s.v === 'melee') want = d > reach ? 1 : 0; else want = d > reach ? 1 : d < 3 * T ? -1 : 0;
       if (d <= reach + 4 && c.cd <= 0) { const rage = s.rage ? 1 + (1 - c.hp / c.mhp) * 1.5 : 1; c.cd = s.acd; c.sw = 1;
         if (s.v === 'melee') { mHit(f, s.dmg * rage * pwr(), s.el); efx({ life: 0.18, x: c.x, y: c.y - 10, a: c.fa, col: s.c, draw(ctx) { ctx.globalAlpha = 1 - this.t / 0.18; ctx.strokeStyle = this.col; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(this.x, this.y, 18, this.a - 1, this.a + 1); ctx.stroke(); } });
@@ -55,7 +55,9 @@ function clTick(dt) {
     // Moverse, sin amontonarse con los otros clones
     let mx = 0, my = 0; if (want) { const a = Math.atan2(ty - c.y, tx - c.x); mx = Math.cos(a) * want; my = Math.sin(a) * want; }
     for (const o of CLONES) if (o !== c) { const d = dist(c.x, c.y, o.x, o.y); if (d < 22 && d > 0) { mx += (c.x - o.x) / d * 0.8; my += (c.y - o.y) / d * 0.8; } }
-    const L = Math.hypot(mx, my); c.mv = L > 0.1; if (c.mv) { const v = 2.9 * T * (s.spd || 1) * dt / Math.max(1, L), nx = c.x + mx * v, ny = c.y + my * v; const W2 = { fly: 1 }; if (passable(nx, ny, W2)) { c.x = nx; c.y = ny; } else if (passable(nx, c.y, W2)) c.x = nx; else if (passable(c.x, ny, W2)) c.y = ny; /* flotan sobre rocas y agua (si no, se atascaban si volabas) */ c.walk += dt * 8; }
+    const L = Math.hypot(mx, my); c.mv = L > 0.1;
+    // Hacia dónde mira: al enemigo si está peleando; si no, hacia donde camina (con giro suave)
+    const want2 = f && (c.near || !c.mv) ? Math.atan2(f.y - c.y, f.x - c.x) : c.mv ? Math.atan2(my, mx) : c.fa; c.fa += Math.atan2(Math.sin(want2 - c.fa), Math.cos(want2 - c.fa)) * Math.min(1, dt * 12); if (c.mv) { const v = 2.9 * T * (s.spd || 1) * dt / Math.max(1, L), nx = c.x + mx * v, ny = c.y + my * v; const W2 = { fly: 1 }; if (passable(nx, ny, W2)) { c.x = nx; c.y = ny; } else if (passable(nx, c.y, W2)) c.x = nx; else if (passable(c.x, ny, W2)) c.y = ny; /* flotan sobre rocas y agua (si no, se atascaban si volabas) */ c.walk += dt * 8 * (s.spd || 1); }
     if (Math.random() < 0.25) fxAdd({ x: c.x + rnd(-8, 8), y: c.y - rnd(0, 22), vx: 0, vy: rnd(-25, -10), life: 0.5, t: 0, size: 1.8, col: s.c, glow: 1, drag: 0.5 });
   }
   // Los proyectiles enemigos también les dan
