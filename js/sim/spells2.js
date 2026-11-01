@@ -222,3 +222,25 @@ function beastSpellTick(dt) {
   for (const h of _bWarn) if (!HAZ.includes(h)) { _bWarn.delete(h); beastsAt(h.x, h.y, h.r, h.dmg); }
 }
 { const u0 = updatePlayer; updatePlayer = fdt => { u0(fdt); if (S) beastSpellTick(fdt); }; }
+// ---------- Santuario: barrera que no deja entrar y quema poco a poco a los que ya estaban dentro ----------
+// Ya no hace desaparecer a nadie (un jefe moría de golpe): los de dentro siguen moviéndose y atacando.
+const WARD_IN = new WeakMap(); // zona → enemigos que estaban dentro (no se guarda en la partida)
+function wardSpellTick(dt) {
+  for (const w of S.wards || []) {
+    const R = w.r * T; let ins = WARD_IN.get(w);
+    if (!ins) { ins = new Set(FOES.filter(f => f.hp > 0 && dist(f.x, f.y, w.x, w.y) < R)); WARD_IN.set(w, ins); }
+    const burn = every(w, '_k', dt, 0.5);
+    for (const f of FOES) { if (f.hp <= 0) continue; const d = dist(f.x, f.y, w.x, w.y);
+      if (ins.has(f)) { if (d > R + 6) { ins.delete(f); continue; } // ha salido: ya no puede volver
+        if (burn) { damageFoe(f, (5 + f.mhp * 0.006) * 0.5, 'holy'); fxAdd({ x: f.x + rnd(-6, 6), y: f.y - rnd(0, 14), vx: 0, vy: -30, life: 0.6, t: 0, size: 2, col: '#fff6b0', glow: 1, drag: 0.5 }); } }
+      else if (d < R) { const a = Math.atan2(f.y - w.y, f.x - w.x) || 0; f.x = w.x + Math.cos(a) * (R + 2); f.y = w.y + Math.sin(a) * (R + 2); f.vx = f.vy = 0;
+        if (Math.random() < 0.3) { sparkRing(f.x, f.y, 5, '#fff6b0', 70, { life: 0.3 }); } } }
+  }
+}
+{ const u0 = updatePlayer; updatePlayer = fdt => { u0(fdt); if (S && S.wards && S.wards.length) wardSpellTick(fdt); }; }
+{ const d0 = drawFxWorld; drawFxWorld = ctx => { d0(ctx); if (!S || !S.wards || !S.wards.length) return; const t = performance.now() / 1000; ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const w of S.wards) { const R = w.r * T, fade = Math.min(1, w.t / 3); ctx.globalAlpha = (0.35 + 0.15 * Math.sin(t * 3)) * fade; ctx.strokeStyle = '#fff6b0'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(w.x, w.y, R, 0, 7); ctx.stroke();
+    ctx.globalAlpha = 0.6 * fade; ctx.lineWidth = 1.5; ctx.setLineDash([6, 10]); ctx.lineDashOffset = -t * 30; ctx.beginPath(); ctx.arc(w.x, w.y, R - 6, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+    ctx.globalAlpha = 0.06 * fade; ctx.fillStyle = '#fff6b0'; ctx.beginPath(); ctx.arc(w.x, w.y, R, 0, 7); ctx.fill();
+    if (Math.random() < 0.6) { const a = Math.random() * 6.28; fxAdd({ x: w.x + Math.cos(a) * R, y: w.y + Math.sin(a) * R, vx: 0, vy: -rnd(20, 50), life: 0.8, t: 0, size: 2, col: '#fff6b0', glow: 1, drag: 0.3 }); } }
+  ctx.restore(); }; }
