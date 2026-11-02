@@ -65,7 +65,7 @@ function npcTick(dt) {
 function npcAt(wx, wy) { for (const n of S.npcs || []) if (dist(n.x, n.y, wx, wy) < 14) return n; return null; }
 // ---------- Comercio ----------
 let _tradeNpc = null;
-const priceOf = (n, give) => { const f = Math.max(0.6, (1 - 0.05 * Math.min(6, n.decor || 0)) * CM().price); const o = {}; for (const k in give) o[k] = k === 'coin' ? Math.max(1, Math.ceil(give[k] * f)) : give[k]; return o; };
+const priceOf = (n, give) => { const f = Math.max(0.6, (1 - 0.05 * Math.min(6, n.decor || 0)) * CM().price * (1 - (typeof repDisc === 'function' ? repDisc() : 0))); const o = {}; for (const k in give) o[k] = k === 'coin' ? Math.max(1, Math.ceil(give[k] * f)) : give[k]; return o; };
 function openTrade(n) {
   _tradeNpc = n; openModal('trade'); renderTrade();
 }

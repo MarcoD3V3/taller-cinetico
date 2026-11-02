@@ -94,7 +94,7 @@ createFromForm = () => {
   if (!activeChar()) { showChars(); return; }
   const gen = previewGen(), id = newWorldId(); if (S && currentWorld) saveGame(true);
   newGame(gen, { name: (cwS.name || '').trim() || 'Mi mundo', kit: 'empty', alwaysDay: cwS.alwaysDay, sandbox: cwS.sandbox, surv: cwS.surv !== false });
-  S.created = Date.now(); currentWorld = id; S.cheats = !!(cwS.cheats || cwS.sandbox); // «Permitir comandos y trucos» (el modo libre ya es creativo) { const dl = S.gen.dayLen || DAY_LEN; S.time = ((cwS.startHour ?? 7) / 24) * dl; }
+  S.created = Date.now(); currentWorld = id; S.cheats = !!(cwS.cheats || cwS.sandbox); /* «Permitir comandos y trucos» (el modo libre ya es creativo) */ { const dl = S.gen.dayLen || DAY_LEN; S.time = ((cwS.startHour ?? 7) / 24) * dl; }
   enterWorld(); if (!saveGame(true)) toast('Aviso: este navegador no permite guardar; la partida se perderá al cerrar'); openModal('help');
 };
 // ---------- Crear personaje (sin mundo abierto: se usa un mundo de mentira solo para montarlo) ----------

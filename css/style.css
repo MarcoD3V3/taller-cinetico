@@ -1868,3 +1868,51 @@ body.hudmin { --hud: rgba(14, 15, 17, .74); }
 #bossBar { width: min(380px, calc(100vw - 32px)); } #bossBar .bbn { font-size: 12.5px; } #bossBar .bbb { height: 8px; margin-top: 3px; border-width: 1px; border-radius: 5px; }
 
 .wandon #spellBar, .mega #spellBar { display: none !important; } /* con varita manda el grimorio; antes parpadeaba */
+
+/* ---------- Aventura: logros, encargos y mazmorras ---------- */
+.advm { max-width: 860px; }
+.advm header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.advm header h2 { margin: 0; }
+.advtabs { display: flex; gap: 4px; margin-right: auto; flex-wrap: wrap; }
+.advtabs button.on, .achcats button.on { background: #ffd34a22; border-color: #ffd34a88; color: #ffe9a8; }
+.advin { margin-top: 12px; }
+.advwarn { background: #ff9a4a18; border: 1px solid #ff9a4a55; color: #ffd2b0; padding: 7px 10px; border-radius: 9px; font-size: 12.5px; margin: 0 0 10px; }
+.achtop { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.achtop > div:first-child b { font: 700 20px var(--display); color: #ffd34a; }
+.achtt b { color: #ffd34a; } .achtt button { padding: 2px 8px; font-size: 11.5px; margin-left: 6px; }
+.achcats { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; } .achcats button { padding: 4px 9px; font-size: 12px; }
+.achgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 6px; }
+.achc { display: flex; gap: 9px; align-items: center; padding: 8px 9px; border-radius: 10px; background: #ffffff08; border: 1px solid var(--line); opacity: .78; }
+.achc.ok { opacity: 1; background: linear-gradient(135deg, #ffd34a14, #ffffff06); border-color: #ffd34a55; }
+.achc .ai { font-size: 22px; width: 30px; text-align: center; flex: none; filter: grayscale(1); } .achc.ok .ai { filter: none; }
+.achc .at { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.achc .at b { font-size: 13px; } .achc .at small { font-size: 11.5px; color: var(--mut, #a8a49a); } .achc .at em { font-size: 11.5px; color: #ffd34a; font-style: normal; }
+.achc button { padding: 3px 8px; font-size: 11px; flex: none; } .achc button.on { border-color: #ffd34a; color: #ffd34a; }
+.ab { height: 5px; border-radius: 3px; background: #ffffff14; overflow: hidden; margin-top: 4px; } .ab i { display: block; height: 100%; transform-origin: 0 50%; background: linear-gradient(90deg, #b8902a, #ffd34a); }
+.av { font-size: 10.5px; color: #a8a49a; }
+#achPop { position: fixed; top: 64px; left: 50%; z-index: 40; display: flex; gap: 12px; align-items: center; padding: 10px 18px 10px 12px; border-radius: 14px; background: #15130ef2; border: 1px solid #ffd34a88; box-shadow: 0 10px 30px #000b, 0 0 30px #ffd34a33; transform: translate(-50%, -140%); opacity: 0; transition: transform .45s cubic-bezier(.2, 1.4, .4, 1), opacity .3s; pointer-events: none; }
+#achPop.on { transform: translate(-50%, 0); opacity: 1; }
+#achPop .ai { font-size: 30px; animation: achSpin 1s ease-out; } #achPop div { display: flex; flex-direction: column; }
+#achPop small { font-size: 10.5px; color: #c8b890; text-transform: uppercase; letter-spacing: .06em; } #achPop b { font: 700 16px var(--display); color: #ffe9a8; } #achPop em { font-size: 12px; color: #ffd34a; font-style: normal; }
+@keyframes achSpin { from { transform: scale(.2) rotate(-200deg); } to { transform: none; } }
+.reptop { padding: 9px 11px; border-radius: 10px; background: #ff9ab010; border: 1px solid #ff9ab040; margin-bottom: 10px; } .reptop b { color: #ffb0c0; } .reptop .ab i { background: linear-gradient(90deg, #c0506a, #ff9ab0); }
+.qlist { display: flex; flex-direction: column; gap: 6px; }
+.qc { display: flex; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 10px; background: #ffffff08; border: 1px solid var(--line); }
+.qc.ok { border-color: #7fd07a88; background: #7fd07a12; }
+.qc .qt { flex: 1; min-width: 0; display: flex; flex-direction: column; } .qc .qt small { font-size: 11px; color: #a8a49a; } .qc .qt b { font-size: 13px; }
+.qc .qr { display: flex; flex-direction: column; gap: 2px; font-size: 12px; align-items: flex-end; flex: none; } .qc .qr span { display: flex; gap: 4px; align-items: center; }
+.qc .qb { display: flex; gap: 4px; flex: none; } .qc .qb button { padding: 4px 10px; font-size: 12px; } .qc .qb button:disabled { opacity: .4; }
+.qc .qb button.pri { background: #7fd07a30; border-color: #7fd07a; }
+#qTrack { position: fixed; right: 12px; top: 46%; z-index: 6; width: 200px; padding: 6px 9px; border-radius: 10px; background: #0d0e12cc; border: 1px solid var(--line); font-size: 11px; pointer-events: none; zoom: var(--hudz, 1); }
+#qTrack[hidden], #dgHud[hidden] { display: none; }
+#qTrack small { color: #ffd34a; font-weight: 700; } #qTrack div { display: flex; justify-content: space-between; gap: 6px; margin-top: 2px; color: #ddd6c6; } #qTrack div.ok { color: #9ae09a; } #qTrack b { flex: none; }
+.h-clean #qTrack { display: none; }
+#dgHud { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 7; width: min(380px, calc(100vw - 24px)); padding: 6px 10px 7px; border-radius: 11px; background: #0d0e12e8; border: 1px solid color-mix(in srgb, var(--c) 50%, transparent); box-shadow: 0 8px 26px #000a, 0 0 18px color-mix(in srgb, var(--c) 22%, transparent); pointer-events: none; }
+.dgt { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; } .dgt b { font: 700 12.5px var(--display); color: var(--c); } .dgt span { font-size: 11px; color: #e8e0d0; }
+.dgrow { display: flex; gap: 10px; align-items: center; margin-top: 4px; }
+.dgmap { display: grid; grid-template-columns: repeat(5, 9px); gap: 2px; flex: none; } .dgmap i { width: 9px; height: 9px; border-radius: 2px; }
+.dgs { display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: #cfc8b8; } .dgs b { font-size: 12px; }
+.dglist { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px; }
+.dgc { display: flex; flex-direction: column; padding: 8px 10px; border-radius: 10px; background: #ffffff08; border: 1px solid color-mix(in srgb, var(--c) 40%, transparent); } .dgc b { color: var(--c); } .dgc span { font-size: 11.5px; color: #ffd34a; } .dgc small { font-size: 11px; color: #a8a49a; }
+@media (max-width: 600px) { #qTrack { display: none; } .achgrid { grid-template-columns: 1fr; } }
+#dgHud.low { top: 74px; }
