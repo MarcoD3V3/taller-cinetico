@@ -171,7 +171,7 @@ function dgTick(dt) {
   dgDiscover();
   // Partida guardada dentro de una mazmorra (o mazmorra perdida): de vuelta a la entrada
   if (!DGX.run && inDungeon()) { const h = S.dgHome || { x: 0, y: 0 }; S.player.x = h.x; S.player.y = h.y; view.x = h.x; view.y = h.y; S.dgHome = null; dgPurge(); return; }
-  const r = DGX.run; if (!r) { if ((DGX.purgeT = (DGX.purgeT || 0) - dt) <= 0) { DGX.purgeT = 5; dgPurge(); } return; } r.t += dt; /* sin mazmorra: lo que quede de ella en memoria se borra */
+  const r = DGX.run; if (!r) { const hd = $('dgHud'); if (hd && !hd.hidden) hd.hidden = true; /* fuera de la mazmorra, sin marcador */ if ((DGX.purgeT = (DGX.purgeT || 0) - dt) <= 0) { DGX.purgeT = 5; dgPurge(); } return; } r.t += dt; /* sin mazmorra: lo que quede de ella en memoria se borra */
   if (S.pc && S.pc.hp < r.hp0 - 0.01) r.hurt = true; if (S.pc) r.hp0 = S.pc.hp;
   for (let i = ANIMALS.length - 1; i >= 0; i--) if (dgZone(Math.floor(ANIMALS[i].x / T), Math.floor(ANIMALS[i].y / T))) ANIMALS.splice(i, 1);
   const p = S.player, R = dgRoomAt(p.x, p.y);
@@ -203,7 +203,7 @@ function dgBossWake() {
   wvBanner('☠ ¡El guardián despierta!', r.ent.name, DG_THEMES[r.theme].c, 3); shake = Math.max(shake || 0, 0.6);
 }
 function dgSummon() {
-  const r = DGX.run, B = r.boss, ks = Object.keys(BOSSES).filter(k => (BOSSES[k].tier || 0) <= Math.max(S.tier || 0, r.lvl - 1) && !BOSSES[k].water && !BOSSES[k].sea), k = ks.length ? ks[(Math.random() * ks.length) | 0] : Object.keys(BOSSES)[0];
+  const r = DGX.run, B = r.boss, ks = Object.keys(BOSSES).filter(k => (BOSSES[k].tier || 0) <= Math.max(S.tier || 0, r.lvl - 1) && !BOSSES[k].water && !BOSSES[k].sea && !(typeof ASC !== 'undefined' && ASC[k] && ASC[k].env === 'mar')), k = ks.length ? ks[(Math.random() * ks.length) | 0] : Object.keys(BOSSES)[0];
   summonBoss(k, true, { x: (r.ox + B.mx + 0.5) * T, y: (r.oy + B.my - 2) * T }); // «natural»: sin levantar el escenario del Ascenso encima de la sala
 }
 function dgBossDown() {

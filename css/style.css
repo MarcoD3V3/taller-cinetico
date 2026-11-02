@@ -1921,3 +1921,24 @@ body.hudmin { --hud: rgba(14, 15, 17, .74); }
 #mountHud { position: fixed; left: 12px; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); z-index: 6; display: flex; flex-direction: column; gap: 1px; padding: 6px 10px; border-radius: 10px; background: #0d0e12d8; border: 1px solid var(--line); font-size: 11px; color: #cfc8b8; pointer-events: none; zoom: var(--hudz, 1); }
 #mountHud[hidden] { display: none; } #mountHud b { font-size: 12.5px; color: #f0e0b0; } #mountHud .ok { color: #9ae09a; } #mountHud .cd { color: #8a8a8a; }
 .h-clean #mountHud { display: none; }
+
+/* ---------- Modo foto ---------- */
+.photo body > *:not(#c):not(#photoBar):not(#photoFlash):not(#photoView) { visibility: hidden !important; }
+#photoBar { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 60; display: flex; flex-direction: column; gap: 6px; padding: 9px 12px; border-radius: 14px; background: #0d0e12e6; border: 1px solid var(--line); box-shadow: 0 10px 30px #000a; max-width: calc(100vw - 32px); }
+#photoBar[hidden] { display: none; }
+.phrow { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; } .phrow button { padding: 4px 9px; font-size: 12px; } .phrow button.on { border-color: #ffd34a; color: #ffd34a; background: #ffd34a1a; }
+.phrow label { font-size: 12px; display: flex; gap: 4px; align-items: center; color: #ddd6c6; } .phshot { background: #ffd34a26 !important; border-color: #ffd34a !important; font-weight: 700; }
+.phgal img { width: 64px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); cursor: pointer; }
+#photoFlash { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 70; } #photoFlash.on { animation: phFlash .45s ease-out; }
+@keyframes phFlash { 0% { opacity: .85; } 100% { opacity: 0; } }
+#photoView { position: fixed; inset: 0; z-index: 65; background: #000c; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 16px; }
+#photoView img { max-width: 92vw; max-height: 78vh; border-radius: 8px; box-shadow: 0 10px 40px #000; } .phvt { color: #eee; font-size: 13px; text-align: center; } .phvt button { margin-left: 8px; }
+/* ---------- Jefe de mundo, mascotas y estaciones ---------- */
+#wbHud { position: fixed; top: 10px; right: 210px; z-index: 6; display: flex; gap: 8px; align-items: center; padding: 6px 11px; border-radius: 11px; background: #1a0d0de6; border: 1px solid #ff6b5b80; box-shadow: 0 0 16px #ff3a2a33; pointer-events: none; zoom: var(--hudz, 1); }
+#wbHud[hidden] { display: none; } #wbHud b { font-size: 12px; color: #ff9a8a; display: block; } #wbHud small { font-size: 10.5px; color: #cfc8b8; } .wbar { font-size: 18px; color: #ff6b5b; display: inline-block; transition: transform .3s; }
+.h-clean #wbHud { display: none; }
+@media (max-width: 700px) { #wbHud { right: auto; left: 12px; top: 60px; } }
+.petlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px; }
+.petc { padding: 8px 10px; border-radius: 10px; background: #ffffff08; border: 1px solid var(--line); } .petc .pt { display: flex; flex-direction: column; } .petc .pt b { font-size: 13px; } .petc .lv { color: #ffd34a; font-size: 12px; } .petc small { color: #a8a49a; font-size: 11px; }
+.perks { display: flex; flex-direction: column; gap: 1px; margin-top: 4px; font-size: 11px; color: #6a6660; } .perks .on { color: #9ae09a; }
+.clks { font-weight: 600; }
