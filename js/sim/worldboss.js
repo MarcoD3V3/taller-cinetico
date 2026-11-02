@@ -48,7 +48,7 @@ function wbTick(dt) {
 function wbReward() {
   const t = S.tier || 0, rw = [['coin', 250 + t * 120]], gear = Object.keys(ITEMS).filter(id => ITEMS[id].weapon && typeof TR !== 'undefined' && TR[id] && (TR[id].r || 0) >= 3 && (TR[id].r || 0) <= 5);
   for (let i = 0; i < 2 && gear.length; i++) rw.push([gear[(Math.random() * gear.length) | 0], 1]);
-  for (const [id, n] of [['tPotHeal4', 3], ['manaCrystal', 3], ['goldIngot', 4], ['starShard', 2]]) if (ITEMS[id]) rw.push([id, n]);
+  for (const [id, n] of [['colossusHeart', 1], ['tPotHeal4', 3], ['manaCrystal', 3], ['goldIngot', 4], ['starShard', 2]]) if (ITEMS[id]) rw.push([id, n]);
   return rw;
 }
 function wbGive(n, rw) { for (const [id, k] of rw) if (ITEMS[id]) invGive(id, k); invVersion++; wvBanner(`🏆 ¡${n} ha caído!`, 'Premio para todos: ' + rw.map(([id, k]) => k + ' ' + ITEMS[id].n).join(', '), '#ffd34a', 6); sparkRing(S.player.x, S.player.y, 60, '#ffd34a', 200, { up: 60, life: 1 }); }

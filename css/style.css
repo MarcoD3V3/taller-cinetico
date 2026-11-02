@@ -1952,3 +1952,7 @@ body.hudmin { --hud: rgba(14, 15, 17, .74); }
 .axpcs { display: flex; gap: 5px; margin: 5px 0 3px; } .axp { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 7px; background: #0006; border: 1px solid var(--line); position: relative; }
 .axp.ok { border-color: #7fd07a; } .axp.ok::after { content: '✓'; position: absolute; right: 1px; bottom: -2px; font-size: 10px; color: #7fd07a; }
 .axset small { font-size: 10.5px; line-height: 1.3; display: block; }
+
+.axset.mythc { grid-column: span 2; border-width: 2px; box-shadow: 0 0 18px color-mix(in srgb, var(--c3) 35%, transparent), inset 0 0 22px color-mix(in srgb, var(--c3) 12%, transparent); animation: mythGlow 3s ease-in-out infinite; }
+@keyframes mythGlow { 50% { box-shadow: 0 0 28px color-mix(in srgb, var(--c3) 55%, transparent), inset 0 0 26px color-mix(in srgb, var(--c3) 20%, transparent); } }
+@media (max-width: 600px) { .axset.mythc { grid-column: auto; } }

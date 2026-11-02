@@ -31,7 +31,7 @@ const AX_DIVINE = { w: { melee: 1.15, def: 10 }, h: { speed: 1.1, ranged: 1.15 }
 function axBonusList(eq) {
   const pr = axProfile(eq), out = [];
   for (const st in pr.by) { const L = pr.by[st], k = Math.min(...L) + 1; if (L.length >= 4) out.push([`${AX_STYLES[st].i} ${AX_STYLES[st].n}: 4 piezas`, AX_BON[st][1](k)]); else if (L.length >= 2) out.push([`${AX_STYLES[st].i} ${AX_STYLES[st].n}: ${L.length} piezas (bono de 2; con 4, el grande)`, AX_BON[st][0](k)]); }
-  if (pr.tier !== null) out.push([`◆ Armonía de nivel ${pr.tier + 1}`, { def: 1 + pr.tier, hp: 2 * (pr.tier + 1) }]);
+  if (pr.tier !== null) out.push([pr.tier >= 10 ? '◆ Armonía mítica' : `◆ Armonía de nivel ${pr.tier + 1}`, { def: 1 + pr.tier, hp: 2 * (pr.tier + 1) }]);
   if (pr.full && pr.full.t === 9) out.push([`✸ Forma divina ${AX_STYLES[pr.full.st].n.toLowerCase()}`, AX_DIVINE[pr.full.st]]);
   return out;
 }
@@ -103,7 +103,7 @@ function axPaintHD(cv, sp, anchors, FW, FH, PAD) {
         else if (st === 'h') { if (Math.abs(rx - ry) <= 1 && front) set(X, Y, C2); else if ((rx + ry * 2) % 5 === 0) set(X, Y, LO); if ((rx === 1 || X === x1 - 1) && ry % 2 === 0) set(X, Y, HI); }
         else if (st === 'm') { if (Math.abs(X - cx) <= 1) set(X, Y, C2); if (ry === y1 - y0 - 1 && rx % 3 === 1) set(X, Y, C3); if (ry === 0) set(X, Y, C2); }
         else if (st === 's') { if (front && (Math.abs(rx - ry) === 0 || Math.abs((x1 - X) - ry) === 0)) set(X, Y, C2); if (ry === y1 - y0 - 2) set(X, Y, t >= 4 ? C3 : C2); }
-        else { if (front && ((Math.abs(X - cx) <= 0 && ry >= 2 && ry <= 9) || (ry === 5 && Math.abs(X - cx) <= 3))) set(X, Y, C2); if (rx === 0 || X === x1 || ry === 0) set(X, Y, C2); }
+        else if (st === 'g') { if (front && ((Math.abs(X - cx) <= 0 && ry >= 2 && ry <= 9) || (ry === 5 && Math.abs(X - cx) <= 3))) set(X, Y, C2); if (rx === 0 || X === x1 || ry === 0) set(X, Y, C2); }
         if (t >= 7 && h(X, Y, t) % 67 === 0) set(X, Y, C3); // destellos
         if (t >= 9 && (rx === 0 || X === x1) && (ry + (A.f << 1)) % 3 === 0) set(X, Y, C3); }
       if (front && t >= 5) { const gy = y0 + 4; for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1], [-1, 0], [2, 1], [0, -1], [1, 2]]) set(cx + dx, gy + dy, dx === 0 && dy === 0 ? WH : C3); }

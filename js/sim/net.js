@@ -345,6 +345,7 @@ function drawPeers(ctx) {
     const wl = swm === 2 ? y + 1 + bob : y + 6;
     if (swm) { ctx.save(); ctx.beginPath(); ctx.rect(x - 60, y - 90, 120, wl - (y - 90)); ctx.clip(); }
     try { drawAvatar(ctx, pr.look || DEFAULT_LOOK, pr.eq || {}, x, y + 8 - z + (swm === 2 ? 9 + bob : swm ? 2 : 0), o.fa ?? (+pr.fa || 0), z > 0.5 ? 1.2 : o.wk || 0, (!!pr.mv || z > 0.5) && !pr.mt, 1.6, swm === 2 ? null : pr.h && ITEMS[pr.h] ? pr.h : null, sw2); } catch (e) { circ(ctx, x, y, 9, o.c); }
+    if (typeof axDrawAura === 'function' && pr.eq && !pr.eq.costume) axDrawAura(ctx, pr.eq, x, y + 8 - z, now, 1); /* capa de delante del aura (sim/armory.js) */
     if (swm) { ctx.restore(); ctx.fillStyle = 'rgba(120,180,230,.35)'; ctx.beginPath(); ctx.ellipse(x, wl, 11, 3.6, 0, 0, 7); ctx.fill(); ctx.strokeStyle = 'rgba(230,246,255,.75)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(x, wl, 11 + Math.sin(now / 400) * 0.8, 3.6, 0, 0, 7); ctx.stroke(); }
     ctx.globalAlpha = 1;
     // Cohete encendido: llamarada a su espalda
