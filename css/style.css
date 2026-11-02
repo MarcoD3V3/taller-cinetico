@@ -1916,3 +1916,8 @@ body.hudmin { --hud: rgba(14, 15, 17, .74); }
 .dgc { display: flex; flex-direction: column; padding: 8px 10px; border-radius: 10px; background: #ffffff08; border: 1px solid color-mix(in srgb, var(--c) 40%, transparent); } .dgc b { color: var(--c); } .dgc span { font-size: 11.5px; color: #ffd34a; } .dgc small { font-size: 11px; color: #a8a49a; }
 @media (max-width: 600px) { #qTrack { display: none; } .achgrid { grid-template-columns: 1fr; } }
 #dgHud.low { top: 74px; }
+
+/* ---------- Monturas ---------- */
+#mountHud { position: fixed; left: 12px; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); z-index: 6; display: flex; flex-direction: column; gap: 1px; padding: 6px 10px; border-radius: 10px; background: #0d0e12d8; border: 1px solid var(--line); font-size: 11px; color: #cfc8b8; pointer-events: none; zoom: var(--hudz, 1); }
+#mountHud[hidden] { display: none; } #mountHud b { font-size: 12.5px; color: #f0e0b0; } #mountHud .ok { color: #9ae09a; } #mountHud .cd { color: #8a8a8a; }
+.h-clean #mountHud { display: none; }

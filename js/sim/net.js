@@ -295,7 +295,7 @@ function myPresence(dt) {
   const pr = { nick: myNick(), c: myColor(), host: !!g.host, x: Math.round(p.x), y: Math.round(p.y), vx: Math.round(P.mvx || 0), vy: Math.round(P.mvy || 0),
     fa: +(P.faceA || 0).toFixed(2), mv: pmove.moving ? 1 : 0, run: pmove.sprint ? 1 : 0, z: Math.round(P.z || 0), sw: P.swim || 0, h: ui.hand ? null : heldId(),
     sg: P.swing > 0 ? +P.swing.toFixed(2) : 0, mn: mining ? 1 : 0, ht: P.hurtT > 0 ? 1 : 0, mt: m ? m.sp : null, fs: typeof FSH !== 'undefined' && FSH.st ? [Math.round(FSH.bx), Math.round(FSH.by)] : null,
-    hp: Math.round(pc.hp ?? 100), mhp: Math.round(maxHp()), ty: CHAT.open ? 1 : 0, ps: ui.open === 'pause' ? 1 : 0, look: ch.look, eq: S.equip, dc: typeof dcTag === 'function' ? dcTag() || null : null, tt: typeof achTitle === 'function' ? achTitle() : null };
+    hp: Math.round(pc.hp ?? 100), mhp: Math.round(maxHp()), ty: CHAT.open ? 1 : 0, ps: ui.open === 'pause' ? 1 : 0, look: ch.look, eq: S.equip, dc: typeof dcTag === 'function' ? dcTag() || null : null, tt: typeof achTitle === 'function' ? achTitle() : null, bt: S.boat ? S.boat.id : null };
   // Hacia dónde apunta (para que sus hechizos sigan su cursor), cohete encendido y lo que acaba de hacer (sim/netfx.js)
   const mw = mouseWorld(); pr.ax = Math.round(mw.x); pr.ay = Math.round(mw.y); if (typeof WF !== 'undefined' && WF.on && WF.boost && WF.boost.spd && WF.boost.t > 0) pr.bo = WF.boost.c; if (typeof netFxList === 'function') { const ev = netFxList(); if (ev.length) pr.ev = ev; }
   const s = JSON.stringify(pr); if (s === _prS) return; _prS = s; pr.q = ++_prSeq; pr.ts = Math.round(performance.now()); g.r.presence(pr).catch(() => { }); // ts: su reloj, para colocar cada muestra en su momento real
@@ -331,6 +331,7 @@ function drawPeers(ctx) {
   for (const o of list) {
     const pr = o.pr, x = o.rx, y0 = o.ry; if (Math.abs(x - S.player.x) > 30 * T || Math.abs(y0 - S.player.y) > 20 * T) continue;
     const z = o.z || 0, swm = pr.mt ? 0 : pr.sw || 0, bob = swm === 2 ? Math.sin(now / 320 + x) * 1.3 : 0, by = pr.mt ? -8 : 0, y = y0 + by;
+    if (pr.bt && typeof drawBoatAt === 'function') drawBoatAt(ctx, pr.bt, x, y0, o.fa || 0, now); /* en barco (sim/boats.js) */
     // Montura
     if (pr.mt && typeof animalSprite === 'function' && SPECIES[pr.mt]) { try { const spr = animalSprite(pr.mt), s = spr.size, fr = spr.f[(o.wk | 0) % spr.f.length] || spr.f[0]; ctx.save(); ctx.translate(x, y0 + 6); if (Math.cos(pr.fa || 0) < 0) ctx.scale(-1, 1); ctx.drawImage(fr, -s / 2, s / 2 - spr.h, s, spr.h); ctx.restore(); } catch (e) { } }
     // Sombra (no en el agua), ondas al nadar y polvo al correr
