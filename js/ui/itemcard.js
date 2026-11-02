@@ -44,7 +44,7 @@ function itemCardHTML(id, have) {
   if (typeof focusBonus === 'function' && focusBonus(id)) nums.push(['Foco mágico', '+' + focusBonus(id).mana + ' maná']);
   if (typeof LIGHT_R !== 'undefined' && LIGHT_R[id]) nums.push(['Luz de mano', LIGHT_R[id] + ' casillas']);
   if (d) { if (d.tier) nums.push(['Se desbloquea', 'nivel ' + (d.tier + 1)]); if (typeof blockStats === 'function') for (const s of blockStats(id).slice(0, 3)) nums.push(['', s]); }
-  const mods = it.gear && it.gear.mods ? icMods(it.gear.mods) : it.armor ? icMods({ warm: it.armor.warm, fire: it.armor.fire }) : [];
+  const mods = it.gear && it.gear.mods ? icMods(it.gear.mods) : it.armor ? icMods({ ...(it.armor.mods || {}), warm: it.armor.warm, fire: it.armor.fire }) : [];
   // Para qué sirve
   const uses = (X.use[id] || []).filter(o => ITEMS[o]);
   const how = [];

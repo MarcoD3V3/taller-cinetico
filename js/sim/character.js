@@ -39,7 +39,8 @@ function charMods(eqOver) {
     if (g.slot === 'acc') { if (seenAcc.has(EQ[sl])) continue; seenAcc.add(EQ[sl]); }
     if (g.def) { m.def += g.def; m.gdef += g.def; } if (g.block) m.block = Math.min(0.5, m.block + g.block);
     if (g.mods) for (const k in g.mods) { if (mul.has(k)) m[k] *= g.mods[k]; else m[k] += g.mods[k]; } }
-  for (const sl in EQ) { const a = EQ[sl] && ITEMS[EQ[sl]] && ITEMS[EQ[sl]].armor; if (!a) continue; m.def += a.def; m.warm += a.warm || 0; m.fire = m.fire || a.fire || 0; if (a.heavy) m.heavy++; if (a.speed) m.speed *= 1 + a.speed; }
+  for (const sl in EQ) { const a = EQ[sl] && ITEMS[EQ[sl]] && ITEMS[EQ[sl]].armor; if (!a) continue; m.def += a.def; m.warm += a.warm || 0; m.fire = m.fire || a.fire || 0; if (a.heavy) m.heavy++; if (a.speed) m.speed *= 1 + a.speed; if (a.mods) for (const k in a.mods) { if (mul.has(k)) m[k] *= a.mods[k]; else m[k] += a.mods[k]; } }
+  if (typeof axSetMods === 'function') for (const [k, v] of axSetMods(EQ)) { if (mul.has(k)) m[k] *= v; else m[k] += v; } // bonos por combinar piezas de la Armería (sim/armory.js)
   if (m.heavy && !m.heavyOk) m.speed *= 1 - 0.02 * m.heavy;
   // Bendición del final elegido
   const ec = S.end && S.end.choice;

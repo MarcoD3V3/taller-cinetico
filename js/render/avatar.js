@@ -273,7 +273,7 @@ function avatarSheet(look, equip) {
   // Materiales por color: pelo, ropa, metal, cuero, pelaje y piel
   const mats = new Map(), add = (col, m) => { const k = hexPx(col); if (k >= 0 && !mats.has(k)) mats.set(k, m); };
   add(sp.hair, 'hair'); add(sp.skin, 'skin'); for (const k of ['shirt', 'pants', 'cape']) add(sp[k], 'cloth'); add(sp.shoes, 'leather'); add(sp.coat, 'fur');
-  for (const a of [sp.helm, sp.chest, sp.legs, sp.feet]) if (a) add(a.c, a.set === 'leather' ? 'leather' : a.set === 'fur' ? 'fur' : 'metal');
+  for (const a of [sp.helm, sp.chest, sp.legs, sp.feet]) if (a) add(a.c, a.mat || (a.set === 'leather' ? 'leather' : a.set === 'fur' ? 'fur' : 'metal'));
   if (sp.gloves) add(sp.gloves, 'leather'); if (sp.shieldC) add(sp.shieldC, 'metal');
   const hi = hiRes2x(cv, mats); paintHD(hi, sp, anchors, FW, FH, PAD); outline(hi.getContext('2d', { willReadFrequently: true }), W * 2, H * 2);
   s = { cv: hi, FW, FH, an: anchors }; _avCache.set(key, s); if (_avCache.size > 40) _avCache.delete(_avCache.keys().next().value);

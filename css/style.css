@@ -1942,3 +1942,13 @@ body.hudmin { --hud: rgba(14, 15, 17, .74); }
 .petc { padding: 8px 10px; border-radius: 10px; background: #ffffff08; border: 1px solid var(--line); } .petc .pt { display: flex; flex-direction: column; } .petc .pt b { font-size: 13px; } .petc .lv { color: #ffd34a; font-size: 12px; } .petc small { color: #a8a49a; font-size: 11px; }
 .perks { display: flex; flex-direction: column; gap: 1px; margin-top: 4px; font-size: 11px; color: #6a6660; } .perks .on { color: #9ae09a; }
 .clks { font-weight: 600; }
+
+/* ---------- La Armería ---------- */
+.axnow { padding: 9px 11px; border-radius: 10px; background: #ffffff08; border: 1px solid var(--line); margin-bottom: 10px; font-size: 12.5px; }
+.axbon { display: flex; flex-direction: column; gap: 3px; margin-top: 6px; } .axbon div { display: flex; gap: 8px; flex-wrap: wrap; } .axbon b { color: #ffd34a; } .axbon span { color: #9ae09a; }
+.axgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 6px; }
+.axset { padding: 8px 10px; border-radius: 10px; background: linear-gradient(135deg, color-mix(in srgb, var(--c) 22%, transparent), #ffffff05); border: 1px solid color-mix(in srgb, var(--c3) 45%, transparent); }
+.axh { display: flex; flex-direction: column; } .axh b { font-size: 12.5px; color: var(--c3); } .axh span { font-size: 11px; color: #a8a49a; }
+.axpcs { display: flex; gap: 5px; margin: 5px 0 3px; } .axp { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 7px; background: #0006; border: 1px solid var(--line); position: relative; }
+.axp.ok { border-color: #7fd07a; } .axp.ok::after { content: '✓'; position: absolute; right: 1px; bottom: -2px; font-size: 10px; color: #7fd07a; }
+.axset small { font-size: 10.5px; line-height: 1.3; display: block; }

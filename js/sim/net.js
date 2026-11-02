@@ -331,6 +331,7 @@ function drawPeers(ctx) {
   for (const o of list) {
     const pr = o.pr, x = o.rx, y0 = o.ry; if (Math.abs(x - S.player.x) > 30 * T || Math.abs(y0 - S.player.y) > 20 * T) continue;
     const z = o.z || 0, swm = pr.mt ? 0 : pr.sw || 0, bob = swm === 2 ? Math.sin(now / 320 + x) * 1.3 : 0, by = pr.mt ? -8 : 0, y = y0 + by;
+    if (typeof axDrawAura === 'function' && pr.eq && !pr.eq.costume) axDrawAura(ctx, pr.eq, x, y + 8 - z, now, 0); /* aura de la Armería (sim/armory.js) */
     if (pr.bt && typeof drawBoatAt === 'function') drawBoatAt(ctx, pr.bt, x, y0, o.fa || 0, now); /* en barco (sim/boats.js) */
     // Montura
     if (pr.mt && typeof animalSprite === 'function' && SPECIES[pr.mt]) { try { const spr = animalSprite(pr.mt), s = spr.size, fr = spr.f[(o.wk | 0) % spr.f.length] || spr.f[0]; ctx.save(); ctx.translate(x, y0 + 6); if (Math.cos(pr.fa || 0) < 0) ctx.scale(-1, 1); ctx.drawImage(fr, -s / 2, s / 2 - spr.h, s, spr.h); ctx.restore(); } catch (e) { } }
