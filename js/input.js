@@ -44,8 +44,7 @@ function removeAt(x, y) {
   if (b.items) for (const it of b.items) back.push([it.id, 1]);
   if (b.buf) back.push([b.buf, 1]);
   if (b.item) back.push([b.item.id, b.item.n]);
-  let lost = 0; for (const [id, n] of back) lost += invAdd(id, n);
-  if (lost) toast(`Inventario lleno: se perdieron ${lost} objetos`);
+  for (const [id, n] of back) invGive(id, n, (b.x + 0.5) * T, (b.y + 0.5) * T); /* lo que no cabe, al suelo */
   if (ui.panel === b) closeModal();
   delBlock(b);
 }

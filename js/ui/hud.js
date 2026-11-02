@@ -41,7 +41,7 @@ function refreshHotbar() {
   _hotVer = invVersion; _hotSel = S.sel; _hotHand = ui.hand;
   const els = $('hotbar').querySelectorAll('.hs');
   els.forEach((el, i) => { fillSlot(el, S.inv[i]); el.classList.toggle('on', i === S.sel && !ui.hand); });
-  $('handBtn').classList.toggle('on', ui.hand);
+  const hb = $('handBtn'); if (hb) hb.classList.toggle('on', ui.hand);
 }
 // ---------- Tooltips ----------
 function itemTip(id) {

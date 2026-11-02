@@ -252,7 +252,7 @@ function wvReward() {
   const got = [['coin', 400 + idx * 250]]; const pool = Object.keys(ITEMS).filter(id => ITEMS[id].weapon && typeof TR !== 'undefined' && TR[id] && (TR[id].r || 0) >= 3);
   for (let i = 0; i < 2 + Math.floor(idx / 2) && pool.length; i++) got.push([pool.splice((Math.random() * pool.length) | 0, 1)[0], 1]);
   for (const id of ['tPotHeal4', 'tPotMana4']) if (ITEMS[id]) got.push([id, 5]);
-  for (const [id, n] of got) invAdd(id, n); invVersion++;
+  for (const [id, n] of got) invGive(id, n); invVersion++;
   toast('🏆 Premio: ' + got.map(([id, n]) => n + ' ' + ITEMS[id].n).join(', '), true);
 }
 // Morir en la arena: vuelves a casa con toda la vida. 5 caídas y se acaba

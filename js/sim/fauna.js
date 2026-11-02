@@ -133,8 +133,8 @@ function huntAnimal(a, w, got) {
   if (w && w.el === 'life' && Math.random() < 0.5) got.essenceLife = (got.essenceLife || 0) + 1;
   const i = ANIMALS.indexOf(a); if (i >= 0) ANIMALS.splice(i, 1);
   if (!own) return;
-  let lost = 0; for (const id in got) lost += invAdd(id, got[id]);
-  toast(`${sp.n}: ${Object.keys(got).map(id => got[id] + ' ' + ITEMS[id].n).join(', ')}${lost ? ' (inventario lleno)' : ''}`);
+  let lost = 0; for (const id in got) lost += invGive(id, got[id], a.x, a.y);
+  toast(`${sp.n}: ${Object.keys(got).map(id => got[id] + ' ' + ITEMS[id].n).join(', ')}${lost ? ' (lo que no cabía, en el suelo)' : ''}`);
 }
 function huntWith(a, w) {
   const got = {}, list = [a];
@@ -145,8 +145,8 @@ function huntWith(a, w) {
   }
   if (w && w.el === 'frost') for (const o of ANIMALS) if (Math.hypot(o.x - a.x, o.y - a.y) < 6 * T) o.frz = 6;
   for (const o of list) huntAnimal(o, w, got);
-  let lost = 0; for (const id in got) lost += invAdd(id, got[id]);
+  let lost = 0; for (const id in got) lost += invGive(id, got[id], a.x, a.y);
   const sp = SPECIES[a.sp];
-  toast(`${list.length > 1 ? list.length + ' presas' : sp.n}: ${Object.keys(got).map(id => got[id] + ' ' + ITEMS[id].n).join(', ')}${lost ? ' (inventario lleno)' : ''}`);
+  toast(`${list.length > 1 ? list.length + ' presas' : sp.n}: ${Object.keys(got).map(id => got[id] + ' ' + ITEMS[id].n).join(', ')}${lost ? ' (lo que no cabía, en el suelo)' : ''}`);
 }
 // El dibujo de los animales está en render/animals.js

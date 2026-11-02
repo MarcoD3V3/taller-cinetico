@@ -137,10 +137,9 @@ function killFoe(f) {
   const got = {};
   for (const [id, n, ch] of D.drops || []) if (Math.random() < ch + CM().luck * 0.5) got[id] = (got[id] || 0) + Math.max(1, Math.round(n * (0.6 + Math.random() * 0.8)));
   if (!f.boss && Math.random() < 0.012 && D.tier >= 2) { const ks = Object.keys(BOSSES).filter(b => BOSSES[b].tier <= S.tier); if (ks.length) { const b = BOSSES[ks[(Math.random() * ks.length) | 0]]; got[b.summonItem] = 1; } }
-  let lost = 0; for (const id in got) lost += invAdd(id, got[id]);
+  for (const id in got) invGive(id, got[id], f.x, f.y); /* lo que no cabe cae donde murió */
   const txt = Object.keys(got).map(id => got[id] + ' ' + ITEMS[id].n).join(', ');
   if (txt) fxText(f.x, f.y - D.s - 14, '+' + txt.slice(0, 40), '#ffd34a');
-  if (lost) toastErr('Inventario lleno');
   gainXP('combat', f.boss ? 200 : (D.xp || 5)); if (f.boss) gainXP('combat', 100);
   if (f.boss) bossDefeated(f, txt);
 }

@@ -30,7 +30,7 @@ function boatLeave(force) {
     const d = Math.hypot((tx + 0.5) * T - mw.x, (ty + 0.5) * T - mw.y) + Math.hypot(dx, dy) * 20; if (d < bd) { bd = d; best = [tx, ty]; } }
   if (!best && !force) return false;
   const id = S.boat.id; S.boat = null; if (best) { p.x = (best[0] + 0.5) * T; p.y = (best[1] + 0.5) * T - 4; }
-  const lost = invAdd(id, 1); invVersion++; if (lost) toastErr('Inventario lleno: el barco se ha perdido'); else if (!force) toast('Bajas a tierra. El barco vuelve a tu inventario.');
+  invGive(id, 1); invVersion++; if (!force) toast('Bajas a tierra. El barco vuelve a tu inventario.');
   return true;
 }
 { const i0 = interact; interact = (shift, ctrl) => {
@@ -114,9 +114,9 @@ function isleInteract() {
     const gems = ['ruby', 'sapphire', 'emerald', 'topaz', 'amethystGem', 'pearl'].filter(id => ITEMS[id]); for (let i = 0; i < 1 + (L >> 1); i++) if (gems.length) got.push([gems[(Math.random() * gems.length) | 0], 1 + ((Math.random() * 2) | 0)]);
     const gear = Object.keys(ITEMS).filter(id => ITEMS[id].weapon && typeof TR !== 'undefined' && TR[id] && (TR[id].r || 0) >= Math.min(4, L) && (TR[id].r || 0) <= L + 1); if (gear.length && Math.random() < 0.6) got.push([gear[(Math.random() * gear.length) | 0], 1]);
     for (const id of ['tPotHeal3', 'goldIngot']) if (ITEMS[id]) got.push([id, 2]);
-    let lost = 0; for (const [id, n] of got) lost += invAdd(id, n); invVersion++;
+    let lost = 0; for (const [id, n] of got) lost += invGive(id, n, (I.x + 0.5) * T, (I.y + 0.5) * T); invVersion++;
     fxBurst((I.x + 0.5) * T, (I.y + 0.5) * T, 40, { col: '#ffd34a', sp: 150, life: 0.9, glow: 1, size: 2.5 }); tone(780, 0.1, 'triangle', 0.05, 1.2); tone(1170, 0.25, 'triangle', 0.05, 1, 0.1);
-    toast('🏴‍☠️ ¡Tesoro! ' + got.map(([id, n]) => n + ' ' + ITEMS[id].n).join(', ') + (lost ? ' (inventario lleno: algo se perdió)' : ''), true); return true; }
+    toast('🏴‍☠️ ¡Tesoro! ' + got.map(([id, n]) => n + ' ' + ITEMS[id].n).join(', ') + (lost ? ' (lo que no cabía está en el suelo)' : ''), true); return true; }
   return false;
 }
 { const i0 = interact; interact = (shift, ctrl) => { if (S && !S.boat && isleInteract()) return; return i0(shift, ctrl); }; }

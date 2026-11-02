@@ -98,7 +98,7 @@ const roofHeld = () => { const id = !ui.hand && heldId(); return id && ITEMS[id]
 const roofReach = (x, y) => Math.hypot(x * T + 16 - S.player.x, y * T + 16 - S.player.y) <= 9 * T;
 let _roofDrag = 0, _roofLast = '';
 function roofPut(x, y) { const id = roofHeld(); if (!id || !roofReach(x, y) || roofAt(x, y)) return false; if (invCount(id) < 1) { toastErr('No te quedan tejados'); return false; } invTake(id, 1); roofSet(x, y, id); tone(300, 0.04, 'triangle', 0.03, 1.2); return true; }
-function roofTake(x, y) { const id = roofAt(x, y); if (!id || !roofReach(x, y)) return false; roofSet(x, y, null); if (invAdd(id, 1) > 0) toastErr('Inventario lleno'); burst(x, y, ITEMS[id].roof.c); return true; }
+function roofTake(x, y) { const id = roofAt(x, y); if (!id || !roofReach(x, y)) return false; roofSet(x, y, null); invGive(id, 1); burst(x, y, ITEMS[id].roof.c); return true; }
 function roofCoverRoom(x, y) {
   const id = roofHeld(); let room = null;
   for (const [dx, dy] of [[0, 0], [0, 1], [1, 0], [-1, 0], [0, -1]]) { const b = at(x + dx, y + dy); if (!(b && isWall(b)) && !GI[gnd(x + dx, y + dy)].solid) { room = floodRoom(x + dx, y + dy, 400); if (room) break; } }

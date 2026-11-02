@@ -54,7 +54,7 @@ function qbClaim(id) {
   const Q = qbData(), i = Q.on.findIndex(q => q.id === id); if (i < 0) return; const q = Q.on[i];
   if (q.k === 'fetch') { if (invCount(q.it) < q.n) { toastErr(`Te faltan ${q.n - invCount(q.it)} × ${ITEMS[q.it].n}`); return; } invTake(q.it, q.n); }
   else if (q.prog < q.n) { toastErr('Aún no has terminado este encargo'); return; }
-  Q.on.splice(i, 1); const lv0 = repLevel(); Q.rep += q.rep; Q.done++; const lost = invAdd('coin', q.coin); invVersion++;
+  Q.on.splice(i, 1); const lv0 = repLevel(); Q.rep += q.rep; Q.done++; const lost = invGive('coin', q.coin); invVersion++;
   toast(`💰 ${q.giver} te paga ${q.coin} monedas · +${q.rep} de aprecio${lost ? ' (inventario lleno)' : ''}`, true); sfx('beep'); sparkRing(S.player.x, S.player.y - 10, 20, '#ffd34a', 100, { up: 40 });
   const lv = repLevel(); if (lv > lv0) setTimeout(() => wvBanner(`❤ Ahora eres «${REP_LV[lv][1]}»`, `Los aldeanos te hacen un ${Math.round(REP_LV[lv][2] * 100)} % de rebaja`, '#ff9ab0', 3.5), 600);
   if (typeof achAdd === 'function') achAdd('quests'); qbTrack();

@@ -32,9 +32,8 @@ function harvestCrop(b, opts = {}) {
     got[d.item] = n; got[d.seed] = (got[d.seed] || 0) + (Math.random() < 0.6 ? 2 : 1); if ((b.crop === 'wheat' || b.crop === 'rice') && ITEMS.straw) got.straw = 1;
     gainXP('gather', 4);
   } else got[d.seed] = 1; // sin madurar: recuperas la semilla
-  let lost = 0; for (const id in got) lost += invAdd(id, got[id]);
+  for (const id in got) invGive(id, got[id], (b.x + 0.5) * T, (b.y + 0.5) * T);
   fxText(b.x * T + 16, b.y * T, Object.keys(got).map(id => '+' + got[id] + ' ' + ITEMS[id].n).join(' · ').slice(0, 44), ripe ? '#9fe09a' : '#c8c0a8');
-  if (lost) toastErr('Inventario lleno');
   if (ripe && d.re && !opts.uproot) { b.g = [0, 0.25, 0.6][d.re] || 0.6; b.fert = 0; b._tv = -1; dirty.lists = true; return got; }
   delBlock(b); if (ripe && opts.replant && invCount(d.seed) > 0) plantAt(b.x, b.y, d.seed);
   return got;

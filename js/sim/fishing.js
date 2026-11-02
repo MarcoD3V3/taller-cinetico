@@ -89,8 +89,7 @@ function fishTick(dt) {
 }
 function fishLand() {
   const F = FSH, id = F.catch, c = FISH_TABLE[id], n = c.n || 1;
-  if (invAdd(id, n)) { toastErr('Inventario lleno: lo devuelves al agua'); }
-  else {
+  invGive(id, n, S.player.x, S.player.y); {
     FX_CATCH.push({ id, x: F.bx, y: F.by, t: 0 });
     toast(`🎣 ${c.junk ? 'Has sacado' : '¡Capturado!'}: ${ITEMS[id].n}${n > 1 ? ' ×' + n : ''}${c.junk ? '' : ' · ' + WATER_N[F.kind]}`);
     gainXP('fish', c.junk ? 1 : 2 + Math.round(c.d * 10));

@@ -24,9 +24,9 @@ function pickDecor(x, y) {
   const k = decorAt(x, y); if (!k) return false; const [id, n, grass] = DECOR_PICK[k];
   (S.picked || (S.picked = {}))[x + ',' + y] = 1;
   const got = [[id, 1]]; if (grass && typeof grassSeed === 'function') { const sd = grassSeed(x, y); if (sd) got.push([sd, 1]); }
-  let lost = 0; for (const [i, q] of got) lost += invAdd(i, q);
+  for (const [i, q] of got) invGive(i, q, (x + 0.5) * T, (y + 0.5) * T);
   fxText(x * T + 16, y * T, got.map(([i, q]) => '+' + q + ' ' + ITEMS[i].n).join(' · '), '#c8e08a'); burst(x, y, GI[gnd(x, y)].c);
-  tone(640, 0.04, 'sine', 0.025, 1.3); gainXP('gather', 1); if (lost) toastErr('Inventario lleno');
+  tone(640, 0.04, 'sine', 0.025, 1.3); gainXP('gather', 1);
   if (got.length > 1 && typeof seedTutorial === 'function') seedTutorial();
   onTileChange(x, y, false); return true;
 }

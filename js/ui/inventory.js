@@ -188,7 +188,7 @@ function openInventory(b) {
   $('mInv').hidden = false; buildInvPanel(); mouse.down = mouse.rdown = false;
 }
 function closeInventory() {
-  if (ui.held) { const l = invAdd(ui.held.id, ui.held.n); if (l) toast('Inventario lleno: se perdieron ' + l + ' objetos'); ui.held = null; }
+  if (ui.held) { invGive(ui.held.id, ui.held.n); ui.held = null; }
   for (let i = 0; i < 4; i++) if (ui.pocket[i]) { invAdd(ui.pocket[i].id, ui.pocket[i].n); ui.pocket[i] = null; }
   ui.panel = null; refreshHeld(); hideTip();
 }

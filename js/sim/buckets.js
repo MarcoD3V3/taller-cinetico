@@ -15,7 +15,7 @@ function bucketAct(id, tx, ty) {
     const to = empty[gi.liquid]; if (!to) { toastErr(gi.liquid === 'lava' ? 'La madera arde: hace falta una cubeta de hierro' : 'Esto no se puede coger con la cubeta'); return; }
     if (gi.liquid === 'lava') setGround(tx, ty, G.BASALT);
     else { let n = 0; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (isWater(tx + dx, ty + dy)) n++; if (n < 2) setGround(tx, ty, gi.u >= 0 ? gi.u : G.SAND); }
-    invTake(id, 1); if (invAdd(to, 1) > 0) toastErr('Inventario lleno'); typeof fxBurst === 'function' && fxBurst(tx * T + 16, ty * T + 16, 6, { col: gi.liquid === 'lava' ? '#ff8a3a' : '#8ac8ff', sp: 30, life: 0.45 }); tone(gi.liquid === 'lava' ? 180 : 420, 0.12, 'sine', 0.04, 0.6); return;
+    invTake(id, 1); invGive(to, 1); typeof fxBurst === 'function' && fxBurst(tx * T + 16, ty * T + 16, 6, { col: gi.liquid === 'lava' ? '#ff8a3a' : '#8ac8ff', sp: 30, life: 0.45 }); tone(gi.liquid === 'lava' ? 180 : 420, 0.12, 'sine', 0.04, 0.6); return;
   }
   if (!full) return; const [back, liq] = full;
   if (liq === 'water' && typeof isFarm === 'function' && isFarm(g)) { let n = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (typeof waterTile === 'function' && waterTile(tx + dx, ty + dy)) n++; if (!n) { toastErr('Esa tierra ya está regada'); return; } }
@@ -25,7 +25,7 @@ function bucketAct(id, tx, ty) {
     const pl = S.player; if (Math.floor(pl.x / T) === tx && Math.floor((pl.y + 6) / T) === ty) { toastErr('No la viertas a tus pies'); return; }
     setGround(tx, ty, liq === 'lava' ? G.LAVA : G.WATER);
   }
-  invTake(id, 1); if (invAdd(back, 1) > 0) toastErr('Inventario lleno'); typeof fxBurst === 'function' && fxBurst(tx * T + 16, ty * T + 16, 8, { col: liq === 'lava' ? '#ff8a3a' : '#8ac8ff', sp: 40, life: 0.5 }); tone(liq === 'lava' ? 140 : 300, 0.15, 'sine', 0.04, 0.5);
+  invTake(id, 1); invGive(back, 1); typeof fxBurst === 'function' && fxBurst(tx * T + 16, ty * T + 16, 8, { col: liq === 'lava' ? '#ff8a3a' : '#8ac8ff', sp: 40, life: 0.5 }); tone(liq === 'lava' ? 140 : 300, 0.15, 'sine', 0.04, 0.5);
 }
 // Clic con la cubeta en la mano: coger o verter (no pica)
 { const m0 = updateMining; updateMining = fdt => {

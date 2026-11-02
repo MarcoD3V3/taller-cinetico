@@ -251,9 +251,9 @@ function dgOpenChest(c) {
   const scr = Object.keys(ITEMS).filter(id => id.startsWith('spell_') && SPELLS[ITEMS[id].learn] && !SPELLS[ITEMS[id].learn].mortal);
   if (scr.length && (c.big || Math.random() < 0.25)) got.push([scr[(Math.random() * scr.length) | 0], 1]);
   const mats = ['ironIngot', 'goldIngot', 'manaCrystal', 'gem', 'diamond', 'spiritOrb', 'obsidian'].filter(id => ITEMS[id]); for (let i = 0; i < (c.big ? 3 : 1); i++) if (mats.length) got.push([mats[(Math.random() * mats.length) | 0], 1 + ((Math.random() * L) | 0)]);
-  let lost = 0; for (const [id, n] of got) lost += invAdd(id, n); invVersion++;
+  let lost = 0; for (const [id, n] of got) lost += invGive(id, n, wx, wy + 20); invVersion++;
   sparkRing(wx, wy, c.big ? 50 : 22, '#ffd34a', 140, { up: 50, life: 0.8 }); tone(780, 0.1, 'triangle', 0.05, 1.2); tone(1170, 0.2, 'triangle', 0.05, 1, 0.1);
-  toast('🧰 ' + got.map(([id, n]) => n + ' ' + ITEMS[id].n).join(', ') + (lost ? ' (inventario lleno: algo se perdió)' : ''), true);
+  toast('🧰 ' + got.map(([id, n]) => n + ' ' + ITEMS[id].n).join(', ') + (lost ? ' (lo que no cabía está en el suelo)' : ''), true);
   if (typeof achAdd === 'function') achAdd('dgChests');
 }
 
