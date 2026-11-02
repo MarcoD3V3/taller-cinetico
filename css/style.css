@@ -1956,3 +1956,11 @@ body.hudmin { --hud: rgba(14, 15, 17, .74); }
 .axset.mythc { grid-column: span 2; border-width: 2px; box-shadow: 0 0 18px color-mix(in srgb, var(--c3) 35%, transparent), inset 0 0 22px color-mix(in srgb, var(--c3) 12%, transparent); animation: mythGlow 3s ease-in-out infinite; }
 @keyframes mythGlow { 50% { box-shadow: 0 0 28px color-mix(in srgb, var(--c3) 55%, transparent), inset 0 0 26px color-mix(in srgb, var(--c3) 20%, transparent); } }
 @media (max-width: 600px) { .axset.mythc { grid-column: auto; } }
+
+/* ---------- Asedios ---------- */
+#sgHud { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 7; width: min(360px, calc(100vw - 24px)); padding: 6px 10px 7px; border-radius: 11px; background: #140c0ce8; border: 1px solid #ff6b5b80; box-shadow: 0 8px 26px #000a, 0 0 18px #ff3a2a33; pointer-events: none; }
+#sgHud[hidden] { display: none; }
+.sgt { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; } .sgt b { font: 700 12.5px var(--display); color: #ff9a8a; } .sgt span { font-size: 11px; color: #e8e0d0; }
+.sgbar, .sgcore { height: 5px; border-radius: 3px; background: #ffffff14; overflow: hidden; } .sgbar { margin: 4px 0; } .sgbar i, .sgcore i { display: block; height: 100%; transform-origin: 0 50%; transition: transform .25s; }
+.sgbar i { background: linear-gradient(90deg, #a03a2a, #ff8a5a); } .sgcore { flex: 1; } .sgcore i { background: linear-gradient(90deg, #c0306a, #ff6b9a); }
+.sgs { display: flex; gap: 6px; align-items: center; font-size: 11px; color: #cfc8b8; }
