@@ -53,7 +53,7 @@ let woundRate = w => (w.b ? 2 : 1) * (w.inf ? 0.3 : 1);
 const wFrac = w => Math.max(0, w.left / WT[w.t].heal);
 function partHp(p) { let h = 100; for (const w of S.pc.parts[p]) h -= w.d * wFrac(w) * 1.6; return clamp(h, 0, 100); }
 function painOf() { let s = 0; for (const p of PARTS) for (const w of S.pc.parts[p]) s += WT[w.t].pain * wFrac(w) * (w.sp ? 0.5 : 1); return s * (S.pc.pk > 0 ? 0.35 : 1) * CM().pain; }
-function bleedOf() { let s = 0; for (const p of PARTS) for (const w of S.pc.parts[p]) if (!w.b && wFrac(w) > 0.75) s += WT[w.t].bleed; return s * CM().bleed; }
+function bleedOf() { let s = 0; for (const p of PARTS) for (const w of S.pc.parts[p]) if (!w.b && wFrac(w) > 0.75) s += WT[w.t].bleed * (w.sev ?? 1); return s * CM().bleed; } // la armadura también frena el sangrado
 const hasWound = t => PARTS.some(p => S.pc.parts[p].some(w => w.t === t));
 const infected = () => PARTS.some(p => S.pc.parts[p].some(w => w.inf));
 function legFactor() {
@@ -78,10 +78,14 @@ function pickPart() { let r = Math.random() * 100; for (const [p, w] of HIT_W) {
 function hurt(t, part, mult = 1, cause = '') {
   if (!survOn()) return; const pc = pcInit(), w = WT[t]; part = part || pickPart();
   // Rasgos y armadura de esa parte del cuerpo
-  const pd = partDef(part), cm = CM();
-  const d = w.dmg * mult * diff() * cm.wound * (1 - pd / (pd + 12)) * (t === 'burn' && cm.fire ? 0.4 : 1), list = pc.parts[part];
+  // Cuenta la pieza que cubre esa zona y también parte de toda tu armadura (una buena pechera protege
+  // aunque te muerdan los pies). Lo que la armadura frena, también lo frena la herida: sangra y se
+  // infecta menos, y si para casi todo el golpe se queda en un moratón.
+  const pd = partDef(part) + CM().def * 0.2, cm = CM(), sev = 1 - pd / (pd + 12);
+  const d = w.dmg * mult * diff() * cm.wound * sev * (t === 'burn' && cm.fire ? 0.4 : 1), list = pc.parts[part];
+  if (sev < 0.4 && w.bleed && t !== 'burn') t = 'bruise';
   if (list.length >= 6) list.shift();
-  list.push({ t, left: w.heal, d, b: 0, sp: 0, inf: Math.random() < (w.inf || 0) * (t === 'bite' ? 1 : 0) ? 1 : 0 });
+  list.push({ t, left: WT[t].heal, d, b: 0, sp: 0, sev: +sev.toFixed(3), inf: Math.random() < (WT[t].inf || 0) * (t === 'bite' ? 1 : 0) * sev ? 1 : 0 });
   pc.hp -= d * 0.6; if (w.poison) pc.poison = Math.max(pc.poison, w.poison);
   if (cause) pc.cause = cause;
   hurtFx(Math.min(1, d / 15));

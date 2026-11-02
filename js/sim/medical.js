@@ -72,7 +72,7 @@ woundRate = w => {
 };
 function bleedOf() {
   let s = 0;
-  for (const p of PARTS) for (const w of S.pc.parts[p]) { const b = WT[w.t].bleed; if (!b || w.b || w.st || w.tq || w.pr > 0 || wFrac(w) <= 0.75 && !(w.obj ?? WT[w.t].obj)) continue; s += b * ((w.obj ?? WT[w.t].obj) ? 0.6 : 1); }
+  for (const p of PARTS) for (const w of S.pc.parts[p]) { const b = WT[w.t].bleed; if (!b || w.b || w.st || w.tq || w.pr > 0 || wFrac(w) <= 0.75 && !(w.obj ?? WT[w.t].obj)) continue; s += b * ((w.obj ?? WT[w.t].obj) ? 0.6 : 1) * (w.sev ?? 1); } // la armadura también frena el sangrado (sim/survival.js)
   return s * CM().bleed;
 }
 function painOf() {
@@ -113,7 +113,7 @@ function medTick(dt) {
     if (w.pr > 0) w.pr -= dt;
     w.age = (w.age || 0) + dt;
     // Sucia y sin desinfectar: a los 90 s puede infectarse
-    if (w.dirt && !w.dis && !w.inf && w.age > 90 && !w.infTry) { w.infTry = 1; if (Math.random() < 0.35) { w.inf = 1; toast(`⚠ ${WT[w.t].n} se ha infectado: desinféctala`); } }
+    if (w.dirt && !w.dis && !w.inf && w.age > 90 && !w.infTry) { w.infTry = 1; if (Math.random() < 0.35 * (w.sev ?? 1)) { w.inf = 1; toast(`⚠ ${WT[w.t].n} se ha infectado: desinféctala`); } }
     // La garrapata, si no la quitas, transmite fiebre
     if (w.t === 'tick' && w.obj && w.age > 180 && !w.fever) { w.fever = 1; pc.poison = Math.max(pc.poison, 20); pc.cause = 'Fiebre por garrapata'; toast('🌡 La garrapata te ha dado fiebre'); }
     // El torniquete mucho rato hace daño
