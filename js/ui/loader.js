@@ -96,7 +96,7 @@ document.addEventListener('click', e => {
   if (!boot) loadShow('Conectando', ['Buscando el servidor', typeof dcToken === 'function' && dcToken() ? 'Comprobando tu cuenta de Discord' : 'Entrando como invitado'], { sub: url });
   setTimeout(() => loadStep(1), 200); await c0(url); if (!boot) { if (NET.kind === 'ws') loadDone(NET.status); else loadFail(NET.status); } }; }
 // Abrir tu mundo en red
-{ const h0 = netHost; netHost = async opt => { loadShow('Abriendo tu mundo', ['Creando la partida', 'Avisando a los demás jugadores'], { sub: NET.kind === 'claude' ? 'Salas de claude.ai' : NET.server || '' }); await h0(opt); if (inGame() && NET.game.host) { loadStep(1); setTimeout(() => loadDone('Código ' + NET.game.code.toUpperCase()), 200); } else loadFail(lastErr() || 'No se pudo abrir la partida.'); }; }
+{ const h0 = netHost; netHost = async opt => { loadShow('Abriendo tu mundo', ['Creando la partida', 'Avisando a los demás jugadores'], { sub: NET.kind === 'claude' ? 'Salas de claude.ai' : NET.server || '' }); await h0(opt); if (inGame() && NET.game.host) { loadStep(1); setTimeout(() => loadDone(NET.game ? 'Código ' + NET.game.code.toUpperCase() : NET.status), 200); } else loadFail(lastErr() || 'No se pudo abrir la partida.'); }; }
 // Entrar en una partida: conectar → pedir el mundo → descargarlo → construirlo
 const lastErr = () => { const m = [...CHAT.log].reverse().find(x => x.kind === 'err'); return m && performance.now() - m.t < 3000 ? m.text : ''; };
 { const j0 = netJoin; netJoin = async (code, pass) => {
