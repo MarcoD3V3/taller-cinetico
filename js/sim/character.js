@@ -31,7 +31,7 @@ function charMods(eqOver) {
     // Atributos, críticos, resistencias y efectos (sim/attributes.js)
     str: 0, dex: 0, pow: 0, spi: 0, end: 0, kno: 0, con: 0, dfn: 0, vig: 0, critP: 0.05, critM: 0.05, critD: 1.5, spell: 0, poise: 20, stagger: 10, carry: 0, stamRegen: 0, ccRed: 0, load: 0, loadMax: 0,
     resF: 0, resB: 0, resP: 0, resC: 0, resV: 0, resPh: 0, resW: 0, chBleed: 0, chBurn: 0, chLight: 0, chPoison: 0, chRoot: 0, chWeak: 0,
-    atkSpd: 0, lifesteal: 0, execute: 0, bossDmg: 0, undeadDmg: 0, thorns: 0, dodge: 0, regen: 0, killHeal: 0, firstStrike: 0, comboMax: 0, comboDmg: 0, furyDur: 0, adrGain: 0, dotDmg: 0, chFreeze: 0, chChain: 0, chBoom: 0, lowHpDmg: 0, critHeal: 0, manaHit: 0 };
+    atkSpd: 0, lifesteal: 0, execute: 0, bossDmg: 0, undeadDmg: 0, thorns: 0, dodge: 0, regen: 0, killHeal: 0, firstStrike: 0, comboMax: 0, comboDmg: 0, furyDur: 0, adrGain: 0, dotDmg: 0, chFreeze: 0, chChain: 0, chBoom: 0, lowHpDmg: 0, critHeal: 0, manaHit: 0, swordDmg: 0, axeDmg: 0, bowDmg: 0, staffDmg: 0 };
   const mul = new Set(['melee', 'ranged', 'work', 'sprintCost', 'speed', 'dash', 'reach', 'hunger', 'thirst', 'wound', 'heal', 'manaRegen', 'mine', 'wood', 'hunt', 'tame', 'xp', 'xpCraft', 'detect', 'energy', 'pain', 'bleed', 'sick', 'foes', 'price', 'petHp', 'nightWork']);
   for (const t of ch.traits) { const tr = TRAITS[t]; if (!tr) continue; for (const k in tr.m) { if (mul.has(k)) m[k] *= tr.m[k]; else m[k] += tr.m[k]; } }
   const pf = PROFS[ch.prof]; if (pf && pf.price) m.price *= pf.price;

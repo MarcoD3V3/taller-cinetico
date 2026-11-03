@@ -2011,9 +2011,9 @@ body.hudmin { --hud: rgba(14, 15, 17, .74); }
 .tlC canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .tlfit { position: absolute; z-index: 3; right: 12px; top: 10px; width: 36px; height: 36px; border-radius: 50%; padding: 0; background: #0d0a08cc; border: 1px solid #6a5238; color: var(--gold); font-size: 18px; }
 .tlfit:hover { border-color: #ffd890; }
-.tlbr { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); z-index: 3; display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 40px; background: #0d0a08cc; border: 1px solid #5a4630; box-shadow: 0 4px 18px #000a; }
+.tlbr { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 70px); overflow-x: auto; scrollbar-width: none; z-index: 3; display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 40px; background: #0d0a08cc; border: 1px solid #5a4630; box-shadow: 0 4px 18px #000a; }
 .tlbr kbd { color: var(--gold); border-color: #e8c89055; }
-.tlbr button { position: relative; width: 46px; height: 46px; border-radius: 50%; padding: 0; display: grid; place-items: center; font-size: 22px; background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--bc) 60%, #000), #120c08 75%); border: 2px solid #6a5238; box-shadow: inset 0 0 10px #000; transition: transform .15s, box-shadow .2s; }
+.tlbr button { position: relative; flex: 0 0 46px; min-width: 46px; aspect-ratio: 1; line-height: 1; width: 46px; height: 46px; border-radius: 50%; padding: 0; display: grid; place-items: center; font-size: 22px; background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--bc) 60%, #000), #120c08 75%); border: 2px solid #6a5238; box-shadow: inset 0 0 10px #000; transition: transform .15s, box-shadow .2s; }
 .tlbr button:hover { transform: scale(1.08); } .tlbr button span { filter: drop-shadow(0 0 4px var(--bc)); }
 .tlbr button.on { border-color: #ffd890; box-shadow: 0 0 0 2px #ff9a3a88, 0 0 18px var(--bc), inset 0 0 10px #000; transform: scale(1.12); }
 .tlbr button small { position: absolute; bottom: -4px; right: -4px; background: #1a120c; border: 1px solid #6a5238; border-radius: 8px; font: 600 10px "IBM Plex Sans", sans-serif; color: var(--gold); padding: 0 4px; min-width: 8px; }
@@ -2027,6 +2027,7 @@ body.hudmin { --hud: rgba(14, 15, 17, .74); }
 .tltip .ttg { color: #7fe07a; } .tltip .ttt { color: #e8c890; font-size: 12.5px; } .tltip .ttr { color: #ff7a6a; } .tltip .tta { color: #ffd890; font-size: 12px; }
 .tltip .ttk { font: 12px "IBM Plex Sans", sans-serif; color: #a8987c; margin-bottom: 4px; } .tltip .ttk i { font-style: normal; display: inline-block; min-width: 18px; text-align: center; margin-left: 3px; border-radius: 4px; background: #ffffff10; color: #c8b490; } .tltip .ttk i.on { background: #ffb04a33; color: #ffd890; }
 .tltip .ttc b { color: #ffd890; }
+.tltip .ttw { color: #ffd060; font-size: 12.5px; background: #ffb04a14; border: 1px solid #ffb04a44; border-radius: 4px; padding: 4px 6px; margin-top: 6px; } .tltip .ttw.on { color: #9ae09a; border-color: #7fd07a55; background: #7fd07a12; }
 .tlsk { position: absolute; inset: 0; overflow: auto; padding: 16px 20px; font-family: "IBM Plex Sans", system-ui, sans-serif; }
 .tlsk h3 { font: 700 22px "Cinzel", Georgia, serif; color: var(--gold); text-align: center; font-variant: small-caps; }
 .tlskg { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin-top: 12px; }
@@ -2041,4 +2042,4 @@ body.hudmin { --hud: rgba(14, 15, 17, .74); }
 @media (max-width: 1100px) { .tlw { grid-template-columns: 220px minmax(0, 1fr) 220px; } .tlst { font-size: 12px; } }
 @media (max-width: 860px) { .tlw { grid-template-columns: 1fr; grid-template-rows: auto 62vh auto auto auto; overflow-y: auto; height: 100%; padding: 8px 16px; }
   .tlC { order: 1; } .tlL { order: 2; } .tlR { order: 3; } .tlfoot { order: 4; gap: 10px; font-size: 12px; } .tlL, .tlR { overflow: visible; }
-  .tlbr { gap: 4px; padding: 4px 8px; } .tlbr button { width: 36px; height: 36px; font-size: 17px; } .tlbrn, .tlbr kbd { display: none; } .tltip { width: 230px; } }
+  .tlbr { gap: 4px; padding: 4px 8px; } .tlbr button { flex-basis: 36px; min-width: 36px; width: 36px; height: 36px; font-size: 17px; } .tlbrn, .tlbr kbd { display: none; } .tltip { width: 230px; } }

@@ -20,6 +20,9 @@ const ATTR = { str: ['Fuerza', '💪', '#ff7a5a'], dex: ['Destreza', '✋', '#7f
 const ATTR_TIP = { str: 'Cada punto extra: +1,5 % de daño cuerpo a cuerpo, +2 de aplomo y +1 de carga', dex: 'Cada punto extra: +1,5 % de daño a distancia y +0,4 % de crítico físico', pow: 'Cada punto extra: +2 % de poder de hechizos y +0,4 % de crítico mágico', spi: 'Cada punto extra: +4 de maná y +2 % de recarga de maná', end: 'Cada punto extra: +4 de aguante, +3 % de recarga y +0,6 de carga', kno: 'Cada punto extra: +1,5 % de experiencia y +2 % de daño crítico', con: 'Cada punto extra: +5 de vida máxima', dfn: 'Cada punto extra: +0,6 de armadura y +1 % de reducción de control', vig: 'Cada punto extra: +2 % de curación y +0,5 % a todas las resistencias' };
 const RES_LIST = [['resF', 'Fuego', '🔥', '#ff8a3a'], ['resB', 'Sangrado', '🩸', '#ff5a6a'], ['resP', 'Veneno', '☠', '#8ad84a'], ['resC', 'Escarcha', '❄', '#7ac8ff'], ['resV', 'Vacío', '🌀', '#b07aff'], ['resPh', 'Física', '🪨', '#c8b8a0'], ['resW', 'Salvaje', '🌿', '#5ad8a0']];
 const RES_K = RES_LIST.map(r => r[0]), CH_K = ['chBleed', 'chBurn', 'chLight', 'chPoison', 'chRoot', 'chWeak'];
+// Tipo de arma que llevas en la mano (para los talentos de espadas, hachas, arcos y bastones)
+const wpnClass = it => { if (!it || !it.weapon) return null; const s = it.s; return s === 'sword' || s === 'dagger' || s === 'spear' ? 'swordDmg' : s === 'bow' || s === 'xbow' ? 'bowDmg' : s === 'staff' || s === 'wand' ? 'staffDmg' : it.weapon.ranged ? 'bowDmg' : 'axeDmg'; };
+const heldWpn = () => { const s = S && S.inv[S.sel]; return s && !ui.hand ? ITEMS[s.id] : null; };
 const MAGIC_EL = new Set(['fire', 'frost', 'storm', 'holy', 'void', 'life', 'poison', 'time', 'arcane', 'light', 'shadow', 'nature', 'water', 'wind', 'earth']);
 // Base de cada atributo según tus habilidades
 const attrBase = () => { const l = lvOf; return { str: 5 + l('combat') + (l('build') >> 1), dex: 3 + l('hunt') + (l('gather') >> 1), pow: 3 + Math.round(l('magic') * 1.5), spi: 3 + l('magic') + (l('surv') >> 1), end: 5 + Math.round(l('fit') * 1.5), kno: 3 + l('craft') + ((l('mining') + l('wood')) >> 2), con: 5 + l('fit') + (l('surv') >> 1), dfn: 2 + (l('combat') >> 1), vig: 5 + l('surv') }; };
@@ -54,6 +57,7 @@ const atsHeal = n => { if (n > 0 && S.pc && S.pc.hp > 0) { S.pc.hp = Math.min(ma
   if (!S || !S.pc || !f || f.hp <= 0 || f.inv || f.clone || !(dmg > 0) || src === 'tal') return d0(f, dmg, el, src);
   const m = CM(), mag = MAGIC_EL.has(el), big = typeof bigFoe === 'function' && bigFoe(f), pc = S.pc; let k = 1;
   if (mag) k *= 1 + m.spell;
+  if (!src) { const wc = wpnClass(heldWpn()); if (wc) k *= 1 + m[wc]; } // los talentos de tu tipo de arma
   k *= 1 + (0.03 + m.comboDmg) * ATS.combo; if (ATS.fury > 0) k *= 1.15; if (f.lightT > 0) k *= f.D.undead ? 1.5 : 1.25;
   if (f.hp >= (f.mhp || f.hp) * 0.99) k *= 1 + m.firstStrike; if (f.mhp && f.hp < f.mhp * 0.3) k *= 1 + m.execute;
   if (big) k *= 1 + m.bossDmg; if (f.D.undead) k *= 1 + m.undeadDmg; if (pc.hp < maxHp() * 0.35) k *= 1 + m.lowHpDmg;
@@ -112,7 +116,7 @@ function atsTick(dt) {
 // Hoja de estadísticas para el árbol de talentos
 function statSheet() {
   const m = CM(), pc = S.pc, B = attrBase(), s = S.inv[S.sel], pr = s && typeof weaponProfile === 'function' ? weaponProfile(s.id) : null;
-  const wd = (pr ? pr.dmg * (pr.kind === 'melee' ? m.melee : m.ranged) : 3 * m.melee) * (1 + 0.05 * lvOf('combat'));
+  const wc = s ? wpnClass(ITEMS[s.id]) : null, base = pr ? pr.dmg : 3, wd = base * (pr ? (pr.kind === 'melee' ? m.melee : m.ranged) : m.melee) * (1 + 0.05 * lvOf('combat')) * (1 + (wc ? m[wc] : 0));
   let ess = 0, need = 0; for (const k in SKILLS) { const lv = pc.lv[k] || 0, xp = pc.xp[k] || 0; ess += Math.floor(xp); for (let i = 0; i < lv; i++) ess += xpNeed(i); if (lv < MAX_LV) { const n = Math.ceil(xpNeed(lv) - xp); if (!need || n < need) need = n; } }
-  return { m, B, wd, ess, need, stamRegen: 14 * (1 + m.stamRegen), combo: ATS.combo, adr: typeof PIL !== 'undefined' && PIL.adr > 0 ? 100 : ATS.adr, fury: ATS.fury > 0, spirit: (B.spi + (m.spi || 0)) * 5 + m.mana * 0.5 };
+  return { m, B, wd, base, wc, ess, need, stamRegen: 14 * (1 + m.stamRegen), combo: ATS.combo, adr: typeof PIL !== 'undefined' && PIL.adr > 0 ? 100 : ATS.adr, fury: ATS.fury > 0, spirit: (B.spi + (m.spi || 0)) * 5 + m.mana * 0.5 };
 }
