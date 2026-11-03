@@ -86,21 +86,26 @@ function vcBodyHTML() {
 }
 // ---------- Mostrar ----------
 const vcEl = document.createElement('div'); vcEl.id = 'vcCard'; vcEl.hidden = true; document.body.appendChild(vcEl);
-let _vcSrc = null, _vcK = null, _vcHide = 0, _vcSig = '';
+let _vcSrc = null, _vcK = null, _vcHide = 0, _vcSig = '', _vcWait = 0, _vcHiding = false;
 const vcKey = el => el.id === 'vBody' ? 'body' : el.id === 'vStam' ? 'stam' : el.id && el.id.startsWith('r-') ? el.id.slice(2) : null;
 function vcShow(el) {
-  const k = vcKey(el); if (!k || !S || !S.pc) return; clearTimeout(_vcHide); _vcSrc = el; _vcK = k;
+  const k = vcKey(el); if (!k || !S || !S.pc) return; clearTimeout(_vcHide); _vcHiding = false; _vcSrc = el; _vcK = k;
   const h = k === 'body' ? vcBodyHTML() : vcStatHTML(k); if (h !== _vcSig) { vcEl.innerHTML = h; _vcSig = h; if (k === 'body') paintBody(vcEl.querySelector('.vcbody')); }
   vcEl.hidden = false; const r = el.getBoundingClientRect(), w = vcEl.offsetWidth, hh = vcEl.offsetHeight;
   const x = clamp(r.left + r.width / 2 - w / 2, 8, innerWidth - w - 8), y = r.top - hh - 12;
   vcEl.style.left = Math.round(x) + 'px'; vcEl.style.top = Math.round(Math.max(8, y)) + 'px'; vcEl.classList.add('on');
 }
-function vcHideSoon() { clearTimeout(_vcHide); _vcHide = setTimeout(() => { vcEl.classList.remove('on'); setTimeout(() => { if (!vcEl.classList.contains('on')) vcEl.hidden = true; }, 160); _vcSrc = null; }, 200); }
+/* se va enseguida (un respiro corto para poder pasar el ratón a la tarjeta, que está justo encima) */
+function vcHideSoon() { clearTimeout(_vcWait); clearTimeout(_vcHide); _vcHiding = true; _vcHide = setTimeout(() => { vcEl.classList.remove('on'); setTimeout(() => { if (!vcEl.classList.contains('on')) vcEl.hidden = true; }, 90); _vcSrc = null; }, 90); }
 const VC_SEL = '#vBody, #vitals .ring, #vStam';
 document.addEventListener('mouseover', e => {
   const t = e.target; if (!t.closest) return;
-  if (t.closest('#vcCard')) { clearTimeout(_vcHide); return; }
-  const el = t.closest(VC_SEL); if (!el) return; el.removeAttribute('title'); if (_vcSrc === el && !vcEl.hidden) { clearTimeout(_vcHide); return; } vcShow(el);
+  if (t.closest('#vcCard')) { clearTimeout(_vcHide); _vcHiding = false; return; }
+  const el = t.closest(VC_SEL); if (!el) return; el.removeAttribute('title'); if (_vcSrc === el && !vcEl.hidden) { clearTimeout(_vcHide); _vcHiding = false; return; }
+  /* con la tarjeta ya abierta se cambia al momento; si no, solo sale si dejas el ratón quieto encima un rato
+     (pasar por encima de camino a otra cosa ya no la abre) */
+  clearTimeout(_vcWait); if (!vcEl.hidden && vcEl.classList.contains('on')) { vcShow(el); return; }
+  _vcWait = setTimeout(() => { if (el.matches(':hover')) vcShow(el); }, 450);
 });
 document.addEventListener('mouseout', e => {
   const from = e.target.closest && (e.target.closest('#vcCard') || e.target.closest(VC_SEL)); if (!from) return;
@@ -112,7 +117,8 @@ vcEl.addEventListener('click', e => {
 });
 // Los títulos del navegador taparían la tarjeta; mientras está abierta, se actualiza sola
 { const r0 = refreshVitals; refreshVitals = () => { r0(); if (document.getElementById('vBody')) document.querySelectorAll('#vitals .ring[title], #vBody[title], #vStam[title]').forEach(x => x.removeAttribute('title')); }; }
-setInterval(() => { if (vcEl.hidden || !_vcSrc || !S || !S.pc || vcEl.matches(':hover')) return; if (!document.body.contains(_vcSrc) || $('vitals').hidden) { vcHideSoon(); return; } vcShow(_vcSrc); }, 1000);
+/* (si ya se está cerrando no se refresca: antes el refresco podía cancelar el cierre y la tarjeta se quedaba) */
+setInterval(() => { if (_vcHiding || vcEl.hidden || !_vcSrc || !S || !S.pc || vcEl.matches(':hover')) return; if (!document.body.contains(_vcSrc) || $('vitals').hidden) { vcHideSoon(); return; } vcShow(_vcSrc); }, 1000);
 // ---------- Morir una sola vez ----------
 // En línea (o con el mundo en segundo plano) la simulación sigue con la pantalla de muerte puesta:
 // antes se «moría» en cada fotograma y la pantalla se redibujaba sin parar (los gráficos no
