@@ -78,7 +78,12 @@ function roofHouses() {
     // si dentro hay luz y dónde está el fuego (de ahí sale la chimenea)
     let light = false, fire = null; for (const kk of tiles) { const [x, y] = kk.split(',').map(Number), b = at(x, y); if (!b) continue; if (BD[b.type].light) light = true; if (!fire && FIRE_RE.test(b.type)) fire = [x, y]; }
     const front = new Map(); for (const [x, , b] of cols) { const blk = at(x, b); front.set(x, blk ? blk.type : null); }
-    const o = old.find(h => h.x0 === x0 && h.y0 === y0); _houses.push({ id, cols, x0, x1, y0, y1, light, fire, front, smokeT: o ? o.smokeT : 0 });
+    // Casa de costado: si la puerta está en una pared lateral (y no en la de delante), el tejado gira (cumbrera de arriba abajo)
+    const rm = new Map(); for (const kk of tiles) { const [x, y] = kk.split(',').map(Number), r = rm.get(y) || [x, x]; r[0] = Math.min(r[0], x); r[1] = Math.max(r[1], x); rm.set(y, r); }
+    const rows = [...rm.entries()].sort((a, b) => a[0] - b[0]).map(([y, [a, b]]) => [y, a, b]);
+    let side = null, sideY = null; for (const kk of tiles) { const [x, y] = kk.split(',').map(Number), d = at(x, y); if (!d || !BD[d.type].door) continue; const c = cm.get(x), r = rm.get(y);
+      if (y === c[1]) { side = 'S'; break; } if (x === r[0] && !side) { side = 'W'; sideY = y; } else if (x === r[1] && !side) { side = 'E'; sideY = y; } }
+    const o = old.find(h => h.x0 === x0 && h.y0 === y0); _houses.push({ id, cols, rows, x0, x1, y0, y1, light, fire, front, side: side || 'S', sideY, smokeT: o ? o.smokeT : 0 });
   }
   return _houses;
 }
@@ -97,7 +102,11 @@ function roofPattern(ctx, id, side) { const k = id + side; let p = _roofPat.get(
   }
   // Musgo y manchas de tiempo
   for (let i = 0; i < 10; i++) { const x = r() * S2, y = r() * S2, n = 2 + (r() * 4 | 0); c.fillStyle = r() < 0.6 ? 'rgba(80,110,50,.35)' : 'rgba(0,0,0,.12)'; for (let j = 0; j < n; j++) c.fillRect(x + (r() - 0.5) * 4, y + (r() - 0.5) * 3, 2, 1); }
-  p = ctx.createPattern(cv0, 'repeat'); _roofPat.set(k, p); return p; }
+  _roofCv.set(k, cv0); p = ctx.createPattern(cv0, 'repeat'); _roofPat.set(k, p); return p; }
+const _roofCv = new Map();
+// Vertientes izquierda y derecha (tejado de costado): las mismas tejas giradas
+function roofPatternR(ctx, id, side) { const k = id + side; let p = _roofPat.get(k); if (p) return p; const src = side === 'left' ? 'back' : 'front'; roofPattern(ctx, id, src); const s0 = _roofCv.get(id + src), cv0 = mkCanvas(64, 64), c = cv0.getContext('2d');
+  c.translate(32, 32); c.rotate(side === 'left' ? -Math.PI / 2 : Math.PI / 2); c.drawImage(s0, -32, -32); p = ctx.createPattern(cv0, 'repeat'); _roofPat.set(k, p); return p; }
 function wallPattern(ctx, type) { const k = 'w' + type; let p = _roofPat.get(k); if (p) return p; const S2 = 64, cv0 = mkCanvas(S2, S2), c = cv0.getContext('2d'), lk = (BD[type] && BD[type].look) || {}, col = lk.c || '#8a6a42', tex = lk.tex || (/wood|plank/i.test(type) ? 'plank' : 'stone'), r = rRnd(type.length * 131 + 7);
   c.fillStyle = shade(col, -0.25); c.fillRect(0, 0, S2, S2);
   if (tex === 'plank' || tex === 'fence') { for (let x = 0; x < S2; x += 8) { c.fillStyle = shade(col, (r() - 0.5) * 0.2); c.fillRect(x, 0, 8, S2); c.fillStyle = 'rgba(0,0,0,.28)'; c.fillRect(x + 7, 0, 1, S2); c.fillStyle = 'rgba(255,255,255,.1)'; c.fillRect(x, 0, 1, S2); for (let i = 0; i < 3; i++) { c.fillStyle = 'rgba(40,24,10,.45)'; c.fillRect(x + 2 + r() * 4, r() * S2, 1, 2 + r() * 3); } } }
@@ -131,6 +140,7 @@ function drawHouse(ctx, H) {
     for (let t = 0; t < 4; t++) { const gx = x * T + rr() * T, gh = 2 + rr() * 4; ctx.fillStyle = rr() < 0.5 ? '#4e8a32' : '#3a6e28'; ctx.fillRect(gx, (b + 1) * T - gh, 1, gh); ctx.fillRect(gx + 1, (b + 1) * T - gh + 1, 1, gh - 1); } }
   // Esquinas de la fachada
   ctx.fillStyle = 'rgba(0,0,0,.35)'; for (const [x, , b] of H.cols) { if (x === H.x0) ctx.fillRect(x * T, (b + 1) * T - L, 3, L); if (x === H.x1) ctx.fillRect(x * T + T - 3, (b + 1) * T - L, 3, L); }
+  if (H.side === 'E' || H.side === 'W') { drawSideRoof(ctx, H, L, base, wallOf(H.side === 'E' ? H.x1 : H.x0)); return; }
   // Tejado: vertiente de atrás, cumbrera y vertiente de delante
   for (const [x, a, b] of H.cols) { const top = a * T - L, bot = (b + 1) * T - L, ridge = (top + bot) / 2 - T * 0.15;
     for (let y = a; y <= b; y++) { const id = S.roof[roofKey(x, y)] || H.id, y0 = y * T - L, y1 = y0 + T; // cada casilla con su propio tejado (se pueden mezclar)
@@ -145,6 +155,28 @@ function drawHouse(ctx, H) {
   // Chimenea: solo si dentro hay un horno, una hoguera o una forja, justo encima de él (y echa humo)
   if (H.fire) { const col = H.cols.find(c => c[0] === H.fire[0]) || H.cols[0], cx = col[0] * T + 8, top = col[1] * T - L, bot = (col[2] + 1) * T - L, cy = top + (bot - top) * 0.22;
     ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(cx + 4, cy + 4, 14, 18); ctx.fillStyle = '#7a6a62'; ctx.fillRect(cx, cy - 6, 14, 22); ctx.fillStyle = '#5a4c46'; ctx.fillRect(cx, cy - 6, 14, 3); ctx.fillRect(cx + 6, cy, 1, 16); ctx.fillStyle = '#a89890'; ctx.fillRect(cx, cy - 8, 14, 2); ctx.fillStyle = '#1a1412'; ctx.fillRect(cx + 3, cy - 7, 8, 2);
+    if (typeof fxSmoke === 'function') { const now = performance.now() / 1000; if (now > H.smokeT) { H.smokeT = now + 0.35 + Math.random() * 0.4; fxSmoke(cx + 7, cy - 10, 'rgba(190,190,195,', 4); } } }
+}
+// Casa de costado: la cumbrera va de arriba abajo, las vertientes caen a izquierda y derecha y en el lado
+// de la puerta se ve la pared con la puerta (de perfil)
+function drawSideRoof(ctx, H, L, base, wallT) {
+  const W0 = 9; // grosor de la pared lateral que asoma
+  for (const [y, a, b] of H.rows) { const top = y * T - L; // paredes laterales a la vista (más oscura la de la sombra)
+    for (const [sx, dark] of [[a * T - W0, 0.35], [(b + 1) * T, 0.5]]) { ctx.fillStyle = wallPattern(ctx, wallT); ctx.fillRect(sx, top + L * 0.35, W0, T); ctx.fillStyle = `rgba(0,0,0,${dark})`; ctx.fillRect(sx, top + L * 0.35, W0, T); } }
+  // Puerta de perfil en el lado de la puerta, con su escalón
+  { const r = H.rows.find(q => q[0] === H.sideY) || H.rows[H.rows.length - 1], y = r[0], top = y * T - L, east = H.side === 'E', sx = east ? (r[2] + 1) * T : r[1] * T - W0, dh = L - 3, dy = top + L * 0.35 + T - dh;
+    ctx.fillStyle = '#2a1a0e'; ctx.fillRect(sx - 1, dy - 3, W0 + 2, dh + 3); ctx.fillStyle = '#7a4e2a'; ctx.fillRect(sx + 1, dy, W0 - 2, dh); ctx.fillStyle = '#4a2e18'; ctx.fillRect(sx + 1, dy + 6, W0 - 2, 2); ctx.fillRect(sx + 1, dy + dh - 9, W0 - 2, 2); ctx.fillStyle = '#e8c860'; ctx.fillRect(east ? sx + W0 - 4 : sx + 2, dy + dh * 0.52, 2, 3);
+    ctx.fillStyle = '#8a8682'; ctx.fillRect(east ? sx + W0 : sx - 8, top + L * 0.35 + T - 4, 8, 4); }
+  for (const [y, a, b] of H.rows) { const top = y * T - L, left = a * T, right = (b + 1) * T, ridge = (left + right) / 2 + T * 0.1;
+    for (let x = a; x <= b; x++) { const id = S.roof[roofKey(x, y)] || H.id, x0 = x * T, x1 = x0 + T;
+      if (x0 < ridge) { ctx.fillStyle = roofPatternR(ctx, id, 'left'); ctx.fillRect(x0, top, Math.min(x1, ridge) - x0, T); } if (x1 > ridge) { ctx.fillStyle = roofPatternR(ctx, id, 'right'); ctx.fillRect(Math.max(x0, ridge), top, x1 - Math.max(x0, ridge), T); } }
+    const g = ctx.createLinearGradient(left, 0, right, 0), rk = (ridge - left) / (right - left); g.addColorStop(0, 'rgba(0,0,0,.12)'); g.addColorStop(Math.max(0, rk - 0.01), 'rgba(255,255,255,.16)'); g.addColorStop(Math.min(1, rk + 0.01), 'rgba(0,0,0,.08)'); g.addColorStop(1, 'rgba(0,0,0,.32)'); ctx.fillStyle = g; ctx.fillRect(left, top, right - left, T);
+    ctx.fillStyle = shade(base, -0.45); ctx.fillRect(ridge - 2, top, 5, T); ctx.fillStyle = shade(base, 0.35); ctx.fillRect(ridge - 3, top, 2, T); // cumbrera
+    ctx.fillStyle = shade(base, -0.5); ctx.fillRect(left - 3, top, 3, T); ctx.fillRect(right, top, 3, T); } // aleros laterales
+  // Remate delantero (hastial) sobre la fachada y el de atrás
+  for (const [x, a, b] of H.cols) { ctx.fillStyle = shade(base, -0.55); ctx.fillRect(x * T, (b + 1) * T - L - 3, T, 4); ctx.fillStyle = shade(base, 0.3); ctx.fillRect(x * T, a * T - L, T, 2); }
+  if (H.fire) { const r = H.rows.find(q => q[0] === H.fire[1]) || H.rows[0], cx = (r[1] + r[2] + 1) / 2 * T - 7, cy = r[0] * T - L + 6;
+    ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(cx + 4, cy + 4, 14, 18); ctx.fillStyle = '#7a6a62'; ctx.fillRect(cx, cy - 6, 14, 22); ctx.fillStyle = '#5a4c46'; ctx.fillRect(cx, cy - 6, 14, 3); ctx.fillStyle = '#a89890'; ctx.fillRect(cx, cy - 8, 14, 2); ctx.fillStyle = '#1a1412'; ctx.fillRect(cx + 3, cy - 7, 8, 2);
     if (typeof fxSmoke === 'function') { const now = performance.now() / 1000; if (now > H.smokeT) { H.smokeT = now + 0.35 + Math.random() * 0.4; fxSmoke(cx + 7, cy - 10, 'rgba(190,190,195,', 4); } } }
 }
 let _indoorA = 0, _roofBox = null, _roofBoxV = -1, _roofFrame = 0;
