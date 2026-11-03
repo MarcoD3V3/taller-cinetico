@@ -163,6 +163,20 @@ function paintCliffs(u, W, x0, y0) {
     if (l > up) for (let x = 0; x < T; x++) { u[by * W + bx + x] = scale(u[by * W + bx + x], 1.25); u[(by + 1) * W + bx + x] = scale(u[(by + 1) * W + bx + x], 1.12); } // canto iluminado
     if (l > lf) for (let y = 0; y < T; y++) u[(by + y) * W + bx] = scale(u[(by + y) * W + bx], 1.2);
     if (l > rt) for (let y = 0; y < T; y++) u[(by + y) * W + bx + T - 1] = scale(u[(by + y) * W + bx + T - 1], 0.8);
+    /* Esquina exterior: la pared lateral de la terraza de la diagonal de arriba baja también por esta casilla
+       (tanto como su pared frontal); si no, en la esquina quedaba un hueco sin textura */
+    if (up <= l) for (const side of [-1, 1]) {
+      const dg = lvAt(gx + side, gy - 1); if (dg <= l || lvAt(gx + side, gy) > l) continue;
+      if (meLiq && GI[gnd(gx + side, gy - 1)].liquid) continue;
+      const fh = Math.min(T, faceH(dg - l)), wmax = Math.min(7, 3 + (dg - l) * 2), rk = rockOf(gnd(gx + side, gy - 1), rawLv(gx + side, gy - 1) > LV_FOOT), sh = side < 0 ? 0.72 : 0.95;
+      for (let y = 0; y < fh + 3 && y < T; y++) {
+        const wy = gy * T + y, w = wmax - ((ihash(wy >> 2, gx * 17 + side) * 3) | 0);
+        if (y >= fh) { for (let k = 0; k < w + 2; k++) { const x = side < 0 ? k : T - 1 - k, i = (by + y) * W + bx + x; u[i] = scale(u[i], 0.6 + (y - fh) * 0.1); } continue; }
+        for (let k = 0; k < w; k++) { const x = side < 0 ? k : T - 1 - k, i = (by + y) * W + bx + x, f = sh * (k === w - 1 ? 0.6 : 1) * (((wy >> 2) & 1) ? 1.05 : 0.95);
+          u[i] = px32(rk[0] * f, rk[1] * f, rk[2] * f); }
+        for (let k = w; k < w + 3; k++) { const x = side < 0 ? k : T - 1 - k, i = (by + y) * W + bx + x; u[i] = scale(u[i], 0.7 + (k - w) * 0.1); }
+      }
+    }
     if (up <= l) continue;
     // Pared bajo la terraza de arriba: canto con hierba que cuelga, roca con estratos y grietas
     // (luz desde arriba), borde inferior irregular, sombra y cascada si arriba hay agua
