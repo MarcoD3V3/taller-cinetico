@@ -134,7 +134,7 @@ function huntAnimal(a, w, got) {
   const i = ANIMALS.indexOf(a); if (i >= 0) ANIMALS.splice(i, 1);
   if (!own) return;
   let lost = 0; for (const id in got) lost += invGive(id, got[id], a.x, a.y);
-  toast(`${sp.n}: ${Object.keys(got).map(id => got[id] + ' ' + ITEMS[id].n).join(', ')}${lost ? ' (lo que no cabía, en el suelo)' : ''}`);
+  if (typeof OPT === 'undefined' || !OPT.quietToasts) toast(`${sp.n}: ${Object.keys(got).map(id => got[id] + ' ' + ITEMS[id].n).join(', ')}`);
 }
 function huntWith(a, w) {
   const got = {}, list = [a];
@@ -147,6 +147,6 @@ function huntWith(a, w) {
   for (const o of list) huntAnimal(o, w, got);
   let lost = 0; for (const id in got) lost += invGive(id, got[id], a.x, a.y);
   const sp = SPECIES[a.sp];
-  toast(`${list.length > 1 ? list.length + ' presas' : sp.n}: ${Object.keys(got).map(id => got[id] + ' ' + ITEMS[id].n).join(', ')}${lost ? ' (lo que no cabía, en el suelo)' : ''}`);
+  if (typeof OPT === 'undefined' || !OPT.quietToasts) toast(`${list.length > 1 ? list.length + ' presas' : sp.n}: ${Object.keys(got).map(id => got[id] + ' ' + ITEMS[id].n).join(', ')}`);
 }
 // El dibujo de los animales está en render/animals.js

@@ -116,7 +116,7 @@ function isleInteract() {
     for (const id of ['tPotHeal3', 'goldIngot']) if (ITEMS[id]) got.push([id, 2]);
     let lost = 0; for (const [id, n] of got) lost += invGive(id, n, (I.x + 0.5) * T, (I.y + 0.5) * T); invVersion++;
     fxBurst((I.x + 0.5) * T, (I.y + 0.5) * T, 40, { col: '#ffd34a', sp: 150, life: 0.9, glow: 1, size: 2.5 }); tone(780, 0.1, 'triangle', 0.05, 1.2); tone(1170, 0.25, 'triangle', 0.05, 1, 0.1);
-    toast('🏴‍☠️ ¡Tesoro! ' + got.map(([id, n]) => n + ' ' + ITEMS[id].n).join(', ') + (lost ? ' (lo que no cabía está en el suelo)' : ''), true); return true; }
+    toast('🏴‍☠️ ¡Tesoro! ' + got.map(([id, n]) => n + ' ' + ITEMS[id].n).join(', '), true); return true; }
   return false;
 }
 { const i0 = interact; interact = (shift, ctrl) => { if (S && !S.boat && isleInteract()) return; return i0(shift, ctrl); }; }

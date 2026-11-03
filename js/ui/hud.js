@@ -5,7 +5,9 @@ const ui = { mx: 0, my: 0, invQ: '', open: null, dir: 0, hand: false, mine: { t:
 const $ = id => document.getElementById(id);
 function selectedBlock() { if (ui.hand) return null; const s = S.inv[S.sel]; return s && isPlaceable(s.id) ? s.id : null; }
 
+const _toastSeen = new Map(); // mismo aviso repetido en poco tiempo: no se vuelve a mostrar (Opciones › Menos avisos)
 function toast(msg, big) {
+  if (typeof OPT === 'undefined' || OPT.quietToasts) { const now = performance.now(), k = String(msg), t0 = _toastSeen.get(k); if (t0 && now - t0 < 15000) return; _toastSeen.set(k, now); if (_toastSeen.size > 80) _toastSeen.clear(); }
   const d = document.createElement('div'); d.textContent = msg; if (big) { d.className = 'big'; d.style.animationDuration = '6s'; }
   const t = $('toast'); t.appendChild(d); while (t.children.length > 4) t.firstChild.remove();
   setTimeout(() => d.remove(), big ? 6000 : 3000);

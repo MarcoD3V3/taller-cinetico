@@ -71,7 +71,8 @@ const ST_CATS = {
     ['reduceMotion', 'Reducir animaciones de menús', 'check', 0, 0, 0, 0, 'Las ventanas aparecen al instante, sin deslizarse ni brillar.']]],
   game: ['Juego', 'M6 12h4 M8 10v4 M15 11h.01 M18 13h.01 M3 8a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v6a5 5 0 0 1-9 3 5 5 0 0 1-9-3z', 'Guardado y avisos. También puedes llevarte tus ajustes a otro navegador.', [
     ['autosave', 'Autoguardado cada', 'range', 10, 300, 10, v => v < 60 ? v + ' s' : (v / 60).toFixed(1).replace('.0', '') + ' min', 'Cada cuánto se guarda solo tu mundo.'],
-    ['confirmQuit', 'Preguntar antes de salir', 'check', 0, 0, 0, 0, 'Si tienes un mundo en red abierto, pregunta antes de cerrarlo.']]],
+    ['confirmQuit', 'Preguntar antes de salir', 'check', 0, 0, 0, 0, 'Si tienes un mundo en red abierto, pregunta antes de cerrarlo.'],
+    ['quietToasts', 'Menos avisos', 'check', 0, 0, 0, 0, 'Sin avisos repetidos ni de lo que sueltan los animales; «inventario lleno» como mucho cada 5 minutos.']]],
   keys: ['Teclas', 'M3 7h18v10H3z M7 11h.01 M11 11h.01 M15 11h.01 M8 14h8', 'Haz clic en una acción y pulsa la tecla nueva, o haz clic en el teclado.', []],
 };
 // optSet busca las filas en OPT_UI para escribir el valor: se rellena con las nuevas

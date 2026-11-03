@@ -119,6 +119,6 @@ function invGive(id, n, x, y) {
   if (!S || !ITEMS[id] || n <= 0) return 0; const left = invAdd(id, n); if (left <= 0) return 0;
   const p = S.player, a = Math.random() * 6.28, sp = 30 + Math.random() * 50;
   giSpawn(id, left, (x ?? p.x) + Math.cos(a) * 6, (y ?? p.y) + Math.sin(a) * 6, Math.cos(a) * sp, Math.sin(a) * sp);
-  const now = performance.now(); if (now - _giFullT > 2500) { _giFullT = now; toast('🎒 Inventario lleno: lo que no cabe queda en el suelo. Haz hueco y pasa por encima para cogerlo.'); }
+  const now = performance.now(); if (now - _giFullT > (typeof OPT !== 'undefined' && OPT.quietToasts ? 300000 : 2500)) { _giFullT = now; toast('🎒 Inventario lleno: lo que no cabe queda en el suelo'); }
   return left;
 }
