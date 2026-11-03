@@ -29,10 +29,25 @@ function mapPixel(x, y) {
 }
 onTileChange = (x, y, isBlock) => { if (!isBlock) invalidateTile(x, y); bumpChunk(x, y); mapPixel(x, y); };
 // Al cargar una partida, las zonas exploradas se vuelven a dibujar poco a poco (sin tirones)
-let _mapQueue = [];
-function queueMapTiles(keys) { _mapQueue = keys.filter(k => !MAPT.has(k)); }
+let _mapQueue = [], _mapSort = false;
+function queueMapTiles(keys) { _mapQueue = keys.filter(k => !MAPT.has(k)); _mapSort = true; }
+/* Las zonas guardadas en el archivo (CHARCH) se dibujan directo desde sus datos comprimidos: sin generar
+   ni cargar el chunk entero. Con presupuesto de tiempo por cuadro (más si el mapa está abierto) y
+   empezando por lo más cercano al jugador. */
+const _mqTmp = { cx: 0, cy: 0, g: new Uint8Array(CS * CS), b: null };
 function mapQueueTick() {
-  for (let n = 0; n < 3 && _mapQueue.length; n++) { const [cx, cy] = ckeyXY(_mapQueue.pop()); const c = peekChunk(cx, cy); if (c) buildMapTile(c); else getChunk(cx, cy); }
+  if (!_mapQueue.length) return;
+  if (_mapSort && S && S.player) { _mapSort = false; const px = Math.floor(S.player.x / T) >> CSH, py = Math.floor(S.player.y / T) >> CSH;
+    const d = k => { const [cx, cy] = ckeyXY(k); return (cx - px) * (cx - px) + (cy - py) * (cy - py); };
+    _mapQueue.sort((a, b) => d(b) - d(a)); }
+  const t0 = performance.now(), lim = ui.open === 'map' ? 12 : 3;
+  while (_mapQueue.length && performance.now() - t0 < lim) {
+    const k = _mapQueue.pop(); if (MAPT.has(k)) continue; const [cx, cy] = ckeyXY(k);
+    const c = peekChunk(cx, cy); if (c) { buildMapTile(c); continue; }
+    const a = typeof CHARCH !== 'undefined' && CHARCH.get(k);
+    if (a) { _mqTmp.cx = cx; _mqTmp.cy = cy; _mqTmp.g.fill(0); unrle(a[0], _mqTmp.g); buildMapTile(_mqTmp); }
+    else { getChunk(cx, cy); break; }
+  }
 }
 worldReset = () => { chunks.clear(); _staleCh.clear(); chunksH.clear(); chunksQ.clear(); bchunks.clear(); chunkVer.clear(); MAPT.clear(); _mapQueue = []; FLY = []; ANIMALS = []; ui.goalDirty = true; invVersion++; };
 
