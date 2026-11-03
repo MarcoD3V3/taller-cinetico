@@ -2046,3 +2046,9 @@ body.hudmin { --hud: rgba(14, 15, 17, .74); }
 
 /* ---------- Pisos de las casas ---------- */
 #flHud { position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 6; background: #1a120ccc; border: 1px solid #8a6a40; color: #ffe0a8; font: 600 13px var(--display); padding: 4px 12px; border-radius: 20px; pointer-events: none; }
+
+/* ---------- Asentamientos ---------- */
+.townm { max-width: 640px; } .townm p { line-height: 1.55; margin: 8px 0; } .towng { font-style: italic; color: #ffe0a8; background: #ffffff08; border-left: 3px solid #ffd34a; padding: 6px 10px; border-radius: 6px; }
+.townf { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; } .townf span { background: #ffffff0c; border: 1px solid var(--line); border-radius: 20px; padding: 3px 10px; font-size: 12px; }
+.townl { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; } .towni { text-align: left; display: flex; flex-direction: column; gap: 2px; border-color: color-mix(in srgb, var(--tc) 50%, transparent); }
+.towni b { color: var(--tc); } .towni small { color: var(--muted); font-family: "IBM Plex Sans", sans-serif; }
