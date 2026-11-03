@@ -66,7 +66,7 @@ TL('OBSIDIAN', { n: 'Obsidiana', c: [36, 26, 44], drop: 'obsidian', dot: '#6a4a8
 TL('SALTPETER', { n: 'Salitre', c: [210, 192, 132], drop: 'saltpeter', dot: '#ffffff' });
 // Agua con algo (se pica desde la orilla)
 TL('REEF', { n: 'Arrecife de coral', c: [36, 128, 148], liquid: 'water', drop: 'coral', coral: 1 });
-TL('KELP', { n: 'Bosque de algas', c: [26, 66, 96], liquid: 'water', drop: 'kelp', kelp: 1 });
+TL('KELP', { n: 'Bosque de algas', c: [36, 76, 128], liquid: 'water', wave: '#b4d7ff', drop: 'kelp', kelp: 1 });
 TL('LILYPAD', { n: 'Nenúfar', c: [60, 78, 52], liquid: 'water', drop: 'herbs', hp: 1, under: 'SWAMPWATER', plant: { s: 'lily' } });
 // Árboles
 TL('BIRCH', { n: 'Abedul', under: 'GRASS', hp: 5, drop: 'log', tree: { s: 'round', a: '#5a8a3a', b: '#7aa84a', trunk: '#e8e4dc' } });
@@ -261,7 +261,7 @@ for (const b of BIOMES) {
 
 // ---------- Clima ----------
 const GEN_DEFAULT = { seed: 0, terrain: 30, water: 0.35, sand: 0.03, mountain: 0.63, ores: 0.6, forest: 0.6, oil: 0.7, gas: 0.0012, biomeSize: 1, rivers: 1, spawnKit: true,
-  temp: 0, humid: 0, contSize: 1, islands: 1, chaos: 1, lakes: 0, veins: 1, flora: 1, fauna: 1, dayLen: 600, diff: 1, foes: 1, safeSpawn: true, quirks: [] };
+  temp: 0, humid: 0, contSize: 1, islands: 1, chaos: 1, lakes: 0, veins: 1, flora: 1, fauna: 1, dayLen: 600, diff: 1, foes: 1, safeSpawn: true, quirks: [], blend: 2 };
 // Rasgos de la semilla: cada semilla recibe 2 o 3 rasgos que no se pueden elegir (así ningún mundo es igual).
 // g: grupo (no se repiten dos rasgos del mismo grupo) · f: cómo cambian los parámetros
 const QUIRKS = [
@@ -302,16 +302,31 @@ const smooth = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t
 function climate(x, y, P, out) {
   const s = P.seed, k = 1 / (P.biomeSize || 1), wa = 260 * (P.chaos ?? 1), kc = k / (P.contSize || 1);
   const wx = x + (fbmN(x / 300, y / 300, s + 31, 2) - 0.5) * wa, wy = y + (fbmN(x / 300, y / 300, s + 37, 2) - 0.5) * wa;
-  let C = contrast(fbmN(wx * kc / 1200, wy * kc / 1200, s + 41, 3));
-  let Tm = contrast(fbmN(wx * k / 850, wy * k / 850, s + 51, 3));
-  let Hu = contrast(fbmN(wx * k / 700, wy * k / 700, s + 61, 3));
-  let Wd = contrast(fbmN(wx * k / 560, wy * k / 560, s + 71, 3));
+  /* blend ≥ 2 (mundos nuevos): una octava más, las lindes grandes no salen rectas */
+  const bl = P.blend ?? 1, oc4 = bl >= 2 ? 4 : 3;
+  let C = contrast(fbmN(wx * kc / 1200, wy * kc / 1200, s + 41, oc4));
+  let Tm = contrast(fbmN(wx * k / 850, wy * k / 850, s + 51, oc4));
+  let Hu = contrast(fbmN(wx * k / 700, wy * k / 700, s + 61, oc4));
+  let Wd = contrast(fbmN(wx * k / 560, wy * k / 560, s + 71, oc4));
+  /* Lindes onduladas: el clima se deforma un poco a escala de unas 25 casillas (bordes que serpentean) */
+  if (bl) { const jx = x / 26, jy = y / 26;
+    Tm += (fbmN(jx, jy, s + 91, 2) - 0.5) * 0.13; Hu += (fbmN(jx, jy, s + 93, 2) - 0.5) * 0.13;
+    Wd += (fbmN(jx * 1.2, jy * 1.2, s + 95, 2) - 0.5) * 0.12; C += (fbmN(x / 34, y / 34, s + 99, 2) - 0.5) * 0.035; }
   let Is = contrast(fbmN(wx * k / 240, wy * k / 240, s + 81, 2));
   if (P.temp) Tm = clamp(Tm + P.temp, 0, 1); if (P.humid) Hu = clamp(Hu + P.humid, 0, 1); if (P.islands !== undefined && P.islands !== 1) Is = clamp(Is + (P.islands - 1) * 0.06, 0, 1);
   // Alrededor del inicio el clima se vuelve templado y con tierra firme
   const m = smooth(220, 600, Math.hypot(x, y));
   if (m < 1 && P.safeSpawn !== false) { Tm = 0.5 + (Tm - 0.5) * m; Hu = 0.45 + (Hu - 0.45) * m; Wd = 0.4 + (Wd - 0.4) * m; C = C * m + 0.72 * (1 - m); Is *= m; }
   out[0] = C; out[1] = Tm; out[2] = Hu; out[3] = Wd; out[4] = Is; return out;
+}
+/* Franja de mezcla entre biomas: casilla a casilla, un ruido fino (manchas de 3–4 casillas) mueve el
+   clima un poco, así cerca de una linde se entremezclan las casillas, árboles y flores de los dos biomas
+   en vez de cortarse en una línea */
+function bioJit(x, y, P, cl) {
+  if (!(P.blend ?? 1)) return cl;
+  const s = P.seed, f = vnoise(x / 3.3, y / 3.3, s + 97) - 0.5, g = vnoise(x / 2.6, y / 2.6, s + 98) - 0.5;
+  cl[1] += f * 0.05; cl[2] += g * 0.05; cl[3] += (f - g) * 0.035; cl[0] += g * 0.012;
+  return cl;
 }
 const oceanLevel = P => 0.37 + (P.water - 0.35) * 1.2;
 function pickBiome(C, Tm, Hu, Wd, Is, P) {
@@ -360,7 +375,7 @@ function pickLand(Tm, Hu, Wd, inland) {
   if (Hu < 0.75) return Wd > 0.64 ? BI_.bambooJungle : BI_.jungle;
   return Wd > 0.8 ? BI_.toxicMarsh : BI_.jungle;
 }
-function biomeAt(x, y, P = S.gen) { const c = climate(x, y, P, _cl); return pickBiome(c[0], c[1], c[2], c[3], c[4], P); }
+function biomeAt(x, y, P = S.gen) { const c = bioJit(x, y, P, climate(x, y, P, _cl)); return pickBiome(c[0], c[1], c[2], c[3], c[4], P); }
 const _cl = [0, 0, 0, 0, 0];
 
 // ---------- Detalle de cada casilla ----------
@@ -453,7 +468,7 @@ function genTileB(x, y, P, cl, bio) {
 // Una casilla suelta (vista previa, consultas puntuales)
 // Con lugares únicos (las Maravillas, data/wonders.js) el bioma también depende de la posición
 function pickBiomeAt(x, y, c, P) { const w = typeof wonderAt === 'function' ? wonderAt(x, y, P) : -1; return w >= 0 ? w : pickBiome(c[0], c[1], c[2], c[3], c[4], P); }
-function genTile(x, y, P = S.gen) { const c = climate(x, y, P, _cl), b = pickBiomeAt(x, y, c, P); return genTileB(x, y, P, c, b); }
+function genTile(x, y, P = S.gen) { const c = bioJit(x, y, P, climate(x, y, P, _cl)), b = pickBiomeAt(x, y, c, P); return genTileB(x, y, P, c, b); }
 // Un chunk entero: el clima se muestrea en una rejilla 5×5 y se interpola (25 cálculos en vez de 1024)
 const _cg = new Float32Array(25 * 5);
 function computeClimateGrid(x0, y0, P) {
@@ -471,7 +486,7 @@ function genChunkTiles(c) {
   const P = S.gen, x0 = c.cx * CS, y0 = c.cy * CS, cl = [0, 0, 0, 0, 0];
   computeClimateGrid(x0, y0, P);
   for (let y = 0; y < CS; y++) for (let x = 0; x < CS; x++) {
-    climateLerp(x, y, cl);
+    bioJit(x0 + x, y0 + y, P, climateLerp(x, y, cl));
     const bio = pickBiomeAt(x0 + x, y0 + y, cl, P), i = (y << CSH) | x, t = genTileB(x0 + x, y0 + y, P, cl, bio);
     c.g[i] = t; c.bio[i] = bio; c.t[i] = GI[t].hp || 0;
   }
@@ -479,5 +494,5 @@ function genChunkTiles(c) {
 }
 function computeChunkBiomes(c) {
   const P = S.gen, cl = [0, 0, 0, 0, 0]; computeClimateGrid(c.cx * CS, c.cy * CS, P);
-  for (let y = 0; y < CS; y++) for (let x = 0; x < CS; x++) { climateLerp(x, y, cl); c.bio[(y << CSH) | x] = pickBiomeAt(c.cx * CS + x, c.cy * CS + y, cl, P); }
+  for (let y = 0; y < CS; y++) for (let x = 0; x < CS; x++) { bioJit(c.cx * CS + x, c.cy * CS + y, P, climateLerp(x, y, cl)); c.bio[(y << CSH) | x] = pickBiomeAt(c.cx * CS + x, c.cy * CS + y, cl, P); }
 }
