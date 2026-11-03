@@ -101,7 +101,7 @@ const _bw = new Float32Array(T), _bk = new Float32Array(T * T), _bb = new Float3
    agua, la hierba en la arena…), con una franja dentada de bloques de 4×4 píxeles. Así no salen dos
    transiciones pegadas, una en cada casilla. */
 const blPrio = t => { const g = GI[t]; return g.solid ? 3 + t / 1e4 : g.liquid ? 0 : /SAND|GRAVEL/.test(g.key || '') ? 1 + t / 1e4 : 2 + t / 1e4; };
-const BLK = 4, NB = T / BLK, _bq = new Float32Array(NB * NB), _bs = new Int8Array(NB * NB);
+const BL_BLK = 4, BL_NB = T / BL_BLK, _blQ = new Float32Array(BL_NB * BL_NB), _blS = new Int8Array(BL_NB * BL_NB);
 function blendEdges(u, W, x0, y0) {
   const srcs = new Array(8);
   for (let ty = 0; ty < CH; ty++) for (let tx = 0; tx < CH; tx++) {
@@ -110,25 +110,25 @@ function blendEdges(u, W, x0, y0) {
     for (let d = 0; d < 8; d++) { const b = baseTile(gnd(gx + BL_DX[d], gy + BL_DY[d]));
       srcs[d] = b !== t && blendable(b) && blPrio(b) > pt && !(GI[b].liquid && GI[t].liquid) ? b : -1; if (srcs[d] >= 0) any = true; }
     if (!any) continue;
-    _bq.fill(0); _bs.fill(-1);
+    _blQ.fill(0); _blS.fill(-1);
     for (let d = 0; d < 8; d++) { if (srcs[d] < 0) continue;
       const dx = BL_DX[d], dy = BL_DY[d];
       /* en una esquina solo si los dos lados no son ya de ese mismo suelo (si no, se pintaría doble) */
       if (d >= 4 && (srcs[dx > 0 ? 0 : 2] === srcs[d] || srcs[dy > 0 ? 1 : 3] === srcs[d])) continue;
       const E = d < 4 ? 3.2 : 2.6; /* ancho de la franja, en bloques */
-      for (let by = 0; by < NB; by++) for (let bx = 0; bx < NB; bx++) {
-        const ex = dx > 0 ? NB - 1 - bx : dx < 0 ? bx : -1, ey = dy > 0 ? NB - 1 - by : dy < 0 ? by : -1;
+      for (let by = 0; by < BL_NB; by++) for (let bx = 0; bx < BL_NB; bx++) {
+        const ex = dx > 0 ? BL_NB - 1 - bx : dx < 0 ? bx : -1, ey = dy > 0 ? BL_NB - 1 - by : dy < 0 ? by : -1;
         const dist = d < 4 ? (ex >= 0 ? ex : ey) : Math.hypot(ex, ey); if (dist >= E) continue;
-        const al = dx ? gy * NB + by : gx * NB + bx, a2 = al >> 1, sd = (d & 3) * 7919 + 77, fr = (al & 1) / 2;
+        const al = dx ? gy * BL_NB + by : gx * BL_NB + bx, a2 = al >> 1, sd = (d & 3) * 7919 + 77, fr = (al & 1) / 2;
         const wob = (ihash(a2, sd) + (ihash(a2 + 1, sd) - ihash(a2, sd)) * fr - 0.5) * 1.6;
         const p = 1 - (dist + 0.5 + wob) / E; if (p <= 0) continue;
-        const k = by * NB + bx; if (p > _bq[k]) { _bq[k] = p; _bs[k] = d; } }
+        const k = by * BL_NB + bx; if (p > _blQ[k]) { _blQ[k] = p; _blS[k] = d; } }
     }
-    for (let k = 0; k < NB * NB; k++) { const d = _bs[k]; if (d < 0) continue; const bx = k % NB, by = (k / NB) | 0;
+    for (let k = 0; k < BL_NB * BL_NB; k++) { const d = _blS[k]; if (d < 0) continue; const bx = k % BL_NB, by = (k / BL_NB) | 0;
       /* bloque entero o nada: borde pixelado y nítido */
-      if (ihash(gx * NB + bx, gy * NB + by + 99991) > _bq[k] * 1.35) continue;
+      if (ihash(gx * BL_NB + bx, gy * BL_NB + by + 99991) > _blQ[k] * 1.35) continue;
       const sb = GI[srcs[d]].dot ? G.STONE : srcs[d], src = tileTexPx(sb, (hash2(gx + BL_DX[d], gy + BL_DY[d], 51) * TEX_VARS) | 0);
-      for (let py = by * BLK; py < by * BLK + BLK; py++) { const r = (ty * T + py) * W + tx * T; for (let px = bx * BLK; px < bx * BLK + BLK; px++) u[r + px] = src[py * T + px]; } }
+      for (let py = by * BL_BLK; py < by * BL_BLK + BL_BLK; py++) { const r = (ty * T + py) * W + tx * T; for (let px = bx * BL_BLK; px < bx * BL_BLK + BL_BLK; px++) u[r + px] = src[py * T + px]; } }
   }
 }
 // Bordes entre casillas distintas (sin generar chunks nuevos: solo mira los ya cargados)
