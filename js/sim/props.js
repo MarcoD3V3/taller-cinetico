@@ -31,7 +31,12 @@ const PROP_DRAW = {
   pot(c) { c.fillStyle = '#7a3a1e'; c.beginPath(); c.ellipse(16, 20, 9, 8, 0, 0, 7); c.fill(); c.fillStyle = '#b0643e'; c.beginPath(); c.ellipse(15, 19, 8, 7, 0, 0, 7); c.fill(); c.fillStyle = '#7a3a1e'; c.fillRect(12, 9, 8, 4); c.fillStyle = '#f0d8a0'; c.fillRect(8, 18, 16, 2); c.fillStyle = '#2a1a0e'; c.fillRect(11, 21, 2, 2); c.fillRect(15, 21, 2, 2); c.fillRect(19, 21, 2, 2); },
   flowerCart(c) { PROP_DRAW.cart(c); const cols = ['#ff6a8a', '#ffd04a', '#c88aff', '#ffffff', '#ff8a3a']; for (let i = 0; i < 9; i++) { c.fillStyle = cols[i % 5]; c.fillRect(5 + (i * 7) % 20, 6 + (i % 3) * 2, 3, 3); } c.fillStyle = '#3e7a2e'; c.fillRect(5, 10, 20, 2); },
 };
-function drawProp(ctx, b, t) { const f = PROP_DRAW[b.type]; if (!f) return; ctx.save(); ctx.translate(b.x * T, b.y * T); ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(16, 28, 12, 3.5, 0, 0, 7); ctx.fill(); f(ctx, b, t); ctx.restore(); }
+// Los que no se mueven se dibujan una vez por tipo (y color) y luego solo se pegan; los animados, en directo
+const PROP_ANIM = new Set(['lampPost', 'clothesline', 'banner', 'windmill']), _propCv = new Map();
+function drawProp(ctx, b, t) { const f = PROP_DRAW[b.type]; if (!f) return;
+  if (!PROP_ANIM.has(b.type)) { const k = b.type + (b.col || ''); let cv = _propCv.get(k); if (!cv) { cv = document.createElement('canvas'); cv.width = cv.height = 48; const c = cv.getContext('2d'); c.translate(8, 8); c.fillStyle = 'rgba(0,0,0,.22)'; c.beginPath(); c.ellipse(16, 28, 12, 3.5, 0, 0, 7); c.fill(); f(c, { x: 0, y: 0, col: b.col }, 0); _propCv.set(k, cv); }
+    ctx.drawImage(cv, b.x * T - 8, b.y * T - 8); return; }
+  ctx.save(); ctx.translate(b.x * T, b.y * T); ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(16, 28, 12, 3.5, 0, 0, 7); ctx.fill(); f(ctx, b, t); ctx.restore(); }
 { const c0 = drawCombat; drawCombat = (ctx, ...a) => { try { if (typeof _vis !== 'undefined') { const t = performance.now() / 1000; for (const b of _vis) if (PROP_DRAW[b.type]) drawProp(ctx, b, t); } } catch (e) { } return c0(ctx, ...a); }; }
 // El bloque en sí no se pinta (solo su dibujo de arriba) y el icono del objeto es el mismo dibujo
 { const empty = (() => { const c = document.createElement('canvas'); c.width = c.height = 40; return c; })(), b0 = blockSprite; blockSprite = b => PROP_DRAW[b.type] ? empty : b0(b); }

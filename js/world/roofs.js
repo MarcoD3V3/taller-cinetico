@@ -88,7 +88,8 @@ function roofHouses() {
     const rows = [...rm.entries()].sort((a, b) => a[0] - b[0]).map(([y, [a, b]]) => [y, a, b]);
     let side = null, sideY = null; for (const kk of tiles) { const [x, y] = kk.split(',').map(Number), d = at(x, y); if (!d || !BD[d.type].door) continue; const c = cm.get(x), r = rm.get(y);
       if (y === c[1]) { side = 'S'; break; } if (x === r[0] && !side) { side = 'W'; sideY = y; } else if (x === r[1] && !side) { side = 'E'; sideY = y; } }
-    const o = old.find(h => h.x0 === x0 && h.y0 === y0); _houses.push({ id, cols, rows, x0, x1, y0, y1, light, fire, front, frontF, floors, side: side || 'S', sideY, smokeT: o ? o.smokeT : 0 });
+    const o = old.find(h => h.x0 === x0 && h.y0 === y0); const sig = JSON.stringify([cols, light, fire, [...front], frontF.map(m => [...m]), floors, side, sideY, tiles.map(k => S.roof[k]).join()]);
+    _houses.push({ id, cols, rows, x0, x1, y0, y1, light, fire, front, frontF, floors, side: side || 'S', sideY, sig, smokeT: o ? o.smokeT : 0 });
   }
   return _houses;
 }
@@ -163,7 +164,7 @@ function drawHouseBody(ctx, H, opt) {
   // Chimenea: solo si dentro hay un horno, una hoguera o una forja, justo encima de él (y echa humo)
   if (H.fire) { const col = H.cols.find(c => c[0] === H.fire[0]) || H.cols[0], cx = col[0] * T + 8, top = col[1] * T, bot = (col[2] + 1) * T - L, cy = top + (bot - top) * 0.3;
     ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(cx + 4, cy + 4, 14, 18); ctx.fillStyle = '#7a6a62'; ctx.fillRect(cx, cy - 6, 14, 22); ctx.fillStyle = '#5a4c46'; ctx.fillRect(cx, cy - 6, 14, 3); ctx.fillRect(cx + 6, cy, 1, 16); ctx.fillStyle = '#a89890'; ctx.fillRect(cx, cy - 8, 14, 2); ctx.fillStyle = '#1a1412'; ctx.fillRect(cx + 3, cy - 7, 8, 2);
-    if (typeof fxSmoke === 'function') { const now = performance.now() / 1000; if (now > H.smokeT) { H.smokeT = now + 0.35 + Math.random() * 0.4; fxSmoke(cx + 7, cy - 10, 'rgba(190,190,195,', 4); } } }
+    houseSmoke(cx + 7, cy - 10); }
 }
 // Casa de costado: la cumbrera va de arriba abajo, las vertientes caen a izquierda y derecha y en el lado
 // de la puerta se ve la puerta (de perfil). Todo dentro de las casillas de la casa.
@@ -180,7 +181,7 @@ function drawSideRoof(ctx, H, L, base, wallT) {
   if (!H.upper) drawSideDoor(ctx, H, L);
   if (H.fire) { const r = H.rows.find(q => q[0] === H.fire[1]) || H.rows[0], cx = (r[1] + r[2] + 1) / 2 * T + 6, cy = rowTop(r[0]) + 8;
     ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(cx + 4, cy + 4, 14, 18); ctx.fillStyle = '#7a6a62'; ctx.fillRect(cx, cy - 6, 14, 22); ctx.fillStyle = '#5a4c46'; ctx.fillRect(cx, cy - 6, 14, 3); ctx.fillStyle = '#a89890'; ctx.fillRect(cx, cy - 8, 14, 2); ctx.fillStyle = '#1a1412'; ctx.fillRect(cx + 3, cy - 7, 8, 2);
-    if (typeof fxSmoke === 'function') { const now = performance.now() / 1000; if (now > H.smokeT) { H.smokeT = now + 0.35 + Math.random() * 0.4; fxSmoke(cx + 7, cy - 10, 'rgba(190,190,195,', 4); } } }
+    houseSmoke(cx + 7, cy - 10); }
 }
 function drawSideDoor(ctx, H, L) {
   // Puerta lateral: dentro de su casilla, en el borde de ese lado, con su escalón fuera
@@ -189,13 +190,26 @@ function drawSideDoor(ctx, H, L) {
     ctx.fillStyle = '#8a8682'; ctx.fillRect(east ? (r[2] + 1) * T : r[1] * T - 6, (y + 1) * T - 5, 6, 5); }
 }
 // Casa entera: planta baja y, si tiene más pisos, sus fachadas una encima de otra y el tejado arriba del todo
-function drawHouse(ctx, H) {
+function drawHouseRaw(ctx, H) {
   const n = H.floors || 1; if (n <= 1) return drawHouseBody(ctx, H, { shadow: true });
   const L = ROOF_LIFT * T;
   for (let k = 0; k < n - 1; k++) { ctx.save(); ctx.translate(0, -L * k); drawHouseBody(ctx, { ...H, front: H.frontF[k], upper: k > 0 }, { shadow: k === 0, facadeOnly: true }); ctx.restore();
     ctx.fillStyle = 'rgba(0,0,0,.35)'; for (const [x, , b] of H.cols) ctx.fillRect(x * T, (b + 1) * T - L * (k + 1) - 2, T, 3); } // cornisa entre pisos
   if (H.side === 'E' || H.side === 'W') drawSideDoor(ctx, H, L);
   ctx.save(); ctx.translate(0, -L * (n - 1)); drawHouseBody(ctx, { ...H, front: H.frontF[n - 1], upper: true }, {}); ctx.restore();
+}
+// Cada casa se dibuja una vez en una imagen y luego solo se pega (antes se redibujaba entera en cada fotograma:
+// decenas de degradados por casa). Se rehace cuando cambia algo de la casa (paredes, puertas, ventanas, luz, tejado, pisos).
+const _hCache = new Map(); let _hRec = null;
+function houseSmoke(x, y) { if (_hRec) _hRec.push([x, y]); }
+function drawHouse(ctx, H) {
+  const k = H.x0 + ',' + H.y0; let e = _hCache.get(k);
+  if (!e || e.sig !== H.sig) { const L = ROOF_LIFT * T, n = H.floors || 1, bx = H.x0 * T - 18, by = H.y0 * T - L * n - 44, w = (H.x1 - H.x0 + 1) * T + 46, h = (H.y1 - H.y0 + 1) * T + L * n + 70;
+    const cv = e && e.cv && e.cv.width === w && e.cv.height === h ? e.cv : document.createElement('canvas'); cv.width = w; cv.height = h; const c = cv.getContext('2d'); c.translate(-bx, -by);
+    _hRec = []; try { drawHouseRaw(c, H); } finally { e = { sig: H.sig, cv, bx, by, smoke: _hRec, smokeT: 0 }; _hRec = null; }
+    _hCache.set(k, e); if (_hCache.size > 120) _hCache.delete(_hCache.keys().next().value); }
+  ctx.drawImage(e.cv, e.bx, e.by);
+  if (e.smoke.length && typeof fxSmoke === 'function') { const now = performance.now() / 1000; if (now > e.smokeT) { e.smokeT = now + 0.35 + Math.random() * 0.4; for (const [x, y] of e.smoke) fxSmoke(x, y, 'rgba(190,190,195,', 4); } }
 }
 let _indoorA = 0, _roofBox = null, _roofBoxV = -1, _roofFrame = 0;
 // pass 'back': antes de criaturas y jugador, las casas que quedan detrás de ti; el resto, por encima (pasada normal)
