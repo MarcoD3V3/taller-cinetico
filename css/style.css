@@ -2071,3 +2071,6 @@ body.hudmin { --hud: rgba(14, 15, 17, .74); }
 #colRod button { padding: 4px 9px; border-radius: 8px; font-size: 12px; } #colRod button.on { background: #e0b54c; color: #1a1408; } #colRod small { color: var(--muted); }
 #colBtn { position: fixed; right: 14px; top: calc(50% + 62px); z-index: 35; width: 38px; height: 38px; border-radius: 10px; font-size: 19px; padding: 0; background: #14151acc; border: 1px solid #3a3326; }
 #colBtn:hover { border-color: #e0b54c; }
+.colpri { display: flex; gap: 4px; flex-wrap: wrap; } .colpri button { display: flex; align-items: center; gap: 3px; padding: 3px 6px; border-radius: 7px; font-size: 12px; background: #23262e; border: 1px solid #333744; }
+.colpri button b { font-size: 11px; min-width: 8px; } .colpri .p0 { opacity: .45; } .colpri .p1 { background: #4a3a14; border-color: #e0b54c; } .colpri .p2 { background: #3a3218; } .colpri .p3, .colpri .p4 { background: #2c2a20; }
+#colRod select { font-size: 12px; padding: 3px 6px; border-radius: 7px; max-width: 170px; }
