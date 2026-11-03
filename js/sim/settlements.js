@@ -114,7 +114,7 @@ function stlPlan(s) {
   const pr = city ? 9 : K.small ? 5 : 6, pp = R() * 6.283, pEdge = a => pr * (0.82 + 0.16 * Math.sin(3 * a + pp) + 0.1 * Math.sin(2 * a + pp * 1.7));
   for (let y = -pr - 3; y <= pr + 3; y++) for (let x = -pr - 3; x <= pr + 3; x++) if (Math.hypot(x, y) <= pEdge(Math.atan2(y, x))) { setT(cx + x, cy + y, C.plaza); occ.add(K2(cx + x, cy + y)); }
   if (s.kind === 'ciudad') { for (let y = -1; y <= 1; y++) for (let x = -1; x <= 1; x++) setT(cx + x, cy + y, 'WATER'); for (let y = -2; y <= 2; y++) for (let x = -2; x <= 2; x++) if (Math.max(Math.abs(x), Math.abs(y)) === 2) addB(cx + x, cy + y, 'stoneBricks'); for (const [x, y] of [[-4, -4], [4, -4], [-4, 4], [4, 4]]) addB(cx + x, cy + y, 'lampPost'); addB(cx, cy - 5, 'statue'); }
-  else if (s.kind === 'aldea' || s.kind === 'minero') { setT(cx, cy, 'WATER'); for (const [x, y] of [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [1, 1]]) addB(cx + x, cy + y, 'stoneBlock'); addB(cx + 2, cy + 2, 'lampPost'); addB(cx - 2, cy - 2, 'lampPost'); addB(cx + 3, cy - 1, 'bench'); addB(cx - 3, cy + 1, 'bench'); }
+  else if (s.kind === 'aldea' || s.kind === 'minero') { setT(cx, cy, 'WATER'); for (const [x, y] of [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [1, 1]]) addB(cx + x, cy + y, 'stoneBlock'); addB(cx + 2, cy + 2, 'lampPost'); addB(cx - 2, cy - 2, 'lampPost'); addB(cx + 3, cy - 1, 'parkBench'); addB(cx - 3, cy + 1, 'parkBench'); }
   else { addB(cx, cy, 'campfire'); for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; addB(Math.round(cx + Math.cos(a) * 3), Math.round(cy + Math.sin(a) * 3), s.kind === 'tribu' ? 'totemPole' : i % 2 ? 'banner' : 'woodpile'); } }
   for (let i = 0; i < 10; i++) { const a = R() * Math.PI * 2, d = 2.5 + R() * (pr - 3); P.spots.plaza.push([Math.round(cx + Math.cos(a) * d), Math.round(cy + Math.sin(a) * d)]); }
   // Caminos que serpentean desde la plaza hasta salir del pueblo, y callejones que salen de ellos
@@ -186,7 +186,7 @@ function stlPlan(s) {
     if (!free(x0, y0, x0 + w - 1, y0 + h - 1)) continue;
     house(x0, y0, w, h, door, spec); if (spec) specials.shift(); }
   // Molino (aldeas y ciudades del valle)
-  if (s.cult === 'valle') for (let i = 0; i < (city ? 2 : 1); i++) struct(5, 5, (x0, y0, x1, y1) => { inside(x0 - 1, y0 - 1, x1 + 1, y1 + 1, (x, y) => setT(x, y, C.road)); addB(x0 + 2, y0 + 2, 'windmill'); addB(x0, y1, 'haystack'); addB(x1, y1, 'haystack'); addB(x0, y0 + 1, 'cart'); addB(x1, y0, 'crate'); }, 0.55, 0.9);
+  if (s.cult === 'valle') for (let i = 0; i < (city ? 2 : 1); i++) struct(5, 5, (x0, y0, x1, y1) => { inside(x0 - 1, y0 - 1, x1 + 1, y1 + 1, (x, y) => setT(x, y, C.road)); addB(x0 + 2, y0 + 2, 'millSails'); addB(x0, y1, 'haystack'); addB(x1, y1, 'haystack'); addB(x0, y0 + 1, 'cart'); addB(x1, y0, 'crate'); }, 0.55, 0.9);
   // Torres de vigía
   for (let i = 0; i < (city ? 3 : s.kind === 'clan' ? 2 : s.kind === 'aldea' ? 1 : 0); i++) struct(3, 3, (x0, y0) => { for (let y = 0; y < 3; y++) for (let x = 0; x < 3; x++) addB(x0 + x, y0 + y, x === 1 && y === 1 ? 'stonePillar' : s.kind === 'clan' ? 'logWall' : 'stoneBricks'); addB(x0 + 1, y0 + 3, 'banner', 0, { col: C.c }); addB(x0 + 3, y0 + 1, 'torch'); P.spots.patrol.push([x0 + 1, y0 + 4]); }, 0.75, 0.92);
   // Cementerio
@@ -195,7 +195,7 @@ function stlPlan(s) {
   if (s.kind === 'aldea' || s.kind === 'clan' || s.kind === 'tribu') struct(8, 6, (x0, y0, x1, y1) => { ring(x0, y0, x1, y1, 'fence', 'S'); inside(x0, y0, x1, y1, (x, y) => setT(x, y, 'DIRT')); addB(x0 + 1, y0 + 1, 'trough'); addB(x0 + 2, y0 + 1, 'trough'); addB(x1 - 1, y0 + 1, 'haystack'); addB(x1 - 2, y0 + 1, 'haystack'); addB(x1 + 1, y1, 'cart'); }, 0.5, 0.88);
   // Parques en la ciudad: setos, flores, bancos y una estatua
   if (city) for (let i = 0; i < 2; i++) struct(7, 7, (x0, y0, x1, y1) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { const e = x === x0 || x === x1 || y === y0 || y === y1, mid = x === ((x0 + x1) >> 1) || y === ((y0 + y1) >> 1); setT(x, y, 'GRASS'); if (e && !mid) addB(x, y, 'hedge'); else if (!e && mid) setT(x, y, 'GRAVEL'); else if (!e && R() < 0.5) addB(x, y, 'flowerBed'); }
-    addB((x0 + x1) >> 1, (y0 + y1) >> 1, 'statue'); addB(x0 + 1, y0 + 2, 'bench'); addB(x1 - 1, y1 - 2, 'bench'); addB(x0 + 1, y1 - 1, 'lampPost'); addB(x1 - 1, y0 + 1, 'lampPost'); }, 0.3, 0.8);
+    addB((x0 + x1) >> 1, (y0 + y1) >> 1, 'statue'); addB(x0 + 1, y0 + 2, 'parkBench'); addB(x1 - 1, y1 - 2, 'parkBench'); addB(x0 + 1, y1 - 1, 'lampPost'); addB(x1 - 1, y0 + 1, 'lampPost'); }, 0.3, 0.8);
   // Tiendas, tótems, secaderos y vasijas en las tribus; leña y estandartes en los clanes
   if (s.kind === 'tribu') { for (let i = 0; i < 7; i++) struct(1, 1, (x, y) => addB(x, y, 'tent'), 0.3, 0.85, 60); for (let i = 0; i < 4; i++) struct(1, 1, (x, y) => addB(x, y, i % 2 ? 'dryingRack' : 'pot'), 0.3, 0.8, 60); }
   if (s.kind === 'clan') for (let i = 0; i < 5; i++) struct(1, 1, (x, y) => addB(x, y, i % 2 ? 'woodpile' : 'banner', 0, { col: C.c }), 0.3, 0.8, 60);

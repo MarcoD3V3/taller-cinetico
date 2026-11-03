@@ -75,7 +75,7 @@ function render(fdt) {
   if (cw < 2 || ch < 2) return; // ventana oculta: no hay nada que dibujar
   if (dirty.lists) rebuildLists();
   if (shake > 0) shake -= fdt;
-  const sj = shake > 0 ? (Math.random() - 0.5) * 10 * dpr : 0, z = view.z, k = z * dpr, ox = cw / 2 * dpr - view.x * k + sj, oy = ch / 2 * dpr - view.y * k + sj;
+  const sj = shake > 0 ? (Math.random() - 0.5) * 10 * dpr : 0, z = view.z, k = z * dpr, ox = Math.round(cw / 2 * dpr - view.x * k + sj), oy = Math.round(ch / 2 * dpr - view.y * k + sj); // en píxeles enteros: el mundo no tiembla al andar despacio
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#0b0c0d'; ctx.fillRect(0, 0, cv.width, cv.height);
   const x0 = Math.floor((view.x - cw / 2 / z) / T) - 1, x1 = Math.ceil((view.x + cw / 2 / z) / T) + 1;
   const y0 = Math.floor((view.y - ch / 2 / z) / T) - 1, y1 = Math.ceil((view.y + ch / 2 / z) / T) + 1;
@@ -89,9 +89,7 @@ function render(fdt) {
     let c = cm.get(key);
     if (!c && _buildBudget > 0) { _buildBudget--; c = buildChunk(cx, cy, sc); }
     else if (c && sc === 1 && _staleCh.has(key) && _staleBudget-- > 0) { _staleCh.delete(key); c = buildChunk(cx, cy, 1); }
-    if (c) { const X = cx * CH * T, Y = cy * CH * T, W = CH * T; ctx.drawImage(c, X, Y, W, W); // a su tamaño exacto (estirarlo descuadraba las casillas)
-      // Rendija entre trozos con zoom fraccionario: se tapa repitiendo su última columna y fila 1,5 px, sin mover nada
-      ctx.drawImage(c, c.width - 1, 0, 1, c.height, X + W - 0.25, Y, 1.5, W); ctx.drawImage(c, 0, c.height - 1, c.width, 1, X, Y + W - 0.25, W + 1.25, 1.5); }
+    if (c) { const X = cx * CH * T, Y = cy * CH * T, W = CH * T, E = 1 / k; ctx.drawImage(c, X, Y, W + E, W + E); } // un píxel de pantalla más ancho: tapa la rendija entre trozos (antes se repetía el borde y en suelos con juntas oscuras se veía una línea negra)
     else { ctx.fillStyle = '#3d5e37'; ctx.fillRect(cx * CH * T, cy * CH * T, CH * T + 0.5, CH * T + 0.5); } // se dibuja en el siguiente fotograma
     const wcn = peekChunk((cx * CH) >> CSH, (cy * CH) >> CSH);
     if (!detail && wcn && wcn.nb) ctx.drawImage(blockChunk(cx, cy, now), cx * CH * T, cy * CH * T, CH * T, CH * T);
