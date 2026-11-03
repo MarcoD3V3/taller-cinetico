@@ -27,7 +27,10 @@ function charMods(eqOver) {
   if (!eqOver && _cm && _cmEq === EQ && _cmCh === ch && _cmProf === ch.prof && _cmTr === ch.traits && _cmTrN === ch.traits.length && _cmEnd === (S.end && S.end.choice) && _cmRM === lookSig(ch.look)) { let same = true; for (let i = 0; i < EQ_SLOTS.length; i++) if (_cmVals[i] !== EQ[EQ_SLOTS[i]]) { same = false; break; } if (same) return _cm; }
   const key = ch.traits.join() + '|' + ch.prof + '|' + lookSig(ch.look) + '|' + Object.values(EQ).join() + '|' + (S.end && S.end.choice);
   if (!eqOver && _cm && key === _cmKey) { _cmSnap(ch, EQ); return _cm; }
-  const m = { melee: 1, ranged: 1, work: 1, hp: 0, stam: 0, sprintCost: 1, speed: 1, dash: 1, reach: 1, hunger: 1, thirst: 1, wound: 1, heal: 1, mana: 0, manaRegen: 1, mine: 1, wood: 1, hunt: 1, tame: 1, craftKeep: 0, xp: 1, xpCraft: 1, detect: 1, warm: 0, rawSafe: 0, luck: 0, night: 0, energy: 1, pain: 1, bleed: 1, sick: 1, foes: 1, price: 1, petHp: 1, nightWork: 1, heavyOk: 0, zoomOut: 0, def: 0, fire: 0, heavy: 0, block: 0, gdef: 0 };
+  const m = { melee: 1, ranged: 1, work: 1, hp: 0, stam: 0, sprintCost: 1, speed: 1, dash: 1, reach: 1, hunger: 1, thirst: 1, wound: 1, heal: 1, mana: 0, manaRegen: 1, mine: 1, wood: 1, hunt: 1, tame: 1, craftKeep: 0, xp: 1, xpCraft: 1, detect: 1, warm: 0, rawSafe: 0, luck: 0, night: 0, energy: 1, pain: 1, bleed: 1, sick: 1, foes: 1, price: 1, petHp: 1, nightWork: 1, heavyOk: 0, zoomOut: 0, def: 0, fire: 0, heavy: 0, block: 0, gdef: 0,
+    // Atributos, críticos, resistencias y efectos (sim/attributes.js)
+    str: 0, dex: 0, pow: 0, spi: 0, end: 0, kno: 0, con: 0, dfn: 0, vig: 0, critP: 0.05, critM: 0.05, critD: 1.5, spell: 0, poise: 20, stagger: 10, carry: 0, stamRegen: 0, ccRed: 0, load: 0, loadMax: 0,
+    resF: 0, resB: 0, resP: 0, resC: 0, resV: 0, resPh: 0, resW: 0, chBleed: 0, chBurn: 0, chLight: 0, chPoison: 0, chRoot: 0, chWeak: 0 };
   const mul = new Set(['melee', 'ranged', 'work', 'sprintCost', 'speed', 'dash', 'reach', 'hunger', 'thirst', 'wound', 'heal', 'manaRegen', 'mine', 'wood', 'hunt', 'tame', 'xp', 'xpCraft', 'detect', 'energy', 'pain', 'bleed', 'sick', 'foes', 'price', 'petHp', 'nightWork']);
   for (const t of ch.traits) { const tr = TRAITS[t]; if (!tr) continue; for (const k in tr.m) { if (mul.has(k)) m[k] *= tr.m[k]; else m[k] += tr.m[k]; } }
   const pf = PROFS[ch.prof]; if (pf && pf.price) m.price *= pf.price;
@@ -42,6 +45,7 @@ function charMods(eqOver) {
   for (const sl in EQ) { const a = EQ[sl] && ITEMS[EQ[sl]] && ITEMS[EQ[sl]].armor; if (!a) continue; m.def += a.def; m.warm += a.warm || 0; m.fire = m.fire || a.fire || 0; if (a.heavy) m.heavy++; if (a.speed) m.speed *= 1 + a.speed; if (a.mods) for (const k in a.mods) { if (mul.has(k)) m[k] *= a.mods[k]; else m[k] += a.mods[k]; } }
   if (typeof axSetMods === 'function') for (const [k, v] of axSetMods(EQ)) { if (mul.has(k)) m[k] *= v; else m[k] += v; } // bonos por combinar piezas de la Armería (sim/armory.js)
   if (typeof talMods === 'function') for (const [k, v] of talMods()) { if (mul.has(k)) m[k] *= v; else m[k] += v; } // árbol de talentos (sim/talents.js)
+  if (typeof attrApply === 'function') attrApply(m, EQ); // atributos, resistencias y carga (sim/attributes.js)
   if (m.heavy && !m.heavyOk) m.speed *= 1 - 0.02 * m.heavy;
   // Bendición del final elegido
   const ec = S.end && S.end.choice;
