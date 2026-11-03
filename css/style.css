@@ -2008,8 +2008,9 @@ body.hudmin { --hud: rgba(14, 15, 17, .74); }
 @keyframes tlPts { 50% { text-shadow: 0 0 24px #ffc060, 0 0 8px #ff8a2a; } }
 .tlC { position: relative; min-height: 0; overflow: hidden; border-radius: 10px; cursor: grab; }
 .tlC.pan { cursor: grabbing; }
-.tlC canvas, .tlC svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-.tlC canvas { pointer-events: none; z-index: 2; } .tlC svg { z-index: 1; user-select: none; }
+.tlC canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.tlfit { position: absolute; z-index: 3; right: 12px; top: 10px; width: 36px; height: 36px; border-radius: 50%; padding: 0; background: #0d0a08cc; border: 1px solid #6a5238; color: var(--gold); font-size: 18px; }
+.tlfit:hover { border-color: #ffd890; }
 .tlbr { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); z-index: 3; display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 40px; background: #0d0a08cc; border: 1px solid #5a4630; box-shadow: 0 4px 18px #000a; }
 .tlbr kbd { color: var(--gold); border-color: #e8c89055; }
 .tlbr button { position: relative; width: 46px; height: 46px; border-radius: 50%; padding: 0; display: grid; place-items: center; font-size: 22px; background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--bc) 60%, #000), #120c08 75%); border: 2px solid #6a5238; box-shadow: inset 0 0 10px #000; transition: transform .15s, box-shadow .2s; }
@@ -2018,35 +2019,14 @@ body.hudmin { --hud: rgba(14, 15, 17, .74); }
 .tlbr button small { position: absolute; bottom: -4px; right: -4px; background: #1a120c; border: 1px solid #6a5238; border-radius: 8px; font: 600 10px "IBM Plex Sans", sans-serif; color: var(--gold); padding: 0 4px; min-width: 8px; }
 .tlbr button small:empty { display: none; }
 .tlbrn { display: flex; flex-direction: column; margin-left: 6px; min-width: 120px; } .tlbrn b { color: var(--tc); font-size: 15px; letter-spacing: .06em; } .tlbrn small { font: 11px "IBM Plex Sans", sans-serif; color: #a8987c; }
-.tlemb { font-size: 520px; text-anchor: middle; dominant-baseline: middle; opacity: .045; pointer-events: none; }
-.tlcrack { fill: none; stroke: var(--tc); stroke-opacity: .16; stroke-linecap: round; stroke-linejoin: round; }
-.tle { fill: none; stroke-linecap: round; stroke-linejoin: round; }
-.tle.dim { stroke: #3a2c20; stroke-width: 3; } .tle.half { stroke: #8a5a2a; stroke-width: 3.2; stroke-dasharray: 2 6; }
-.tle.glow { stroke: var(--tc); stroke-width: 12; stroke-opacity: .55; filter: url(#tlGlow); } .tle.lit { stroke: #ffb04a; stroke-width: 4.5; }
-.tle.flow { stroke: #fff2c0; stroke-width: 2; stroke-dasharray: 10 22; animation: tlFlow 1.4s linear infinite; }
-@keyframes tlFlow { to { stroke-dashoffset: -64; } }
-.tn { cursor: pointer; } .tn > * { transition: transform .15s; }
-.tn .halo { fill: var(--tc); opacity: 0; filter: url(#tlGlow); transition: opacity .2s; }
-.tn .orb { fill: none; stroke: #e8c89055; stroke-width: 2; stroke-dasharray: 3 7; transform-box: fill-box; transform-origin: center; animation: tlSpin 18s linear infinite; }
-@keyframes tlSpin { to { transform: rotate(360deg); } }
-.tn .rim { fill: #120c08; stroke: #5e4428; stroke-width: 3; } .tn .core { fill: url(#tlCoreG); }
-.tn .ic { text-anchor: middle; filter: sepia(.6) grayscale(.45) brightness(.72); pointer-events: none; }
-.tn .tlpp { fill: #2a2018; stroke: #6a5238; stroke-width: 1; } .tn .tlpp.on { fill: #ffd060; stroke: #fff2c0; filter: drop-shadow(0 0 3px #ff9a2a); }
-.tn.st-near .rim { stroke: #a87a40; } .tn.st-near .ic { filter: sepia(.3) grayscale(.2) brightness(.9); }
-.tn.st-can .rim { stroke: #ffd890; stroke-width: 3.5; animation: tlCan 1.6s ease-in-out infinite; } .tn.st-can .ic { filter: grayscale(.3); } .tn.st-can .halo { opacity: .35; animation: tlHalo 1.6s ease-in-out infinite; }
-@keyframes tlCan { 50% { stroke: #ffffff; } } @keyframes tlHalo { 50% { opacity: .6; } }
-.tn.st-got .rim, .tn.st-full .rim { stroke: url(#tlRim); stroke-width: 4.5; } .tn.st-got .core, .tn.st-full .core { fill: url(#tlCoreL); } .tn.st-got .ic, .tn.st-full .ic { filter: drop-shadow(0 0 6px #ffb04a); }
-.tn.st-got .halo { opacity: .5; } .tn.st-full .halo { opacity: .7; }
-.tn.k-root .rim, .tn.k-key .rim { stroke-width: 6; } .tn.k-root.st-got .halo, .tn.k-root.st-full .halo, .tn.k-key.st-full .halo { opacity: .9; }
-.tn:hover > *:not(.halo) { transform: scale(1.12); } .tn:hover .halo { opacity: .75; }
-.tn.sel .rim { stroke: #fff; stroke-width: 5; } .tn.sel .halo { opacity: .9; }
-.tn.pop > * { animation: tlPop .5s ease-out; } @keyframes tlPop { 30% { transform: scale(1.4); } }
-.tltip { position: absolute; z-index: 4; width: 280px; pointer-events: none; background: linear-gradient(180deg, #221a12f2, #120d09f2); border: 1px solid #8a6a40; box-shadow: inset 0 0 0 1px #000, 0 8px 28px #000c; border-radius: 4px; padding: 12px 16px; }
+.tltip { position: absolute; left: 0; top: 0; will-change: transform; z-index: 4; width: 280px; pointer-events: none; background: linear-gradient(180deg, #221a12f2, #120d09f2); border: 1px solid #8a6a40; box-shadow: inset 0 0 0 1px #000, 0 8px 28px #000c; border-radius: 4px; padding: 12px 16px; }
 .tltip::before { content: ''; position: absolute; inset: 3px; border: 1px solid #e8c8901f; pointer-events: none; }
 .tltip h4 { margin: 0; font: 700 21px "Cinzel", Georgia, serif; color: #f4e6c8; font-variant: small-caps; letter-spacing: .05em; }
 .tltip .ttc { font: 13px "Cinzel", Georgia, serif; color: #c8b490; margin: 2px 0 6px; }
 .tltip p { margin: 4px 0 0; font: 13.5px "IBM Plex Sans", system-ui, sans-serif; line-height: 1.35; }
 .tltip .ttg { color: #7fe07a; } .tltip .ttt { color: #e8c890; font-size: 12.5px; } .tltip .ttr { color: #ff7a6a; } .tltip .tta { color: #ffd890; font-size: 12px; }
+.tltip .ttk { font: 12px "IBM Plex Sans", sans-serif; color: #a8987c; margin-bottom: 4px; } .tltip .ttk i { font-style: normal; display: inline-block; min-width: 18px; text-align: center; margin-left: 3px; border-radius: 4px; background: #ffffff10; color: #c8b490; } .tltip .ttk i.on { background: #ffb04a33; color: #ffd890; }
+.tltip .ttc b { color: #ffd890; }
 .tlsk { position: absolute; inset: 0; overflow: auto; padding: 16px 20px; font-family: "IBM Plex Sans", system-ui, sans-serif; }
 .tlsk h3 { font: 700 22px "Cinzel", Georgia, serif; color: var(--gold); text-align: center; font-variant: small-caps; }
 .tlskg { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin-top: 12px; }

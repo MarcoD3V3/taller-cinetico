@@ -224,7 +224,7 @@ function frame(now) {
   // completo y con su tiempo real, para que los demás jugadores, criaturas y máquinas se vean fluidos
   const live = typeof inGame === 'function' && inGame(), lb = live && !!ui.open && ui.open !== 'title';
   if (lb !== frame._lb) { frame._lb = lb; document.body.classList.toggle('livebg', lb); } // sin desenfoques caros detrás de la ventana
-  if (ui.open !== 'map' && (!ui.open || live || _rT <= 0)) { _rT = live || !ui.open ? 0 : ui.open === 'inv' || ui.open === 'pause' ? 1 / 30 : 0.25; render(ui.open && !live ? 0 : fdt); }
+  if (ui.open !== 'map' && ui.open !== 'tal' && (!ui.open || live || _rT <= 0)) { _rT = live || !ui.open ? 0 : ui.open === 'inv' || ui.open === 'pause' ? 1 / 30 : 0.25; render(ui.open && !live ? 0 : fdt); }
   hoverFrame(fdt);
   uiT -= fdt; if (uiT <= 0) {
     uiT = 0.15;
