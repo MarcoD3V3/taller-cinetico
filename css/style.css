@@ -2052,3 +2052,22 @@ body.hudmin { --hud: rgba(14, 15, 17, .74); }
 .townf { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; } .townf span { background: #ffffff0c; border: 1px solid var(--line); border-radius: 20px; padding: 3px 10px; font-size: 12px; }
 .townl { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; } .towni { text-align: left; display: flex; flex-direction: column; gap: 2px; border-color: color-mix(in srgb, var(--tc) 50%, transparent); }
 .towni b { color: var(--tc); } .towni small { color: var(--muted); font-family: "IBM Plex Sans", sans-serif; }
+/* ---------- Mi pueblo (colonos) ---------- */
+.colm { width: min(900px, 96vw); max-height: 88vh; overflow: auto; }
+.colm > header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.colm > header h2 { margin: 0; } .colm > header button { margin-left: auto; }
+.colgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.colc { background: #1a1c22; border: 1px solid #2c2f38; border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 7px; }
+.colc.sel { border-color: #e0b54c; box-shadow: 0 0 0 1px #e0b54c55; }
+.colc header { display: flex; align-items: baseline; gap: 8px; } .colc header b { font-size: 15px; } .colc header small { color: var(--muted); font-size: 11px; }
+.coltr { display: flex; gap: 5px; flex-wrap: wrap; } .coltr span { font-size: 11px; padding: 2px 7px; border-radius: 99px; background: #2a2d36; color: #e8dcc0; cursor: help; }
+.colsk, .colnd { display: grid; gap: 4px; } .colsk div, .colnd div { display: grid; grid-template-columns: 82px 1fr 28px; align-items: center; gap: 6px; font-size: 11px; }
+.colnd div { grid-template-columns: 82px 1fr; } .colsk em { font-style: normal; color: var(--muted); text-align: right; }
+.colbar { display: block; height: 6px; border-radius: 99px; background: #2a2d36; overflow: hidden; } .colbar b { display: block; height: 100%; border-radius: 99px; }
+.colst { font-size: 12px; color: #cfc8b8; } .colst .bad, .colm .bad { color: #ff8a7a; }
+.colac { display: flex; gap: 8px; align-items: center; } .colac select { flex: 1; } .colac button.ghost { background: transparent; border: 1px solid #3a3d48; }
+.colhelp { margin-top: 14px; padding: 10px 12px; border-radius: 12px; background: #15171c; font-size: 12.5px; } .colhelp ul { margin: 6px 0 8px 18px; padding: 0; } .colhelp li { margin: 3px 0; }
+#colRod { position: fixed; left: 50%; bottom: 92px; transform: translateX(-50%); z-index: 40; display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 12px; background: #14151acc; border: 1px solid #3a3326; backdrop-filter: blur(4px); font-size: 12px; color: #e8dcc0; flex-wrap: wrap; justify-content: center; max-width: calc(100vw - 16px); }
+#colRod button { padding: 4px 9px; border-radius: 8px; font-size: 12px; } #colRod button.on { background: #e0b54c; color: #1a1408; } #colRod small { color: var(--muted); }
+#colBtn { position: fixed; right: 14px; top: calc(50% + 62px); z-index: 35; width: 38px; height: 38px; border-radius: 10px; font-size: 19px; padding: 0; background: #14151acc; border: 1px solid #3a3326; }
+#colBtn:hover { border-color: #e0b54c; }
