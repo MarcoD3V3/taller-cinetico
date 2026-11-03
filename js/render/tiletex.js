@@ -91,36 +91,44 @@ function stonesTex(c, h, n, crack) {
 // azar rápido con enteros (para el bucle por píxel)
 const ihash = (x, y) => { let h = (Math.imul(x, 73856093) ^ Math.imul(y, 19349663)) >>> 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
 const BLEND_E = 15, baseTile = t => { const g = GI[t]; return g.flora ? (g.u >= 0 ? g.u : G.GRASS) : t; };
-const blendable = t => { const g = GI[t]; return !g.solid && !g.ruin && !g.abyss && !g.hole; };
+/* todos los bloques entran en la transición (también la roca y la mena), menos ruinas, abismos y pozos */
+const blendable = t => { const g = GI[t]; return !g.ruin && !g.abyss && !g.hole && !g.tree; };
 // Agua y otros líquidos: borde más estrecho (la orilla se ve nítida). 8 vecinos (también las esquinas, para que la transición no salga con muescas). Mira los chunks
 // vecinos aunque aún no estén cargados (se generan: el terreno es determinista), así nunca se corta en un borde.
 const BL_DX = [1, 0, -1, 0, 1, -1, -1, 1], BL_DY = [0, 1, 0, -1, 1, 1, -1, -1];
 const _bw = new Float32Array(T), _bk = new Float32Array(T * T), _bb = new Float32Array(T * T), _bp = new Int8Array(T * T);
+/* Transición de UN solo lado: entre dos suelos, solo el de más prioridad entra en el otro (la tierra en el
+   agua, la hierba en la arena…), con una franja dentada de bloques de 4×4 píxeles. Así no salen dos
+   transiciones pegadas, una en cada casilla. */
+const blPrio = t => { const g = GI[t]; return g.solid ? 3 + t / 1e4 : g.liquid ? 0 : /SAND|GRAVEL/.test(g.key || '') ? 1 + t / 1e4 : 2 + t / 1e4; };
+const BLK = 4, NB = T / BLK, _bq = new Float32Array(NB * NB), _bs = new Int8Array(NB * NB);
 function blendEdges(u, W, x0, y0) {
   const srcs = new Array(8);
   for (let ty = 0; ty < CH; ty++) for (let tx = 0; tx < CH; tx++) {
     const gx = x0 + tx, gy = y0 + ty, t = baseTile(gnd(gx, gy)); if (!blendable(t)) continue;
-    let any = false, liqN = 0; const liq = !!GI[t].liquid;
-    for (let d = 0; d < 8; d++) { const b = baseTile(gnd(gx + BL_DX[d], gy + BL_DY[d])); srcs[d] = b !== t && blendable(b) ? tileTexPx(b, (hash2(gx + BL_DX[d], gy + BL_DY[d], 51) * TEX_VARS) | 0) : null; if (srcs[d]) { any = true; if (GI[b].liquid) liqN |= 1 << d; } }
+    const pt = blPrio(t); let any = false;
+    for (let d = 0; d < 8; d++) { const b = baseTile(gnd(gx + BL_DX[d], gy + BL_DY[d]));
+      srcs[d] = b !== t && blendable(b) && blPrio(b) > pt && !(GI[b].liquid && GI[t].liquid) ? b : -1; if (srcs[d] >= 0) any = true; }
     if (!any) continue;
-    _bk.fill(1); _bb.fill(0); _bp.fill(-1);
-    // Solo se recorre la franja de cada borde (y el cuadrado de cada esquina), no la casilla entera
-    for (let d = 0; d < 8; d++) { const sr = srcs[d]; if (!sr) continue;
-      const E = liq || liqN & (1 << d) ? 7 : BLEND_E, dx = BL_DX[d], dy = BL_DY[d];
-      const xa = dx > 0 ? T - E : 0, xb = dx < 0 ? E : T, ya = dy > 0 ? T - E : 0, yb = dy < 0 ? E : T;
-      /* onda suave a lo largo del borde (interpolada cada 8 píxeles), una vez por borde: la linde serpentea */
-      { const sd = (d & 3) * 7919 + 77, wa = liq || liqN & (1 << d) ? 4 : 10;
-        for (let q = 0; q < T; q++) { const al = (dx ? gy : gx) * T + q, a8 = al >> 3, fr = (al & 7) / 8, h0 = ihash(a8, sd);
-          _bw[q] = (h0 + (ihash(a8 + 1, sd) - h0) * fr * fr * (3 - 2 * fr) - 0.5) * wa + (ihash(al >> 1, sd + 5) - 0.5) * 2; } }
-      for (let py = ya; py < yb; py++) for (let px = xa; px < xb; px++) {
-        const ex = dx > 0 ? T - 1 - px : dx < 0 ? px : -1, ey = dy > 0 ? T - 1 - py : dy < 0 ? py : -1;
-        const dist = d < 4 ? (ex >= 0 ? ex : ey) : Math.sqrt(ex * ex + ey * ey); if (dist >= E) continue;
-        // borde ondulado: la distancia varía a lo largo del borde (con coordenadas del mundo: continúa entre casillas)
-        const wob = _bw[dx ? py : px];
-        const f = Math.max(0, 1 - (dist + wob) / E), p = Math.min(0.97, f * (1.25 - f * 0.4)); if (p <= 0) continue;
-        const i = py * T + px; _bk[i] *= 1 - p; if (p > _bb[i]) { _bb[i] = p; _bp[i] = d; } }
+    _bq.fill(0); _bs.fill(-1);
+    for (let d = 0; d < 8; d++) { if (srcs[d] < 0) continue;
+      const dx = BL_DX[d], dy = BL_DY[d];
+      /* en una esquina solo si los dos lados no son ya de ese mismo suelo (si no, se pintaría doble) */
+      if (d >= 4 && (srcs[dx > 0 ? 0 : 2] === srcs[d] || srcs[dy > 0 ? 1 : 3] === srcs[d])) continue;
+      const E = d < 4 ? 3.2 : 2.6; /* ancho de la franja, en bloques */
+      for (let by = 0; by < NB; by++) for (let bx = 0; bx < NB; bx++) {
+        const ex = dx > 0 ? NB - 1 - bx : dx < 0 ? bx : -1, ey = dy > 0 ? NB - 1 - by : dy < 0 ? by : -1;
+        const dist = d < 4 ? (ex >= 0 ? ex : ey) : Math.hypot(ex, ey); if (dist >= E) continue;
+        const al = dx ? gy * NB + by : gx * NB + bx, a2 = al >> 1, sd = (d & 3) * 7919 + 77, fr = (al & 1) / 2;
+        const wob = (ihash(a2, sd) + (ihash(a2 + 1, sd) - ihash(a2, sd)) * fr - 0.5) * 1.6;
+        const p = 1 - (dist + 0.5 + wob) / E; if (p <= 0) continue;
+        const k = by * NB + bx; if (p > _bq[k]) { _bq[k] = p; _bs[k] = d; } }
     }
-    for (let i = 0; i < T * T; i++) { const pk = _bp[i]; if (pk < 0) continue; const px = i % T, py = (i / T) | 0; if (ihash(gx * T + px, gy * T + py) > _bk[i]) u[(ty * T + py) * W + tx * T + px] = srcs[pk][i]; }
+    for (let k = 0; k < NB * NB; k++) { const d = _bs[k]; if (d < 0) continue; const bx = k % NB, by = (k / NB) | 0;
+      /* bloque entero o nada: borde pixelado y nítido */
+      if (ihash(gx * NB + bx, gy * NB + by + 99991) > _bq[k] * 1.35) continue;
+      const sb = GI[srcs[d]].dot ? G.STONE : srcs[d], src = tileTexPx(sb, (hash2(gx + BL_DX[d], gy + BL_DY[d], 51) * TEX_VARS) | 0);
+      for (let py = by * BLK; py < by * BLK + BLK; py++) { const r = (ty * T + py) * W + tx * T; for (let px = bx * BLK; px < bx * BLK + BLK; px++) u[r + px] = src[py * T + px]; } }
   }
 }
 // Bordes entre casillas distintas (sin generar chunks nuevos: solo mira los ya cargados)
