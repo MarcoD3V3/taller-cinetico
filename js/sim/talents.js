@@ -220,7 +220,7 @@ if (typeof CH_KEYS !== 'undefined' && !CH_KEYS.includes('talents')) CH_KEYS.push
 if (typeof PERSONAL !== 'undefined') PERSONAL.add('talents');
 const talData = () => S.talents || (S.talents = {});
 const talSpent = br => { const T0 = talData(); let s = 0; for (const id in T0) { const t = TAL[id]; if (t && (!br || t.br === br)) s += talCostTo(t, T0[id] | 0); } return s; };
-const talPts = () => Math.max(0, (S && S.pc ? (charLevel() - 1) * TAL_PER_LV : 0) - talSpent());
+const talPts = () => Math.max(0, (S && S.pc ? (charLevel() - 1) * TAL_PER_LV + (S.talBonus | 0) : 0) - talSpent()); // talBonus: puntos regalados con /puntos (truco)
 const talHas = id => (talData()[id] | 0) > 0;
 // Un grupo (constelación o Maestría) está completo cuando tienes todos sus nodos
 const talGroupDone = (br, g) => g == null || TALG[br][g].ids.every(talHas);
@@ -246,7 +246,7 @@ function talReward(t) { const r = t.rw, B = TAL_TREE[t.br], got = S.talRw || (S.
   if (r[0] === 'sp') { const st = typeof spellState === 'function' && spellState(); if (st && SPELLS[r[1]] && !st.known.includes(r[1])) { learnSpell(r[1]); wvBanner(`${SPELLS[r[1]].i} ${SPELLS[r[1]].n}`, `Nuevo hechizo por «${t.n}»`, B.c, 3); return; } if (got[t.id]) return; got[t.id] = 1; invGive(ITEMS.adrenaPill3 ? 'adrenaPill3' : 'coin', ITEMS.adrenaPill3 ? 2 : 80); toast(`🎁 Ya conocías ese hechizo: recibes un premio por «${t.n}»`, true); return; }
   if (r[0] === 'it') { if (got[t.id]) return; got[t.id] = 1; const id = ITEMS[r[1]] ? r[1] : 'coin'; invGive(id, r[2]); toast(`🎁 «${t.n}» completo: ${r[2]}× ${ITEMS[id].n}`, true); return; }
   wvBanner(`⭐ ${r[1]}`, `Nueva habilidad: ${r[2]}`, B.c, 3); }
-{ const k = 'talRw'; if (typeof CH_KEYS !== 'undefined' && !CH_KEYS.includes(k)) CH_KEYS.push(k); if (typeof PERSONAL !== 'undefined') PERSONAL.add(k); }
+for (const k of ['talRw', 'talBonus', 'talReset']) { if (typeof CH_KEYS !== 'undefined' && !CH_KEYS.includes(k)) CH_KEYS.push(k); if (typeof PERSONAL !== 'undefined') PERSONAL.add(k); }
 const talResetCost = () => (S.talReset ? 8 * talSpent() : 0);
 function talReset() { const cost = talResetCost(), n = talSpent(); if (!n) return; if (invCount('coin') < cost) { toastErr(`Reiniciar cuesta ${cost} monedas`); return; } if (cost) invTake('coin', cost); S.talents = {}; S.talReset = (S.talReset || 0) + 1; talDirty(); toast(`🌳 Talentos reiniciados: recuperas ${n} puntos${cost ? ` (−${cost} monedas)` : ' (la primera vez es gratis)'}`); advRender(); tlwDom(); }
 // Aviso al subir de nivel (y los atributos vuelven a calcularse)
@@ -470,4 +470,12 @@ KEY_ACTIONS.find(g => g[0] === 'Ventanas')[1].push(['k', 'Árbol de talentos']);
 // En la ventana de Aventura queda una pestaña que abre el árbol
 ADV.tabs.tal = { n: '🌳 Talentos', render() { if (!S.pc) return '<p class="mut">Los talentos se ganan subiendo de nivel en un mundo con supervivencia.</p>'; return `<div class="tlopen"><b>${talPts()}</b> punto${talPts() === 1 ? '' : 's'} para gastar · ${talSpent()} gastados<br><button data-tlopen>🌳 Abrir el árbol de talentos <kbd>K</kbd></button></div>`; } };
 document.addEventListener('click', e => { const b = e.target.closest('[data-tlopen],[data-advtab="tal"]'); if (b && S) { ADV.tab = 'ach'; closeModal(); tlwOpen(); } });
+// Trucos (solo en mundos con trucos): puntos de talento y niveles de habilidad
+cmd('puntos', { a: ['talentpoints', 'pt'], u: '/puntos <cantidad>', d: 'Te da puntos de talento extra (negativo para quitar).', cheat: 1, run(a) {
+  if (!S.pc) return errMsg('Necesitas un mundo con supervivencia'); const n = Math.round(+a[0] || 0); if (!n) return errMsg('Uso: /puntos <cantidad>');
+  S.talBonus = Math.max(0, (S.talBonus | 0) + n); talDirty(); tlwDom(); advRender(); return `🌳 ${n > 0 ? '+' : ''}${n} puntos de talento. Tienes ${talPts()} para gastar (tecla K).`; } });
+cmd('nivel', { a: ['level', 'lvl'], u: '/nivel <habilidad|todas> [0-10]', d: 'Pone el nivel de una habilidad (o de todas). Cada nivel da 3 puntos de talento.', cheat: 1, run(a) {
+  if (!S.pc) return errMsg('Necesitas un mundo con supervivencia'); const pc = pcInit(), w = (a[0] || '').toLowerCase(), lv = Math.max(0, Math.min(MAX_LV, a[1] == null ? MAX_LV : +a[1] | 0));
+  const ks = w === 'todas' || w === 'all' ? Object.keys(SKILLS) : Object.keys(SKILLS).filter(k => k === w || SKILLS[k][0].toLowerCase().startsWith(w)); if (!w || !ks.length) return errMsg('Uso: /nivel <habilidad|todas> [0-10]. Habilidades: ' + Object.values(SKILLS).map(s => s[0]).join(', '));
+  for (const k of ks) { pc.lv[k] = lv; pc.xp[k] = 0; } talDirty(); tlwDom(); return `${ks.map(k => SKILLS[k][0]).join(', ')} a nivel ${lv}. Nivel de personaje ${charLevel()} · ${talPts()} puntos de talento libres.`; } });
 cmd('talentos', { a: ['talento', 'arbol'], u: '/talentos', d: 'Abre el árbol de talentos.', run() { tlwOpen(); } });
