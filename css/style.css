@@ -1800,11 +1800,11 @@ body.hudmin { --hud: rgba(14, 15, 17, .74); }
 .wvres { margin-left: auto; display: flex; gap: 4px; } .wvres span { padding: 1px 6px; border-radius: 6px; font-weight: 700; } .wvres .r { background: #ff6b5b30; color: #ffb0a8; } .wvres .w { background: #7fd07a30; color: #b8f0b0; }
 .wvmini { margin-top: 8px; padding-top: 7px; border-top: 1px solid #ffffff14; } .wvmini b { font: 700 13px var(--display); color: #ff8a7a; } .wvmini small { font-size: 11px; color: #ffd0a0; }
 .wvmb { height: 10px; margin: 4px 0 3px; border-radius: 5px; background: #ffffff14; overflow: hidden; } .wvmb i { display: block; height: 100%; transform-origin: 0 50%; background: linear-gradient(90deg, #8a0a1a, #ff3a3a); box-shadow: 0 0 10px #ff3a3a; transition: transform .2s; }
-#wvBanner { position: fixed; left: 0; right: 0; top: 30%; z-index: 30; text-align: center; pointer-events: none; opacity: 0; }
+#wvBanner { position: fixed; left: 0; right: 0; top: 30%; z-index: 30; text-align: center; pointer-events: none; opacity: 0; will-change: transform, opacity; contain: layout paint; } /* capa propia: se anima sin repintar el juego */
 #wvBanner.on { animation: wvb 3.2s ease forwards; }
-#wvBanner h1 { margin: 0; font: 800 clamp(26px, 5vw, 52px) var(--display); color: #fff; text-shadow: 0 0 22px var(--c), 0 0 6px var(--c), 0 4px 0 #000; letter-spacing: .04em; }
+#wvBanner h1 { margin: 0; font: 800 clamp(26px, 5vw, 52px) var(--display); color: #fff; text-shadow: 0 0 10px var(--c), 0 3px 0 #000; letter-spacing: .04em; }
 #wvBanner p { margin: 8px auto 0; max-width: 640px; font-size: 15px; color: #f4ecd8; text-shadow: 0 2px 4px #000; }
-@keyframes wvb { 0% { opacity: 0; transform: scale(1.6); filter: blur(6px); } 12% { opacity: 1; transform: scale(1); filter: none; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-20px); } }
+@keyframes wvb { 0% { opacity: 0; transform: scale(1.35); } 12% { opacity: 1; transform: scale(1); } 80% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-20px); } }
 #wvPick, #wvDead { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: radial-gradient(circle, #1a0a0acc, #000000ee); animation: mpin .3s ease; }
 #wvPick[hidden], #wvDead[hidden] { display: none; }
 .wvpin { width: min(1080px, calc(100vw - 24px)); max-height: calc(100vh - 40px); overflow-y: auto; text-align: center; }

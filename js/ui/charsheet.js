@@ -153,14 +153,32 @@ function csLog() {
   return h;
 }
 const CS_PANE = { state: csState, health: csHealth, skills: csSkills, attrs: csAttrs, gear: csGear, magic: csMagic, log: csLog };
+// Actualiza el HTML de un elemento cambiando solo lo que cambia (textos, atributos, nodos que sobran o faltan):
+// así no se rehace la figura del cuerpo ni la lista cada 0,15 s y las animaciones no vuelven a empezar (parpadeo)
+function csMorph(el, html) {
+  const tpl = document.createElement('template'); tpl.innerHTML = html; csMorphKids(el, tpl.content);
+}
+function csMorphKids(a, b) {
+  const an = [...a.childNodes], bn = [...b.childNodes];
+  for (let i = 0; i < bn.length; i++) { const x = an[i], y = bn[i];
+    if (!x) { a.appendChild(y.cloneNode(true)); continue; }
+    if (x.nodeType !== y.nodeType || x.nodeName !== y.nodeName) { a.replaceChild(y.cloneNode(true), x); continue; }
+    if (x.nodeType === 3 || x.nodeType === 8) { if (x.nodeValue !== y.nodeValue) x.nodeValue = y.nodeValue; continue; }
+    if (x.nodeType !== 1) continue;
+    const body = x.closest && x.closest('.bbig'); /* la figura: color y clases las pone paintBody */
+    for (const at of [...x.attributes]) if (!y.hasAttribute(at.name)) { if (body && (at.name === 'class' || at.name === 'style')) continue; x.removeAttribute(at.name); }
+    for (const at of [...y.attributes]) if (x.getAttribute(at.name) !== at.value) { if (body && (at.name === 'style' || at.name === 'class' && x.dataset.part)) continue; x.setAttribute(at.name, at.value); }
+    csMorphKids(x, y); }
+  for (let i = an.length - 1; i >= bn.length; i--) a.removeChild(an[i]);
+}
 // ---------- Refresco (lo llama refreshVitals cada 0,15 s) ----------
 refreshChar = function () {
   const pane = $('csPane'); if (!pane) return;
   const id = csIdHTML(), body = CS_PANE[CS2.tab](), sig = CS2.tab + id + body;
   if (sig === _charSig) return; _charSig = sig;
   const idEl = $('csId'), focus = document.activeElement && document.activeElement.id === 'csName';
-  if (!focus) idEl.innerHTML = id;
-  pane.innerHTML = body;
+  if (!focus) csMorph(idEl, id);
+  csMorph(pane, body);
   const big = pane.querySelector('.bbig'); if (big) { paintBody(big); big.querySelectorAll('[data-part]').forEach(g => g.classList.toggle('sel', g.dataset.part === _charPart)); }
 };
 // ---------- Interacción ----------
