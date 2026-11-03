@@ -11,7 +11,15 @@
 //  · Cada jugador está donde está: en línea cada uno puede estar en un piso distinto sin más.
 // =====================================================================================
 const FL_MAX = 5;
-const floorOfY = ty => { for (let f = 1; f < FL_MAX; f++) if (Math.abs(ty - flOff(f)) < 60000) return f; return 0; };
+const floorOfY = ty => { for (let f = 1; f < FL_MAX; f++) if (Math.abs(ty - flOff(f)) < FLOOR_BAND) return f; return 0; };
+// Arreglo: antes las franjas de los pisos eran más anchas y pisaban la arena de la Gran Oleada y las mazmorras
+// (salían llenas de bloques de vacío). Al cargar, se borran esos trozos guardados para que se generen bien.
+const flOldBand = ty => { for (let f = 1; f < FL_MAX; f++) if (Math.abs(ty + 130000 * f) < 60000) return true; return false; };
+function flPurge() { let n = 0;
+  if (typeof CHARCH !== 'undefined') for (const k of [...CHARCH.keys()]) { const [, cy] = ckeyXY(k), ty = cy * CS + 16; if (flOldBand(ty) && !floorOfY(ty)) { CHARCH.delete(k); n++; } }
+  for (const [k, c] of [...WORLD]) { const ty = c.cy * CS + 16; if (!flOldBand(ty) || floorOfY(ty)) continue; let bad = false; for (let i = 0; i < c.g.length; i++) if (c.g[i] === G.FLOOR_AIR) { bad = true; break; } if (bad) { WORLD.delete(k); if (typeof _lk !== 'undefined' && k === _lk) { _lk = -1; _lc = null; } n++; } }
+  return n; }
+{ const d0 = deserialize; deserialize = str => { const r = d0(str); try { flPurge(); } catch (e) { } return r; }; }
 const curFloor = () => (S && S.player ? floorOfY(Math.floor(S.player.y / T)) : 0);
 // ---------- Terreno de los pisos: vacío, y suelo donde hay tejado ----------
 const flChunk = c => floorOfY(c.cy * CS + 16) > 0;

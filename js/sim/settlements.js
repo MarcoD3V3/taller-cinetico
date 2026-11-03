@@ -250,7 +250,7 @@ function stlStamp(c) {
         if (t === base && d <= e && base === G.GRASS) { const h = hash2(tx, ty, (S.gen.seed | 0) + 4242); if (h < 0.035 && G.TALLGRASS !== undefined) t = G.TALLGRASS; else if (h < 0.045 && G.FLOWERS !== undefined) t = G.FLOWERS; } /* algo de hierba y flores sueltas: que parezca cuidado, no pelado */
       if (t !== undefined) { c.g[i] = t; c.t[i] = GI[t].hp || 0; } }
     const ck = ckey(c.cx, c.cy), L = P.chunks.get(ck); if (L) _stlPend.set(ck, (_stlPend.get(ck) || []).concat(L));
-    let nr = 0; for (const [x, y, id] of P.roofs) { const yy = Math.abs(y) > 60000 && typeof flOff === 'function' ? y - flOff(1) : y; if (!(x >= x0 && x < x0 + CS && yy >= y0 && yy < y0 + CS)) continue; /* los tejados del piso de arriba van con el chunk de abajo */ (S.roof || (S.roof = {}))[x + ',' + y] = id; nr++; }
+    let nr = 0; for (const [x, y, id] of P.roofs) { const yy = typeof floorOfY === 'function' && floorOfY(y) === 1 ? y - flOff(1) : y; if (!(x >= x0 && x < x0 + CS && yy >= y0 && yy < y0 + CS)) continue; /* los tejados del piso de arriba van con el chunk de abajo */ (S.roof || (S.roof = {}))[x + ',' + y] = id; nr++; }
     if (nr && typeof _roofVer !== 'undefined') { _roofVer++; _roofReg = null; } }
   // Bloques del piso de arriba (casas de dos pisos): llegan cuando se genera esa franja
 }

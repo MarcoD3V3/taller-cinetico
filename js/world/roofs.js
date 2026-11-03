@@ -62,8 +62,9 @@ function roofSprite(id, m) {
 // ---------- Casas: tejado a dos aguas con cumbrera, fachada con ventanas y puerta, alero, sombra y chimenea ----------
 // Cada grupo de tejado unido es una casa. Por columnas: arriba la vertiente de atrás (más clara), en medio la
 // cumbrera y abajo la de delante (más oscura); todo el tejado va algo levantado y debajo se ve la pared delantera.
-// Pisos de arriba (sim/floors.js): el piso f está en y + flOff(f)
-const FLOOR_STEP = 130000, flOff = f => -FLOOR_STEP * f;
+// Pisos de arriba (sim/floors.js): el piso f está en y + flOff(f). Cada franja mide ±FLOOR_BAND casillas y
+// esquiva las otras zonas lejanas: la arena de la Gran Oleada (y = -300000) y las mazmorras (y = -500000)
+const FLOOR_STEP = 130000, FLOOR_BAND = 25000, flOff = f => f >= 4 ? -650000 : -FLOOR_STEP * f;
 const ROOF_LIFT = 1.35; // altura de la fachada, en casillas (la puerta es tan alta como el personaje)
 let _houses = null, _housesV = -1, _housesT = 0;
 const FIRE_RE = /furnace|forge|campfire|fireplace|stove|oven|kiln|hearth|smelter/i;
@@ -81,7 +82,7 @@ function roofHouses() {
     let light = false, fire = null; for (const kk of tiles) { const [x, y] = kk.split(',').map(Number), b = at(x, y); if (!b) continue; if (BD[b.type].light) light = true; if (!fire && FIRE_RE.test(b.type)) fire = [x, y]; }
     const frontAt = dy => { const m = new Map(); for (const [x, , b] of cols) { const blk = at(x, b + dy); m.set(x, blk ? blk.type : null); } return m; }, front = frontAt(0);
     // Pisos: en la planta baja, cuántos pisos hay encima (tejado copiado en la franja de cada piso)
-    let floors = 1; const frontF = [front]; if (Math.abs(y0) < 60000) for (let f = 1; f < 5; f++) { if (!S.roof[roofKey(cols[0][0], cols[0][1] + flOff(f))]) break; floors++; frontF.push(frontAt(flOff(f))); }
+    let floors = 1; const frontF = [front]; if (Math.abs(y0) < FLOOR_BAND) for (let f = 1; f < 5; f++) { if (!S.roof[roofKey(cols[0][0], cols[0][1] + flOff(f))]) break; floors++; frontF.push(frontAt(flOff(f))); }
     // Casa de costado: si la puerta está en una pared lateral (y no en la de delante), el tejado gira (cumbrera de arriba abajo)
     const rm = new Map(); for (const kk of tiles) { const [x, y] = kk.split(',').map(Number), r = rm.get(y) || [x, x]; r[0] = Math.min(r[0], x); r[1] = Math.max(r[1], x); rm.set(y, r); }
     const rows = [...rm.entries()].sort((a, b) => a[0] - b[0]).map(([y, [a, b]]) => [y, a, b]);
