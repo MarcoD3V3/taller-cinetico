@@ -213,6 +213,9 @@ function frame(now) {
     acc += fdt; let n = 0; while (acc >= DT && n < 4) { tick(DT); acc -= DT; n++; } if (n >= 4) acc = 0;
   }
   const cf = typeof OPT !== 'undefined' ? OPT.camFollow : 8; view.x += (S.player.x - view.x) * Math.min(1, fdt * cf); view.y += (S.player.y - view.y) * Math.min(1, fdt * cf);
+  // Al pararte, la cámara se acercaba cada vez más despacio a fracciones de píxel y la imagen temblaba: a menos de
+  // medio píxel de pantalla se queda centrada del todo
+  if (Math.abs(S.player.x - view.x) * view.z < 0.5) view.x = S.player.x; if (Math.abs(S.player.y - view.y) * view.z < 0.5) view.y = S.player.y;
   updateHover();
   // Carga progresiva de chunks alrededor del jugador (2 por fotograma como máximo)
   chunkMaintenance(S.player.x, S.player.y, Math.ceil(Math.max(cw, ch) / view.z / T / CS / 2) + 1, fdt);
