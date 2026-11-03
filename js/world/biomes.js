@@ -261,7 +261,7 @@ for (const b of BIOMES) {
 
 // ---------- Clima ----------
 const GEN_DEFAULT = { seed: 0, terrain: 30, water: 0.35, sand: 0.03, mountain: 0.63, ores: 0.6, forest: 0.6, oil: 0.7, gas: 0.0012, biomeSize: 1, rivers: 1, spawnKit: true,
-  temp: 0, humid: 0, contSize: 1, islands: 1, chaos: 1, lakes: 0, veins: 1, flora: 1, fauna: 1, dayLen: 600, diff: 1, foes: 1, safeSpawn: true, quirks: [], blend: 2 };
+  temp: 0, humid: 0, contSize: 1, islands: 1, chaos: 1, lakes: 0, veins: 1, flora: 1, fauna: 1, dayLen: 600, diff: 1, foes: 1, safeSpawn: true, quirks: [], blend: 2, hearth: 1 };
 // Rasgos de la semilla: cada semilla recibe 2 o 3 rasgos que no se pueden elegir (así ningún mundo es igual).
 // g: grupo (no se repiten dos rasgos del mismo grupo) · f: cómo cambian los parámetros
 const QUIRKS = [
@@ -457,7 +457,7 @@ function tileAt(x, y, P, cl, bio) {
 function genTileB(x, y, P, cl, bio) {
   let t = tileAt(x, y, P, cl, bio);
   if (!P.spawnKit || Math.abs(x) > 40 || Math.abs(y) > 40) return t;
-  if (Math.abs(x) <= 8 && Math.abs(y) <= 8) t = G.GRASS;
+  if (!P.hearth && Math.abs(x) <= 8 && Math.abs(y) <= 8) t = G.GRASS; /* con el Hogar (sim/hearth.js) la plaza ya arregla el suelo */
   for (const [px, py, pt, r] of SPAWN_PATCHES) {
     const d = Math.hypot(x - px, y - py);
     if (d < r + (hash2(x, y, P.seed + pt) - 0.5) * 1.6) t = pt;

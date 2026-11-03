@@ -14,7 +14,7 @@ function serialize() {
 function deserialize(str) {
   const d = JSON.parse(str); if (!d || d.v !== 3) return false;
   const { ch, seen, bs, ...rest } = d;
-  S = { ...rest, gen: { ...GEN_DEFAULT, blend: 1, ...rest.gen } }; /* partidas de antes: sin cambiar sus lindes grandes */
+  S = { ...rest, gen: { ...GEN_DEFAULT, blend: 1, hearth: 0, ...rest.gen } }; /* partidas de antes: sin cambiar sus lindes grandes */
   WORLD.clear(); _lk = -1; _lc = null; blocks = [];
   worldReset();
   for (const [cx, cy, g, t] of ch) { const c = newChunk(cx, cy); unrle(g, c.g); unrle(t, c.t); c.mod = true; computeChunkBiomes(c); WORLD.set(ckey(cx, cy), c); onChunkGen(c); }
