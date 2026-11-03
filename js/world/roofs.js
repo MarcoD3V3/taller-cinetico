@@ -38,7 +38,7 @@ function roofRegion(tx, ty) {
   const seen = new Set([roofKey(tx, ty)]), q = [[tx, ty]];
   while (q.length && seen.size < 2500) { const [x, y] = q.pop(); for (let d = 0; d < 4; d++) { const nx = x + DX[d], ny = y + DY[d], kk = roofKey(nx, ny); if (seen.has(kk) || !roofAt(nx, ny)) continue; seen.add(kk); q.push([nx, ny]); } }
   // Lo que se ve dentro: el techo y las paredes de alrededor
-  const vis = new Set(seen); for (const kk of seen) { const [x, y] = kk.split(',').map(Number); for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const nk = roofKey(x + dx, y + dy); if (vis.has(nk)) continue; const b = at(x + dx, y + dy); if ((b && !BD[b.type].walk) || (b && BD[b.type].door) || GI[gnd(x + dx, y + dy)].solid) vis.add(nk); } }
+  const vis = new Set(seen); for (const kk of seen) { const [x, y] = kk.split(',').map(Number); for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const nk = roofKey(x + dx, y + dy); if (vis.has(nk)) continue; const b = at(x + dx, y + dy); const gg = gnd(x + dx, y + dy); if ((b && !BD[b.type].walk) || (b && BD[b.type].door) || (GI[gg].solid && gg !== G.FLOOR_AIR)) vis.add(nk); /* el vacío de fuera de un piso alto no se ve */ } }
   seen.vis = vis; seen.ver = _roofVer; _roofReg = seen; _roofRegK = k; return seen;
 }
 const playerTile = () => [Math.floor(S.player.x / T), Math.floor((S.player.y + 4) / T)];

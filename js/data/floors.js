@@ -7,7 +7,7 @@
 //  · Cada piso es una franja lejana del mismo mundo (como las capas subterráneas), así que se
 //    guarda y se comparte en línea igual que todo: cada jugador puede estar en un piso distinto.
 // =====================================================================================
-TLx('FLOOR_AIR', { n: 'Vacío (fuera del piso)', c: [14, 12, 18], solid: 1 });
+TLx('FLOOR_AIR', { n: 'Vacío (fuera del piso)', c: [22, 24, 28], solid: 1, flat: 1 }); // mismo color que el oscurecido de fuera de casa: no parece roca
 BI('houseFloor', { n: 'Piso de una casa', g: 'PLANKFLOOR', fauna: [], fd: 0, mc: '#3a2a1a' });
 const FL_BCAT = BD.stoneBricks ? BD.stoneBricks.cat : 3;
 XB('stairsL', { n: 'Escalera en L', cat: FL_BCAT, walk: 1, d: 'Dentro de una casa con tejado: pasa por encima y subes al piso de arriba (si no existe, se construye con las mismas paredes y el mismo tejado). Hasta 5 pisos. R para girarla.', look: { c: '#9a6a3c', g: '', a: '' } });
