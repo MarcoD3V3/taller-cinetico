@@ -8,7 +8,9 @@
 //    Ampliado: 24 constelaciones, 10 Maestrías con su propio anillo y muchas más conexiones (~400 nodos por rama).
 //  · Coste: bono pequeño 1 punto, bono mayor 2, talento grande 3 el primer rango, 4 el segundo, 5 el
 //    tercero…, Maestría 6 y talento final 10. Un talento final pide además 60 puntos gastados en su rama.
-//  · Solo se aprende un nodo conectado a otro que ya tengas. No se puede tenerlo todo: hay que elegir.
+//  · Solo se aprende un nodo conectado a otro que ya tengas, y para salir de una constelación o Maestría hay que
+//    completarla entera. Cuanto más arriba (zona 1 a 5), más cuesta cada nodo y más da.
+//    No se puede tenerlo todo: hay que elegir.
 //  · Reiniciar: la primera vez es gratis; después cuesta monedas.
 //  · Los talentos van con el personaje y, como los niveles, con la mochila de cada tipo de mundo.
 //    Los atributos, críticos, resistencias y demás efectos están en sim/attributes.js.
@@ -135,14 +137,16 @@ const TAL_RW = {
 };
 const rwTxt = r => !r ? '' : r[0] === 'sp' ? `✦ Aprendes el hechizo «${(typeof SPELLS !== 'undefined' && SPELLS[r[1]] || { n: r[1] }).n}»` : r[0] === 'it' ? `🎒 Recibes ${r[2]}× ${(ITEMS[r[1]] || ITEMS.coin || { n: r[1] }).n}` : `⭐ Habilidad «${r[1]}»: ${r[2]}`;
 const tsScale = (s, v, f) => TSTAT[s][2] === 'm' ? 1 + (v - 1) * f : TSTAT[s][2] === 'n' ? Math.round(v * f) : v * f;
-const TAL_PER_LV = 3, TAL_KEY_NEED = 60;
-// Coste de cada rango: bono pequeño 1, bono mayor 2, talento grande 3, 4, 5…, Maestría 6 y talento final 10
-const talCostAt = (t, r) => t.kind === 'key' ? 10 : t.kind === 'mas' ? 6 : t.kind === 'big' ? 2 + r : t.kind === 'med' ? 2 : 1;
+const TAL_PER_LV = 3, TAL_KEY_NEED = 80;
+// Coste de cada rango (sube con la zona z = 1…5): bono pequeño 1-3, bono mayor 1+z, talento grande 2+rango+(z-1)
+// (3, 4, 5… abajo; 6, 7, 8… arriba), Maestría 4+2z y talento final 15
+const talCostAt = (t, r) => { const z = t.tier || 1; return t.kind === 'key' ? 15 : t.kind === 'mas' ? 4 + 2 * z : t.kind === 'big' ? 2 + r + (z - 1) : t.kind === 'med' ? 1 + z : t.kind === 'root' ? 1 : z <= 2 ? 1 : z <= 4 ? 2 : 3; };
 const talCostTo = (t, k) => { let s = 0; for (let r = 1; r <= Math.min(k, t.max); r++) s += talCostAt(t, r); return s; };
 // ---------- Constelación (igual para todas las ramas; y hacia arriba es negativo) ----------
 const TL_R = { root: 54, key: 46, mas: 44, big: 36, med: 24, min: 15 };
 function talLayout() {
-  const P = [], add = (x, y, k) => { const n = { s: 'v' + P.length, x: Math.round(x), y: Math.round(y), k, nb: [] }; P.push(n); return n; };
+  const P = [], G = [], add = (x, y, k) => { const n = { s: 'v' + P.length, x: Math.round(x), y: Math.round(y), k, nb: [], g: null }; P.push(n); return n; };
+  const group = (c, ring) => { const g = G.length; G.push([c, ...ring]); for (const n of [c, ...ring]) if (n.g == null) n.g = g; };
   const link = (a, b) => { if (a !== b && !a.nb.includes(b)) { a.nb.push(b); b.nb.push(a); } };
   const pos = (r, a) => [r * Math.cos(a * Math.PI / 180), -r * Math.sin(a * Math.PI / 180)];
   // Camino de bonos pequeños entre dos nodos; si pasa por encima de otro nodo, se une a él (los caminos se cruzan)
@@ -153,7 +157,7 @@ function talLayout() {
     link(prev, b); };
   const cluster = (r, a) => { const [cx, cy] = pos(r, a), c = add(cx, cy, 'big'), ring = [];
     for (let i = 0; i < 6; i++) { const t = (a + 180 + i * 60) * Math.PI / 180; ring.push(add(cx + 82 * Math.cos(t), cy - 82 * Math.sin(t), i === 3 ? 'med' : 'min')); }
-    ring.forEach((q, i) => link(q, ring[(i + 1) % 6])); link(c, ring[0]); link(c, ring[3]); return { c, ring, a, r }; };
+    ring.forEach((q, i) => link(q, ring[(i + 1) % 6])); link(c, ring[0]); link(c, ring[3]); group(c, ring); return { c, ring, a, r }; };
   const near = (cl, x, y) => cl.ring.reduce((b, q) => Math.hypot(q.x - x, q.y - y) < Math.hypot(b.x - x, b.y - y) ? q : b);
   const join = (A, B) => path(near(A, B.c.x, B.c.y), near(B, A.c.x, A.c.y));
   const closest = (list, a) => list.reduce((b, o) => Math.abs(o.a - a) < Math.abs(b.a - a) ? o : b);
@@ -166,7 +170,7 @@ function talLayout() {
   const mas = [];
   for (const [r, list] of [[510, [112.5, 67.5]], [875, [142.5, 107.5, 72.5, 37.5]], [1255, [156.5, 123.5, 56.5, 23.5]]]) for (const a of list) {
     const [cx, cy] = pos(r, a), c = add(cx, cy, 'mas'), ring = []; for (let i = 0; i < 8; i++) { const t = i / 8 * Math.PI * 2 + 0.2; const x = cx + 96 * Math.cos(t), y = cy + 96 * Math.sin(t), k = i % 4 === 1 ? 'med' : 'min'; ring.push(hit(x, y, TL_R[k], null) || add(x, y, k)); } // si choca con otro anillo, comparten el nodo
-    ring.forEach((q, i) => link(q, ring[(i + 1) % 8])); ring.forEach((q, i) => { if (i % 2 === 0) link(c, q); }); mas.push({ c, ring, a, r }); }
+    ring.forEach((q, i) => link(q, ring[(i + 1) % 8])); ring.forEach((q, i) => { if (i % 2 === 0) link(c, q); }); group(c, ring); mas.push({ c, ring, a, r }); }
   const wings = [-1, 1].map(sx => add(sx * 300, 40, 'med'));
   const keys = [148, 113, 67, 32].map(a => { const [x, y] = pos(1840, a); return add(x, y, 'key'); });
   for (const c of T1) path(root, near(c, 0, 0));
@@ -184,26 +188,29 @@ function talLayout() {
   keys.forEach((k, i) => { const a = [148, 113, 67, 32][i]; path(near(closest(T4, a), k.x, k.y), k); path(near(second(T4, a), k.x, k.y), k); });
   for (let i = 0; i + 1 < keys.length; i++) path(keys[i], keys[i + 1]);
   const bigs = [...T1, ...T2, ...T3, ...T4].map(c => c.c); // de abajo arriba
-  return { P, bigs, keys, mas: mas.map(m => m.c) };
+  return { P, G, bigs, keys, mas: mas.map(m => m.c) };
 }
-const TAL = {}, TALN = {}, TALE = {}, TALB = {};
+// Zona de cada nodo según lo lejos que está de la Maestría: 1 (abajo) a 5 (los talentos finales)
+const tlTier = (x, y) => { const d = Math.hypot(x, y); return d < 450 ? 1 : d < 820 ? 2 : d < 1180 ? 3 : d < 1600 ? 4 : 5; };
+const TAL = {}, TALN = {}, TALE = {}, TALB = {}, TALG = {};
 { const L = talLayout();
   for (const br in TAL_TREE) { const B = TAL_TREE[br]; let mi = 0, me = 0; TALN[br] = []; const byS = {};
-    for (const n of L.P) { let t;
+    for (const n of L.P) { let t; const tier = tlTier(n.x, n.y), zf = 1 + 0.4 * (tier - 1);
       if (n.k === 'root') { const [id, nm, i, d, fx] = B.root; t = { id, n: nm, i, max: 1, fx: () => fx, d }; }
       else if (n.k === 'key') { const [id, nm, i, fx, d] = B.keys[L.keys.indexOf(n)]; t = { id, n: nm, i, max: 1, fx, d }; }
       else if (n.k === 'big' && L.bigs.indexOf(n) < B.big.length) { const [id, nm, i, max, fx, d] = B.big[L.bigs.indexOf(n)]; t = { id, n: nm, i, max, fx, d }; }
-      else if (n.k === 'big') { const j = L.bigs.indexOf(n) - B.big.length, p = B.pool, [s1, v1] = p[(j * 5 + 2) % p.length], [s2, v2] = p[(j * 5 + 7) % p.length], a = tsScale(s1, v1, 1.5), b = tsScale(s2, v2, 1.5), m1 = TSTAT[s1][2] === 'm', m2 = TSTAT[s2][2] === 'm';
+      else if (n.k === 'big') { const j = L.bigs.indexOf(n) - B.big.length, p = B.pool, [s1, v1] = p[(j * 5 + 2) % p.length], [s2, v2] = p[(j * 5 + 7) % p.length], a = tsScale(s1, v1, 1.2 + 0.25 * tier), b = tsScale(s2, v2, 1.2 + 0.25 * tier), m1 = TSTAT[s1][2] === 'm', m2 = TSTAT[s2][2] === 'm';
         t = { id: br + ':g' + j, n: TAL_GEN[br][0][j], i: TSTAT[s1][1], max: 3, fx: k => s1 === s2 ? { [s1]: m1 ? 1 + (a - 1 + b - 1) * k : (a + b) * k } : { [s1]: m1 ? 1 + (a - 1) * k : a * k, [s2]: m2 ? 1 + (b - 1) * k : b * k }, d: `${tsTxt(s1, a)} y ${tsTxt(s2, b)}` }; }
       else if (n.k === 'mas') { const j = L.mas.indexOf(n), p = B.pool, ss = [p[(j * 4) % p.length], p[(j * 4 + 5) % p.length], p[(j * 4 + 9) % p.length]], fx = {};
-        for (const [s, v] of ss) { const w = tsScale(s, v, 4); fx[s] = fx[s] == null ? w : TSTAT[s][2] === 'm' ? fx[s] * w : fx[s] + w; }
+        for (const [s, v] of ss) { const w = tsScale(s, v, 2.5 + tier); fx[s] = fx[s] == null ? w : TSTAT[s][2] === 'm' ? fx[s] * w : fx[s] + w; }
         t = { id: br + ':m' + j, n: 'Maestría ' + TAL_GEN[br][1][j], i: TSTAT[ss[0][0]][1], max: 1, fx: () => fx, d: Object.entries(fx).map(([s, v]) => tsTxt(s, v)).join(', ') }; }
-      else if (n.k === 'med') { const p = B.pool, [s1, v1] = p[(me * 5 + 1) % p.length], [s2, v2] = p[(me * 5 + 4) % p.length]; me++; const sc = (s, v) => TSTAT[s][2] === 'm' ? 1 + (v - 1) * 1.6 : TSTAT[s][2] === 'n' ? Math.round(v * 1.6) : v * 1.6; const a = sc(s1, v1), b = sc(s2, v2), cap = s => TSTAT[s][0][0].toUpperCase() + TSTAT[s][0].slice(1);
+      else if (n.k === 'med') { const p = B.pool, [s1, v1] = p[(me * 5 + 1) % p.length], [s2, v2] = p[(me * 5 + 4) % p.length]; me++; const sc = (s, v) => tsScale(s, v, 1.6 * zf); const a = sc(s1, v1), b = sc(s2, v2), cap = s => TSTAT[s][0][0].toUpperCase() + TSTAT[s][0].slice(1);
         t = { id: br + ':' + n.s, n: `${cap(s1)} y ${TSTAT[s2][0]}`, i: TSTAT[s1][1], max: 1, fx: () => s1 === s2 ? { [s1]: a + b } : { [s1]: a, [s2]: b }, d: `${tsTxt(s1, a)} y ${tsTxt(s2, b)}` }; }
-      else { const [st, v] = B.pool[mi++ % B.pool.length]; t = { id: br + ':' + n.s, n: TSTAT[st][0][0].toUpperCase() + TSTAT[st][0].slice(1), i: TSTAT[st][1], max: 1, fx: () => ({ [st]: v }), d: tsTxt(st, v) }; }
-      Object.assign(t, { br, kind: n.k, x: n.x, y: n.y, nb: [] }); TAL[t.id] = t; byS[n.s] = t; TALN[br].push(t); }
+      else { const [st, v0] = B.pool[mi++ % B.pool.length], v = tsScale(st, v0, zf); t = { id: br + ':' + n.s, n: TSTAT[st][0][0].toUpperCase() + TSTAT[st][0].slice(1), i: TSTAT[st][1], max: 1, fx: () => ({ [st]: v }), d: tsTxt(st, v) }; }
+      Object.assign(t, { br, kind: n.k, x: n.x, y: n.y, nb: [], g: n.g, tier }); TAL[t.id] = t; byS[n.s] = t; TALN[br].push(t); }
     { const RW = TAL_RW[br] || [], gifts = RW.filter(r => r[0] !== 'ab' && (r[0] !== 'sp' || typeof SPELLS === 'undefined' || SPELLS[r[1]])), abil = RW.filter(r => r[0] === 'ab'); let gi = 0, ai = 0;
       for (const t of TALN[br]) { if (t.kind === 'big' && gifts.length && (gi++ % 2 === 0 || t.max > 3)) t.rw = gifts[(gi >> 1) % gifts.length]; else if (t.kind === 'mas' && abil.length) t.rw = abil[ai++ % abil.length]; } }
+    TALG[br] = L.G.map(m => ({ c: byS[m[0].s].id, ids: m.map(n => byS[n.s].id) }));
     const E = TALE[br] = [];
     for (const n of L.P) for (const o of n.nb) if (+n.s.slice(1) < +o.s.slice(1)) { const a = byS[n.s], b = byS[o.s]; a.nb.push(b.id); b.nb.push(a.id); E.push([a, b]); }
     let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; for (const t of TALN[br]) { x0 = Math.min(x0, t.x); y0 = Math.min(y0, t.y); x1 = Math.max(x1, t.x); y1 = Math.max(y1, t.y); }
@@ -215,9 +222,15 @@ const talData = () => S.talents || (S.talents = {});
 const talSpent = br => { const T0 = talData(); let s = 0; for (const id in T0) { const t = TAL[id]; if (t && (!br || t.br === br)) s += talCostTo(t, T0[id] | 0); } return s; };
 const talPts = () => Math.max(0, (S && S.pc ? (charLevel() - 1) * TAL_PER_LV : 0) - talSpent());
 const talHas = id => (talData()[id] | 0) > 0;
-const talReach = t => t.kind === 'root' || talHas(t.id) || t.nb.some(talHas);
+// Un grupo (constelación o Maestría) está completo cuando tienes todos sus nodos
+const talGroupDone = (br, g) => g == null || TALG[br][g].ids.every(talHas);
+// Puedes pasar de X a T si X es tuyo y, si X está en un grupo distinto, ese grupo está completo
+const talPass = (x, t, has = talHas) => has(x.id) && (x.g == null || x.g === t.g || TALG[x.br][x.g].ids.every(has));
+const talReach = t => t.kind === 'root' || talHas(t.id) || t.nb.some(id => talPass(TAL[id], t));
+// Grupo que te corta el paso (para avisar)
+const talBlock = t => { for (const id of t.nb) { const x = TAL[id]; if (talHas(id) && x.g != null && x.g !== t.g && !talGroupDone(x.br, x.g)) return TALG[x.br][x.g]; } return null; };
 const talNext = t => talCostAt(t, (talData()[t.id] | 0) + 1);
-const talWhy = t => { const k = talData()[t.id] | 0; if (k >= t.max) return 'Ya tiene todos sus rangos'; if (!talReach(t)) return 'Aprende antes un nodo conectado'; if (t.kind === 'key' && talSpent(t.br) < TAL_KEY_NEED) return `Gasta antes ${TAL_KEY_NEED} puntos en ${TAL_TREE[t.br].n} (llevas ${talSpent(t.br)})`; const c = talNext(t), p = talPts(); if (p < c) return `Cuesta ${c} punto${c === 1 ? '' : 's'} y tienes ${p}: sube de nivel tus habilidades`; return ''; };
+const talWhy = t => { const k = talData()[t.id] | 0; if (k >= t.max) return 'Ya tiene todos sus rangos'; if (!talReach(t)) { const g = talBlock(t); if (g) return `Completa antes la constelación «${TAL[g.c].n}» (${g.ids.filter(talHas).length}/${g.ids.length})`; return 'Aprende antes un nodo conectado'; } if (t.kind === 'key' && talSpent(t.br) < TAL_KEY_NEED) return `Gasta antes ${TAL_KEY_NEED} puntos en ${TAL_TREE[t.br].n} (llevas ${talSpent(t.br)})`; const c = talNext(t), p = talPts(); if (p < c) return `Cuesta ${c} punto${c === 1 ? '' : 's'} y tienes ${p}: sube de nivel tus habilidades`; return ''; };
 // Para charMods (sim/character.js): pares [mod, valor]
 function talMods() { const r = []; if (!S || !S.talents) return r; for (const id in S.talents) { const t = TAL[id], k = S.talents[id] | 0; if (!t || !k) continue; const m = t.fx(Math.min(k, t.max)); for (const key in m) r.push([key, m[key]]); if (t.rw && t.rw[0] === 'ab' && k >= t.max) for (const key in t.rw[3]) r.push([key, t.rw[3][key]]); } return r; }
 const talDirty = () => { _cm = null; _cmKey = ''; vitalsDirty = true; }; // que el personaje vuelva a calcular sus estadísticas
@@ -316,7 +329,7 @@ function tlwDraw(dt) {
   c.globalAlpha = 0.28; stroke(groups.lit, B.c, Math.max(14, 4 * px)); c.globalAlpha = 1; stroke(groups.lit, '#ffb04a', Math.max(4.5, 1.5 * px)); stroke(groups.lit, '#fff2c0', Math.max(2, px), [10, 22], -t * 45); c.setLineDash([]);
   // Nodos: primero los brillos (sumados), luego discos, iconos y rangos
   c.globalCompositeOperation = 'lighter';
-  const P0 = talPts(), spB = talSpent(br), stOf = n => { const k = T0[n.id] | 0; if (k >= n.max) return 'full'; if (k) return 'got'; if (!(n.kind === 'root' || n.nb.some(own))) return 'lock'; return (n.kind === 'key' && spB < TAL_KEY_NEED) || P0 < talCostAt(n, 1) ? 'near' : 'can'; };
+  const P0 = talPts(), spB = talSpent(br), stOf = n => { const k = T0[n.id] | 0; if (k >= n.max) return 'full'; if (k) return 'got'; if (!(n.kind === 'root' || n.nb.some(id => talPass(TAL[id], n, own)))) return n.nb.some(own) ? 'near' : 'lock'; return (n.kind === 'key' && spB < TAL_KEY_NEED) || P0 < talCostAt(n, 1) ? 'near' : 'can'; };
   const vis = []; for (const n of TALN[br]) { const R = TL_R[n.kind]; if (!inV(n.x, n.y, R + 30)) continue; const st = stOf(n); vis.push([n, st]);
     const hz = TLW.hz[n.id] = (TLW.hz[n.id] || 0) + (((TLW.hov === n.id) ? 1 : 0) - (TLW.hz[n.id] || 0)) * Math.min(1, dt * 14);
     let ga = st === 'full' ? 0.75 : st === 'got' ? 0.55 : st === 'can' ? 0.3 + 0.22 * Math.sin(t * 4 + n.x * 0.01) : 0; ga = Math.max(ga, hz * 0.6, TLW.sel === n.id ? 0.8 : 0);
@@ -392,7 +405,7 @@ function tlwTip() {
   if (!t || TLW.view !== 'tree' || TLW.drag && TLW.drag.moved) { tip.hidden = true; TLW.tipId = null; return; }
   const k = talData()[t.id] | 0, why = talWhy(t), full = k >= t.max, fx = t.fx(Math.max(1, k)), tot = t.max > 1 && k ? Object.entries(fx).map(([s, v]) => tsTxt(s, v)).filter(Boolean).join(' · ') : '', nx = talNext(t);
   const costs = t.max > 1 ? Array.from({ length: t.max }, (_, j) => `<i class="${j < k ? 'on' : ''}">${talCostAt(t, j + 1)}</i>`).join('') : '';
-  tip.innerHTML = `<h4>${t.i} ${esc(t.n)}</h4><div class="ttc">${full ? (t.max > 1 ? `Rango ${k} / ${t.max} · completo` : 'Aprendido') : `${t.max > 1 ? `Rango ${k} / ${t.max} · ` : ''}Coste: <b>${nx} punto${nx === 1 ? '' : 's'}</b>`}${t.kind === 'key' ? ' · Talento final' : t.kind === 'mas' ? ' · Maestría' : t.kind === 'root' ? ' · Inicio de la rama' : ''}</div>
+  tip.innerHTML = `<h4>${t.i} ${esc(t.n)}</h4><div class="ttc">${full ? (t.max > 1 ? `Rango ${k} / ${t.max} · completo` : 'Aprendido') : `${t.max > 1 ? `Rango ${k} / ${t.max} · ` : ''}Coste: <b>${nx} punto${nx === 1 ? '' : 's'}</b>`}${t.kind === 'key' ? ' · Talento final' : t.kind === 'mas' ? ' · Maestría' : t.kind === 'root' ? ' · Inicio de la rama' : ''} · Zona ${t.tier}</div>${t.g != null && TALG[t.br][t.g].c !== t.id ? `<div class="ttk">Constelación «${esc(TAL[TALG[t.br][t.g].c].n)}»: ${TALG[t.br][t.g].ids.filter(talHas).length}/${TALG[t.br][t.g].ids.length} · complétala para seguir</div>` : t.g != null ? `<div class="ttk">Constelación: ${TALG[t.br][t.g].ids.filter(talHas).length}/${TALG[t.br][t.g].ids.length} nodos · complétala para seguir</div>` : ''}
     ${costs ? `<div class="ttk">Coste por rango: ${costs}</div>` : ''}<p class="ttg">${esc(t.d)}${t.max > 1 ? ' (por rango)' : ''}</p>${t.rw ? `<p class="ttw ${full ? 'on' : ''}">${full ? '✔ ' : `🎁 ${t.max > 1 ? 'Al completarlo' : 'Al aprenderlo'}: `}${esc(rwTxt(t.rw))}</p>` : ''}${tot ? `<p class="ttt">Ahora: ${esc(tot)}</p>` : ''}${why && !full ? `<p class="ttr">${esc(why)}</p>` : !full ? `<p class="tta">${TLW.sel === t.id ? 'Pulsa otra vez o Enter para aprender' : 'Clic para seleccionar · otro clic para aprender'}</p>` : ''}`;
   tip.hidden = false; TLW.tipId = t.id; TLW.tipW = tip.offsetWidth; TLW.tipH = tip.offsetHeight; tlwTipPos();
 }
