@@ -62,6 +62,8 @@ function roofSprite(id, m) {
 // ---------- Casas: tejado a dos aguas con cumbrera, fachada con ventanas y puerta, alero, sombra y chimenea ----------
 // Cada grupo de tejado unido es una casa. Por columnas: arriba la vertiente de atrás (más clara), en medio la
 // cumbrera y abajo la de delante (más oscura); todo el tejado va algo levantado y debajo se ve la pared delantera.
+// Pisos de arriba (sim/floors.js): el piso f está en y + flOff(f)
+const FLOOR_STEP = 130000, flOff = f => -FLOOR_STEP * f;
 const ROOF_LIFT = 1.35; // altura de la fachada, en casillas (la puerta es tan alta como el personaje)
 let _houses = null, _housesV = -1, _housesT = 0;
 const FIRE_RE = /furnace|forge|campfire|fireplace|stove|oven|kiln|hearth|smelter/i;
@@ -77,13 +79,15 @@ function roofHouses() {
     // Lo que hay de verdad: la pared de delante casilla a casilla (su material, ventanas de cristal y puertas),
     // si dentro hay luz y dónde está el fuego (de ahí sale la chimenea)
     let light = false, fire = null; for (const kk of tiles) { const [x, y] = kk.split(',').map(Number), b = at(x, y); if (!b) continue; if (BD[b.type].light) light = true; if (!fire && FIRE_RE.test(b.type)) fire = [x, y]; }
-    const front = new Map(); for (const [x, , b] of cols) { const blk = at(x, b); front.set(x, blk ? blk.type : null); }
+    const frontAt = dy => { const m = new Map(); for (const [x, , b] of cols) { const blk = at(x, b + dy); m.set(x, blk ? blk.type : null); } return m; }, front = frontAt(0);
+    // Pisos: en la planta baja, cuántos pisos hay encima (tejado copiado en la franja de cada piso)
+    let floors = 1; const frontF = [front]; if (Math.abs(y0) < 60000) for (let f = 1; f < 5; f++) { if (!S.roof[roofKey(cols[0][0], cols[0][1] + flOff(f))]) break; floors++; frontF.push(frontAt(flOff(f))); }
     // Casa de costado: si la puerta está en una pared lateral (y no en la de delante), el tejado gira (cumbrera de arriba abajo)
     const rm = new Map(); for (const kk of tiles) { const [x, y] = kk.split(',').map(Number), r = rm.get(y) || [x, x]; r[0] = Math.min(r[0], x); r[1] = Math.max(r[1], x); rm.set(y, r); }
     const rows = [...rm.entries()].sort((a, b) => a[0] - b[0]).map(([y, [a, b]]) => [y, a, b]);
     let side = null, sideY = null; for (const kk of tiles) { const [x, y] = kk.split(',').map(Number), d = at(x, y); if (!d || !BD[d.type].door) continue; const c = cm.get(x), r = rm.get(y);
       if (y === c[1]) { side = 'S'; break; } if (x === r[0] && !side) { side = 'W'; sideY = y; } else if (x === r[1] && !side) { side = 'E'; sideY = y; } }
-    const o = old.find(h => h.x0 === x0 && h.y0 === y0); _houses.push({ id, cols, rows, x0, x1, y0, y1, light, fire, front, side: side || 'S', sideY, smokeT: o ? o.smokeT : 0 });
+    const o = old.find(h => h.x0 === x0 && h.y0 === y0); _houses.push({ id, cols, rows, x0, x1, y0, y1, light, fire, front, frontF, floors, side: side || 'S', sideY, smokeT: o ? o.smokeT : 0 });
   }
   return _houses;
 }
@@ -116,11 +120,13 @@ function wallPattern(ctx, type) { const k = 'w' + type; let p = _roofPat.get(k);
   else { for (let row = 0; row < 8; row++) { const off = (row % 2) * 7; for (let x = -off; x < S2; x += 14) { const w = 11 + (r() * 4 | 0); c.fillStyle = shade(col, (r() - 0.5) * 0.25); c.fillRect(x + 1, row * 8 + 1, w, 6); c.fillStyle = 'rgba(255,255,255,.12)'; c.fillRect(x + 1, row * 8 + 1, w, 1); } } }
   if (/moss/i.test(type)) for (let i = 0; i < 30; i++) { c.fillStyle = 'rgba(90,130,60,.55)'; c.fillRect(r() * S2, r() * S2, 2, 1); }
   p = ctx.createPattern(cv0, 'repeat'); _roofPat.set(k, p); return p; }
-function drawHouse(ctx, H) {
+function drawHouseBody(ctx, H, opt) {
   const L = ROOF_LIFT * T, base = (ITEMS[H.id] && ITEMS[H.id].roof.c) || '#8a5a32';
+  if (opt.shadow) {
   // Sombra suave en el suelo (dos capas) y oscurecido al pie de la pared
-  for (const [o, al] of [[10, 0.1], [5, 0.14]]) { ctx.fillStyle = `rgba(0,0,0,${al})`; for (const [x, a, b] of H.cols) ctx.fillRect(x * T + o, a * T - L * 0.4, T, (b - a + 1) * T + L * 0.4 + o * 0.6); }
+  for (const [o, al] of [[10, 0.1], [5, 0.14]]) { ctx.fillStyle = `rgba(0,0,0,${al})`; for (const [x, a, b] of H.cols) ctx.fillRect(x * T + o, a * T + o * 0.5, T, (b - a + 1) * T + o * 0.3); }
   for (const [x, , b] of H.cols) { const g = ctx.createLinearGradient(0, (b + 1) * T, 0, (b + 1) * T + 10); g.addColorStop(0, 'rgba(0,0,0,.35)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(x * T - 2, (b + 1) * T, T + 4, 10); }
+  }
   // Fachada delantera (debajo del alero), casilla a casilla según lo que construiste en la pared de delante
   const isDoor = t => t && BD[t] && BD[t].door, isGlass = t => t && /glass|window/i.test(t);
   const wallOf = x => { const t = H.front.get(x); if (t && !isDoor(t) && !isGlass(t) && BD[t] && !BD[t].walk) return t; const n = H.front.get(x - 1) || H.front.get(x + 1); return n && !isDoor(n) && !isGlass(n) && BD[n] && !BD[n].walk ? n : 'woodWall'; };
@@ -140,44 +146,55 @@ function drawHouse(ctx, H) {
     for (let t = 0; t < 4; t++) { const gx = x * T + rr() * T, gh = 2 + rr() * 4; ctx.fillStyle = rr() < 0.5 ? '#4e8a32' : '#3a6e28'; ctx.fillRect(gx, (b + 1) * T - gh, 1, gh); ctx.fillRect(gx + 1, (b + 1) * T - gh + 1, 1, gh - 1); } }
   // Esquinas de la fachada
   ctx.fillStyle = 'rgba(0,0,0,.35)'; for (const [x, , b] of H.cols) { if (x === H.x0) ctx.fillRect(x * T, (b + 1) * T - L, 3, L); if (x === H.x1) ctx.fillRect(x * T + T - 3, (b + 1) * T - L, 3, L); }
+  if (opt.facadeOnly) return;
   if (H.side === 'E' || H.side === 'W') { drawSideRoof(ctx, H, L, base, wallOf(H.side === 'E' ? H.x1 : H.x0)); return; }
   // Tejado: vertiente de atrás, cumbrera y vertiente de delante
-  for (const [x, a, b] of H.cols) { const top = a * T - L, bot = (b + 1) * T - L, ridge = (top + bot) / 2 - T * 0.15;
-    for (let y = a; y <= b; y++) { const id = S.roof[roofKey(x, y)] || H.id, y0 = y * T - L, y1 = y0 + T; // cada casilla con su propio tejado (se pueden mezclar)
+  for (const [x, a, b] of H.cols) { const top = a * T, bot = (b + 1) * T - L, ridge = (top + bot) / 2, th = (bot - top) / (b - a + 1);
+    for (let y = a; y <= b; y++) { const id = S.roof[roofKey(x, y)] || H.id, y0 = top + (y - a) * th, y1 = y0 + th; // cada casilla con su propio tejado (se pueden mezclar)
       if (y0 < ridge) { ctx.fillStyle = roofPattern(ctx, id, 'back'); ctx.fillRect(x * T, y0, T, Math.min(y1, ridge) - y0); } if (y1 > ridge) { ctx.fillStyle = roofPattern(ctx, id, 'front'); ctx.fillRect(x * T, Math.max(y0, ridge), T, y1 - Math.max(y0, ridge)); } }
     const g = ctx.createLinearGradient(0, top, 0, bot); g.addColorStop(0, 'rgba(255,255,255,.06)'); g.addColorStop(Math.max(0, (ridge - top) / (bot - top) - 0.01), 'rgba(255,255,255,.16)'); g.addColorStop(Math.min(1, (ridge - top) / (bot - top) + 0.01), 'rgba(0,0,0,.05)'); g.addColorStop(1, 'rgba(0,0,0,.28)'); ctx.fillStyle = g; ctx.fillRect(x * T, top, T, bot - top);
     ctx.fillStyle = shade(base, -0.45); ctx.fillRect(x * T, ridge - 1, T, 5); ctx.fillStyle = shade(base, 0.35); ctx.fillRect(x * T, ridge - 2, T, 2); // cumbrera
     ctx.fillStyle = shade(base, -0.5); ctx.fillRect(x * T - 2, bot - 3, T + 4, 3); ctx.fillStyle = shade(base, -0.3); for (let q = 0; q < 4; q++) ctx.fillRect(x * T + q * 8 + 1, bot - 1, 6, 2); { const g = ctx.createLinearGradient(0, bot, 0, bot + 9); g.addColorStop(0, 'rgba(0,0,0,.45)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(x * T, bot, T, 9); } // alero (con el borde de las tejas) y su sombra en la pared
     ctx.fillStyle = shade(base, 0.3); ctx.fillRect(x * T, top, T, 2); }
   // Remates laterales (hastiales)
-  for (const [x, a, b] of H.cols) { const top = a * T - L, bot = (b + 1) * T - L, prev = H.cols.find(c => c[0] === x - 1), next = H.cols.find(c => c[0] === x + 1);
+  for (const [x, a, b] of H.cols) { const top = a * T, bot = (b + 1) * T - L, prev = H.cols.find(c => c[0] === x - 1), next = H.cols.find(c => c[0] === x + 1);
     ctx.fillStyle = shade(base, -0.55); if (!prev || prev[1] > a || prev[2] < b) ctx.fillRect(x * T - 2, top, 4, bot - top); if (!next || next[1] > a || next[2] < b) ctx.fillRect(x * T + T - 2, top, 4, bot - top); }
   // Chimenea: solo si dentro hay un horno, una hoguera o una forja, justo encima de él (y echa humo)
-  if (H.fire) { const col = H.cols.find(c => c[0] === H.fire[0]) || H.cols[0], cx = col[0] * T + 8, top = col[1] * T - L, bot = (col[2] + 1) * T - L, cy = top + (bot - top) * 0.22;
+  if (H.fire) { const col = H.cols.find(c => c[0] === H.fire[0]) || H.cols[0], cx = col[0] * T + 8, top = col[1] * T, bot = (col[2] + 1) * T - L, cy = top + (bot - top) * 0.3;
     ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(cx + 4, cy + 4, 14, 18); ctx.fillStyle = '#7a6a62'; ctx.fillRect(cx, cy - 6, 14, 22); ctx.fillStyle = '#5a4c46'; ctx.fillRect(cx, cy - 6, 14, 3); ctx.fillRect(cx + 6, cy, 1, 16); ctx.fillStyle = '#a89890'; ctx.fillRect(cx, cy - 8, 14, 2); ctx.fillStyle = '#1a1412'; ctx.fillRect(cx + 3, cy - 7, 8, 2);
     if (typeof fxSmoke === 'function') { const now = performance.now() / 1000; if (now > H.smokeT) { H.smokeT = now + 0.35 + Math.random() * 0.4; fxSmoke(cx + 7, cy - 10, 'rgba(190,190,195,', 4); } } }
 }
 // Casa de costado: la cumbrera va de arriba abajo, las vertientes caen a izquierda y derecha y en el lado
-// de la puerta se ve la pared con la puerta (de perfil)
+// de la puerta se ve la puerta (de perfil). Todo dentro de las casillas de la casa.
 function drawSideRoof(ctx, H, L, base, wallT) {
-  const W0 = 9; // grosor de la pared lateral que asoma
-  for (const [y, a, b] of H.rows) { const top = y * T - L; // paredes laterales a la vista (más oscura la de la sombra)
-    for (const [sx, dark] of [[a * T - W0, 0.35], [(b + 1) * T, 0.5]]) { ctx.fillStyle = wallPattern(ctx, wallT); ctx.fillRect(sx, top + L * 0.35, W0, T); ctx.fillStyle = `rgba(0,0,0,${dark})`; ctx.fillRect(sx, top + L * 0.35, W0, T); } }
-  // Puerta de perfil en el lado de la puerta, con su escalón
-  { const r = H.rows.find(q => q[0] === H.sideY) || H.rows[H.rows.length - 1], y = r[0], top = y * T - L, east = H.side === 'E', sx = east ? (r[2] + 1) * T : r[1] * T - W0, dh = L - 3, dy = top + L * 0.35 + T - dh;
-    ctx.fillStyle = '#2a1a0e'; ctx.fillRect(sx - 1, dy - 3, W0 + 2, dh + 3); ctx.fillStyle = '#7a4e2a'; ctx.fillRect(sx + 1, dy, W0 - 2, dh); ctx.fillStyle = '#4a2e18'; ctx.fillRect(sx + 1, dy + 6, W0 - 2, 2); ctx.fillRect(sx + 1, dy + dh - 9, W0 - 2, 2); ctx.fillStyle = '#e8c860'; ctx.fillRect(east ? sx + W0 - 4 : sx + 2, dy + dh * 0.52, 2, 3);
-    ctx.fillStyle = '#8a8682'; ctx.fillRect(east ? sx + W0 : sx - 8, top + L * 0.35 + T - 4, 8, 4); }
-  for (const [y, a, b] of H.rows) { const top = y * T - L, left = a * T, right = (b + 1) * T, ridge = (left + right) / 2 + T * 0.1;
+  const rh = ((H.y1 - H.y0 + 1) * T - L) / (H.y1 - H.y0 + 1), rowTop = y => H.y0 * T + (y - H.y0) * rh; // el tejado ocupa la casa menos la fachada
+  for (const [y, a, b] of H.rows) { const top = rowTop(y), left = a * T, right = (b + 1) * T, ridge = (left + right) / 2;
     for (let x = a; x <= b; x++) { const id = S.roof[roofKey(x, y)] || H.id, x0 = x * T, x1 = x0 + T;
-      if (x0 < ridge) { ctx.fillStyle = roofPatternR(ctx, id, 'left'); ctx.fillRect(x0, top, Math.min(x1, ridge) - x0, T); } if (x1 > ridge) { ctx.fillStyle = roofPatternR(ctx, id, 'right'); ctx.fillRect(Math.max(x0, ridge), top, x1 - Math.max(x0, ridge), T); } }
-    const g = ctx.createLinearGradient(left, 0, right, 0), rk = (ridge - left) / (right - left); g.addColorStop(0, 'rgba(0,0,0,.12)'); g.addColorStop(Math.max(0, rk - 0.01), 'rgba(255,255,255,.16)'); g.addColorStop(Math.min(1, rk + 0.01), 'rgba(0,0,0,.08)'); g.addColorStop(1, 'rgba(0,0,0,.32)'); ctx.fillStyle = g; ctx.fillRect(left, top, right - left, T);
-    ctx.fillStyle = shade(base, -0.45); ctx.fillRect(ridge - 2, top, 5, T); ctx.fillStyle = shade(base, 0.35); ctx.fillRect(ridge - 3, top, 2, T); // cumbrera
-    ctx.fillStyle = shade(base, -0.5); ctx.fillRect(left - 3, top, 3, T); ctx.fillRect(right, top, 3, T); } // aleros laterales
+      if (x0 < ridge) { ctx.fillStyle = roofPatternR(ctx, id, 'left'); ctx.fillRect(x0, top, Math.min(x1, ridge) - x0, rh + 0.5); } if (x1 > ridge) { ctx.fillStyle = roofPatternR(ctx, id, 'right'); ctx.fillRect(Math.max(x0, ridge), top, x1 - Math.max(x0, ridge), rh + 0.5); } }
+    const g = ctx.createLinearGradient(left, 0, right, 0); g.addColorStop(0, 'rgba(0,0,0,.12)'); g.addColorStop(0.49, 'rgba(255,255,255,.16)'); g.addColorStop(0.51, 'rgba(0,0,0,.08)'); g.addColorStop(1, 'rgba(0,0,0,.32)'); ctx.fillStyle = g; ctx.fillRect(left, top, right - left, rh + 0.5);
+    ctx.fillStyle = shade(base, -0.45); ctx.fillRect(ridge - 2, top, 5, rh + 0.5); ctx.fillStyle = shade(base, 0.35); ctx.fillRect(ridge - 3, top, 2, rh + 0.5); // cumbrera
+    ctx.fillStyle = shade(base, -0.5); ctx.fillRect(left, top, 3, rh + 0.5); ctx.fillRect(right - 3, top, 3, rh + 0.5); } // aleros laterales
   // Remate delantero (hastial) sobre la fachada y el de atrás
-  for (const [x, a, b] of H.cols) { ctx.fillStyle = shade(base, -0.55); ctx.fillRect(x * T, (b + 1) * T - L - 3, T, 4); ctx.fillStyle = shade(base, 0.3); ctx.fillRect(x * T, a * T - L, T, 2); }
-  if (H.fire) { const r = H.rows.find(q => q[0] === H.fire[1]) || H.rows[0], cx = (r[1] + r[2] + 1) / 2 * T - 7, cy = r[0] * T - L + 6;
+  for (const [x, a, b] of H.cols) { ctx.fillStyle = shade(base, -0.55); ctx.fillRect(x * T, (b + 1) * T - L - 3, T, 4); ctx.fillStyle = shade(base, 0.3); ctx.fillRect(x * T, a * T, T, 2); }
+  if (!H.upper) drawSideDoor(ctx, H, L);
+  if (H.fire) { const r = H.rows.find(q => q[0] === H.fire[1]) || H.rows[0], cx = (r[1] + r[2] + 1) / 2 * T + 6, cy = rowTop(r[0]) + 8;
     ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(cx + 4, cy + 4, 14, 18); ctx.fillStyle = '#7a6a62'; ctx.fillRect(cx, cy - 6, 14, 22); ctx.fillStyle = '#5a4c46'; ctx.fillRect(cx, cy - 6, 14, 3); ctx.fillStyle = '#a89890'; ctx.fillRect(cx, cy - 8, 14, 2); ctx.fillStyle = '#1a1412'; ctx.fillRect(cx + 3, cy - 7, 8, 2);
     if (typeof fxSmoke === 'function') { const now = performance.now() / 1000; if (now > H.smokeT) { H.smokeT = now + 0.35 + Math.random() * 0.4; fxSmoke(cx + 7, cy - 10, 'rgba(190,190,195,', 4); } } }
+}
+function drawSideDoor(ctx, H, L) {
+  // Puerta lateral: dentro de su casilla, en el borde de ese lado, con su escalón fuera
+  { const r = H.rows.find(q => q[0] === H.sideY) || H.rows[H.rows.length - 1], y = r[0], east = H.side === 'E', W0 = 10, sx = east ? (r[2] + 1) * T - W0 : r[1] * T, dh = Math.min(T + 6, L), dy = (y + 1) * T - dh;
+    ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(sx, dy - 4, W0, dh + 4); ctx.fillStyle = '#2a1a0e'; ctx.fillRect(sx, dy - 3, W0, dh + 3); ctx.fillStyle = '#7a4e2a'; ctx.fillRect(sx + 2, dy, W0 - 4, dh); ctx.fillStyle = '#4a2e18'; ctx.fillRect(sx + 2, dy + 6, W0 - 4, 2); ctx.fillRect(sx + 2, dy + dh - 9, W0 - 4, 2); ctx.fillStyle = '#e8c860'; ctx.fillRect(east ? sx + 2 : sx + W0 - 4, dy + dh * 0.52, 2, 3);
+    ctx.fillStyle = '#8a8682'; ctx.fillRect(east ? (r[2] + 1) * T : r[1] * T - 6, (y + 1) * T - 5, 6, 5); }
+}
+// Casa entera: planta baja y, si tiene más pisos, sus fachadas una encima de otra y el tejado arriba del todo
+function drawHouse(ctx, H) {
+  const n = H.floors || 1; if (n <= 1) return drawHouseBody(ctx, H, { shadow: true });
+  const L = ROOF_LIFT * T;
+  for (let k = 0; k < n - 1; k++) { ctx.save(); ctx.translate(0, -L * k); drawHouseBody(ctx, { ...H, front: H.frontF[k], upper: k > 0 }, { shadow: k === 0, facadeOnly: true }); ctx.restore();
+    ctx.fillStyle = 'rgba(0,0,0,.35)'; for (const [x, , b] of H.cols) ctx.fillRect(x * T, (b + 1) * T - L * (k + 1) - 2, T, 3); } // cornisa entre pisos
+  if (H.side === 'E' || H.side === 'W') drawSideDoor(ctx, H, L);
+  ctx.save(); ctx.translate(0, -L * (n - 1)); drawHouseBody(ctx, { ...H, front: H.frontF[n - 1], upper: true }, {}); ctx.restore();
 }
 let _indoorA = 0, _roofBox = null, _roofBoxV = -1, _roofFrame = 0;
 // pass 'back': antes de criaturas y jugador, las casas que quedan detrás de ti; el resto, por encima (pasada normal)
@@ -191,7 +208,11 @@ function drawRoofs(ctx, pass) {
   const feet = S.player.y + 10;
   // Fuera: cada tejado se dibuja como una casa entera (menos la casa en la que estás)
   for (const H of roofHouses()) { if (H.x1 < x0 || H.x0 > x1 || H.y1 < y0 - 1 || H.y0 > y1 + 1) continue; if (reg && reg.has(roofKey(H.cols[0][0], H.cols[0][1]))) continue;
-    if (pass === 'back') { if ((H.y1 + 1) * T <= feet) { drawHouse(ctx, H); H._f = _roofFrame; } } else if (H._f !== _roofFrame) drawHouse(ctx, H); }
+    if (pass === 'back') { if ((H.y1 + 1) * T <= feet) { drawHouse(ctx, H); H._f = _roofFrame; } } else if (H._f !== _roofFrame) { const n = H.floors || 1, px = S.player.x, py = S.player.y, top = H.y0 * T - ROOF_LIFT * T * (n - 1) - 20;
+      if (n >= 2 && px > H.x0 * T - 20 && px < (H.x1 + 1) * T + 20 && py > top && py < (H.y1 + 1) * T) { // detrás de una casa alta: se ve a través de un círculo
+        ctx.save(); ctx.beginPath(); ctx.rect(H.x0 * T - 40, top - 200, (H.x1 - H.x0 + 1) * T + 80, (H.y1 - H.y0 + 1) * T + 400); ctx.arc(px, py - 10, 34, 0, Math.PI * 2); ctx.clip('evenodd'); drawHouse(ctx, H); ctx.restore();
+        ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(px, py - 10, 34, 0, Math.PI * 2); ctx.stroke(); }
+      else drawHouse(ctx, H); } }
   if (pass === 'back') { ctx.setTransform(tr); return; }
   // Dentro: lo de fuera se apaga en gris
   if (_indoorA > 0.02 && (reg || _lastReg)) {

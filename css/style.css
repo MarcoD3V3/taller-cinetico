@@ -2043,3 +2043,6 @@ body.hudmin { --hud: rgba(14, 15, 17, .74); }
 @media (max-width: 860px) { .tlw { grid-template-columns: 1fr; grid-template-rows: auto 62vh auto auto auto; overflow-y: auto; height: 100%; padding: 8px 16px; }
   .tlC { order: 1; } .tlL { order: 2; } .tlR { order: 3; } .tlfoot { order: 4; gap: 10px; font-size: 12px; } .tlL, .tlR { overflow: visible; }
   .tlbr { gap: 4px; padding: 4px 8px; } .tlbr button { flex-basis: 36px; min-width: 36px; width: 36px; height: 36px; font-size: 17px; } .tlbrn, .tlbr kbd { display: none; } .tltip { width: 230px; } }
+
+/* ---------- Pisos de las casas ---------- */
+#flHud { position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 6; background: #1a120ccc; border: 1px solid #8a6a40; color: #ffe0a8; font: 600 13px var(--display); padding: 4px 12px; border-radius: 20px; pointer-events: none; }
