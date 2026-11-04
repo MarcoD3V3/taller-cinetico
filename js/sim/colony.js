@@ -154,13 +154,19 @@ function colPath(c) {
 }
 function colMove(c, dt) {
   if (c.gx === undefined) return true;
-  if (!c.path) { c.path = colPath(c); c.pi = 0; if (!c.path) { c.gx = undefined; return 'stuck'; } }
+  if (!c.path) { const gk = Math.floor(c.gx / T) + ',' + Math.floor(c.gy / T) + ',' + (c.near >= 1 ? 1 : 0), now = performance.now();
+    if (c._pf && c._pf.k === gk && now < c._pf.t) { c.gx = undefined; return 'stuck'; }
+    if (!colFree(Math.floor(c.x / T), Math.floor(c.y / T), c)) colOffBed(c);
+    c.path = colPath(c); c.pi = 0; if (!c.path) { c._pf = { k: gk, t: now + 2500 }; c.gx = undefined; return 'stuck'; } }
   if (c.pi >= c.path.length) { c.moving = false; return true; }
   const [wx, wy] = c.path[c.pi], tx = (wx + 0.5) * T, ty = (wy + 0.5) * T, dx = tx - c.x, dy = ty - c.y, d = Math.hypot(dx, dy);
   const sp = 2.4 * T * dt * (c.hun <= 0 ? 0.6 : 1); c.moving = true; c.face = dx > 0 ? 1 : dx < 0 ? -1 : c.face; c.ph = (c.ph || 0) + dt * 8;
   if (d <= sp) { c.x = tx; c.y = ty; c.pi++; if (c.pi < c.path.length) { const [nx, ny] = c.path[c.pi]; if (!colFree(nx, ny, c)) c.path = null; } return c.pi >= c.path?.length ? (c.moving = false, true) : false; }
   c.x += dx / d * sp; c.y += dy / d * sp; return false;
 }
+/* Al despertar (o si se queda encima de un bloque que no se pisa): a la casilla libre más cercana */
+function colOffBed(c) { const tx = Math.floor(c.x / T), ty = Math.floor(c.y / T); if (colFree(tx, ty, c)) return;
+  for (let r = 1; r <= 3; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) { if (Math.max(Math.abs(dx), Math.abs(dy)) !== r || !colFree(tx + dx, ty + dy, c)) continue; c.x = (tx + dx + 0.5) * T; c.y = (ty + dy + 0.5) * T; c.gx = undefined; c.path = null; return; } }
 function colDeposit(c) {
   const ch = colNearChest(c.x / T, c.y / T, b => Object.keys(c.carry).some(id => slotsAdd(b.slots, id, 1, true) === 0));
   if (!ch) { c.st = 'No encuentra cofre con sitio'; return false; }
@@ -195,7 +201,7 @@ function colTick(c, dt) {
   if (c.sleeping) c.slp = Math.min(100, c.slp + 100 / (dl * 0.25) * dt); else c.slp = Math.max(0, c.slp - 100 / (dl * 0.8) * dt * colTrait(c, 'slp'));
   if (c.hun <= 0) { c.starve += dt; if (c.starve > dl) return 'leave'; } else c.starve = 0;
   if (c.eatT > 0) { c.eatT -= dt; return; }
-  if (c.sleeping) { if ((!night && c.slp > 60) || c.slp >= 100 && !night) { c.sleeping = false; c.nodep = 0; c.st = 'Se despierta'; } else { c.st = 'Durmiendo'; return; } }
+  if (c.sleeping) { if ((!night && c.slp > 60) || c.slp >= 100 && !night) { c.sleeping = false; c.nodep = 0; c.st = 'Se despierta'; colOffBed(c); } else { c.st = 'Durmiendo'; return; } }
   // con hambre: a comer
   if (c.hun < 35 && !c.nofoodT) { if (colEat(c)) { const r = colMove(c, dt); if (r === 'stuck') c.nofoodT = 20; return; } else c.nofoodT = 30; }
   if (c.nofoodT) c.nofoodT = Math.max(0, c.nofoodT - dt);

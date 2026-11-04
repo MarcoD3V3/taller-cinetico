@@ -44,15 +44,16 @@ const colRaiders = () => FOES.filter(f => f.raid && f.hp > 0);
   const isGuard = !c.kid && colJobs(c)[0] === 'guard', raid = colRaiders().length > 0;
   if (!isGuard || c.hun < 25 && !raid) return t0(c, dt);
   const h = colHour(); if (!raid && (h < 6.5 || h >= 21) || c.sleeping && !raid) return t0(c, dt);
-  if (c.sleeping) { c.sleeping = false; c.st = '¡Se despierta por el ataque!'; }
+  if (c.sleeping) { c.sleeping = false; c.st = '¡Se despierta por el ataque!'; colOffBed(c); }
   const [hx, hy] = colHome(), arm = colBld('armory'), R = (arm ? 13 : 9) * T, f = nearestFoe(c.x, c.y, R) || (raid ? nearestFoe(hx * T, hy * T, 40 * T, q => q.raid) : null);
   c.gcd = (c.gcd || 0) - dt;
-  if (f) { const d = Math.hypot(f.x - c.x, f.y - c.y);
-    if (d > R * 0.8) { colGo(c, Math.floor(f.x / T), Math.floor(f.y / T), 3); const r = colMove(c, dt); c.st = '🛡 Va a por el enemigo'; if (r === 'stuck') c.gx = undefined; return; }
-    c.moving = false; c.face = f.x > c.x ? 1 : -1; c.st = '🛡 Defendiendo el pueblo'; c.work = (c.work || 0) + dt;
-    if (c.gcd <= 0) { c.gcd = 1.1 / (1 + (c.sk.guard || 0) * 0.05); const a = Math.atan2(f.y - c.y, f.x - c.x), dmg = (10 + (c.sk.guard || 0) * 1.5) * (arm ? 1.5 : 1) * (c.gear ? 1.2 : 1);
-      PROJ.push({ x: c.x, y: c.y, vx: Math.cos(a) * 22 * T, vy: Math.sin(a) * 22 * T, r: 4, dmg, c: '#e8e0c8', team: 'p', life: 1.4, arrow: 0, hit: new Set() }); if (Math.random() < 0.3) colGain(c, 'guard'); }
-    return; }
+  if (f) { const d = Math.hypot(f.x - c.x, f.y - c.y), inR = d <= R;
+    /* se acerca si está lejos y hay camino; si no hay camino, dispara desde donde está (o vuelve a patrullar) */
+    if (d > R * 0.8 && !(c.chaseBad > S.time)) { colGo(c, Math.floor(f.x / T), Math.floor(f.y / T), 3); const r = colMove(c, dt); if (r === 'stuck') { c.chaseBad = S.time + 4; c.gx = undefined; } else if (r !== true) { c.st = '🛡 Va a por el enemigo'; if (!inR) return; } }
+    if (inR) { c.moving = false; c.face = f.x > c.x ? 1 : -1; c.st = '🛡 Defendiendo el pueblo'; c.work = (c.work || 0) + dt;
+      if (c.gcd <= 0) { c.gcd = 1.1 / (1 + (c.sk.guard || 0) * 0.05); const a = Math.atan2(f.y - c.y, f.x - c.x), dmg = (10 + (c.sk.guard || 0) * 1.5) * (arm ? 1.5 : 1) * (c.gear ? 1.2 : 1);
+        PROJ.push({ x: c.x, y: c.y, vx: Math.cos(a) * 22 * T, vy: Math.sin(a) * 22 * T, r: 4, dmg, c: '#e8e0c8', team: 'p', life: 1.4, arrow: 0, hit: new Set() }); if (Math.random() < 0.3) colGain(c, 'guard'); }
+      return; } }
   c.work = 0;
   // patrulla alrededor del núcleo
   if (c.gx === undefined || colMove(c, dt) === true) { if ((c.patT = (c.patT || 0) - dt) <= 0) { c.patT = 5 + Math.random() * 6; const a = Math.random() * 6.28, r = 6 + Math.random() * 8; colGo(c, Math.round(hx + Math.cos(a) * r), Math.round(hy + Math.sin(a) * r), 0.5); } }
