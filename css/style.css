@@ -2162,3 +2162,43 @@ body.hudmin { --hud: rgba(14, 15, 17, .74); }
 @media (max-width: 1100px) { .home2 { grid-template-columns: 240px minmax(0, 1fr) 260px; } }
 @media (max-width: 900px) { .home2 { grid-template-columns: 1fr; grid-template-areas: "c" "l" "r" "f"; } .hhav, .hhav canvas { width: 140px; height: 156px; } }
 @media (max-width: 520px) { .hrow2 { grid-template-columns: 1fr; } .hbrand h1 { font-size: 34px; } }
+/* ---------- Tema de toda la portada (mundos, multijugador, opciones, cuenta, personajes…) ----------
+   Mismo estilo que el árbol de talentos: madera oscura, bordes dorados, Cinzel y brasas.
+   Con :where() (sin peso) para que los componentes con estilo propio (la portada nueva) manden. */
+#mTitle { --panel: #1a140fee; --panel-solid: #1a140f; --line: #5a4630; --brass: #e8c890; --text: #e9dcc4; --muted: #a8987c; --display: "Cinzel", Georgia, serif;
+  background: radial-gradient(ellipse at 50% 100%, #3a1a0a 0%, #120a06 45%, #060403 100%); color: #e9dcc4; }
+#mTitle .title-in { position: relative; z-index: 1; }
+:where(#mTitle) .brand { text-align: center; }
+:where(#mTitle) .brand h1 { font: 700 clamp(34px, 4.5vw, 54px) "Cinzel", Georgia, serif; letter-spacing: .06em; font-variant: small-caps; background: linear-gradient(180deg, #fff2d0 0%, #e8c890 45%, #b07a30 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 14px #ff8a2a44) drop-shadow(0 2px 0 #000); }
+:where(#mTitle) .brand p { font: 500 13px "Cinzel", Georgia, serif; letter-spacing: .14em; font-variant: small-caps; color: #c8a878; }
+:where(#mTitle) .brand::after { content: ""; display: block; width: 220px; height: 2px; margin: 10px auto 0; background: linear-gradient(90deg, transparent, #ffb04a, transparent); box-shadow: 0 0 10px #ff8a2a; }
+:where(#mTitle) h2, :where(#mTitle) h3 { font-family: "Cinzel", Georgia, serif; font-variant: small-caps; letter-spacing: .06em; color: #e8c890; }
+:where(#mTitle) .trow h2, :where(#mTitle) .mph h2 { font-size: 24px; text-shadow: 0 0 12px #ff9a3a44; }
+/* botones */
+:where(#mTitle) button, :where(#mTitle) .btn { font-family: "Cinzel", Georgia, serif; font-weight: 600; letter-spacing: .04em; background: linear-gradient(180deg, #2a2017, #17110c); border: 1px solid #6a5236; color: #e8c890; border-radius: 5px; transition: border-color .15s, box-shadow .15s, color .15s, transform .15s; }
+:where(#mTitle) button:hover:not(:disabled) { border-color: #e8c890; color: #fff2d0; box-shadow: 0 0 12px #ff9a3a44; }
+:where(#mTitle) button.pri, :where(#mTitle) .mm.pri { background: linear-gradient(180deg, #8a4a14, #4a2408); border-color: #e8a050; color: #fff2d0; text-shadow: 0 1px 2px #000; box-shadow: 0 0 14px #ff7a2a33; }
+:where(#mTitle) button.danger { border-color: #8a3a2a; color: #ff9a8a; } :where(#mTitle) button.danger:hover { border-color: #e05050; box-shadow: 0 0 12px #e0505044; }
+:where(#mTitle) button.ghost { background: transparent; }
+:where(#mTitle) .ico { border-radius: 50%; }
+/* paneles y tarjetas: doble borde dorado */
+:where(#mTitle) .wcard, :where(#mTitle) .cwp, :where(#mTitle) .acard, :where(#mTitle) .chc, :where(#mTitle) .mpbox, :where(#mTitle) .mprow, :where(#mTitle) .opane, :where(#mTitle) .mpwait {
+  position: relative; background: linear-gradient(180deg, #1f1812f2, #120d09f2); border: 1px solid #5a4630; border-radius: 6px; box-shadow: inset 0 0 0 1px #0009, inset 0 0 16px #000a, 0 4px 14px #0008; }
+:where(#mTitle) .wcard::before, :where(#mTitle) .cwp::before, :where(#mTitle) .acard::before, :where(#mTitle) .mprow::before { content: ""; position: absolute; inset: 3px; border: 1px solid #e8c8901a; border-radius: 4px; pointer-events: none; }
+:where(#mTitle) .wcard:hover, :where(#mTitle) .chc:hover { border-color: #c89a50; box-shadow: inset 0 0 0 1px #0009, inset 0 0 16px #000a, 0 8px 22px #000a, 0 0 18px #ff8a2a33; }
+:where(#mTitle) .wcard.cur, :where(#mTitle) .chc.act { border-color: #e8a050; box-shadow: inset 0 0 22px #ff7a2a22, 0 0 22px #ff7a2a33; }
+:where(#mTitle) .wname { font: 700 18px "Cinzel", Georgia, serif; color: #fff2d0; letter-spacing: .04em; }
+:where(#mTitle) .wcard .mut, :where(#mTitle) .wcard small { color: #a8987c; }
+:where(#mTitle) .opane { padding: 10px 14px; }
+:where(#mTitle) .cat { font: 700 14px "Cinzel", Georgia, serif; font-variant: small-caps; letter-spacing: .08em; color: #e8c890; border-bottom: 1px solid #e8c89022; padding-bottom: 4px; }
+:where(#mTitle) .tag, :where(#mTitle) .chip { background: #2a1e12; border: 1px solid #6a5236; color: #e8c890; }
+/* pestañas */
+:where(#mTitle) .mtabs button.on, :where(#mTitle) .mtabs button.sel, :where(#mTitle) .sel { color: #fff2d0; border-color: #e8a050; box-shadow: 0 0 12px #ff7a2a33; }
+/* campos */
+:where(#mTitle) input:not([type=range]):not([type=checkbox]):not([type=radio]), :where(#mTitle) select, :where(#mTitle) textarea { background: #0e0a07; border: 1px solid #5a4630; color: #f0e4c8; border-radius: 5px; }
+:where(#mTitle) input:focus, :where(#mTitle) select:focus, :where(#mTitle) textarea:focus { outline: none; border-color: #e8a050; box-shadow: 0 0 10px #ff8a2a33; }
+:where(#mTitle) label { color: #c8b89c; }
+:where(#mTitle) a { color: #ffb04a; }
+:where(#mTitle) .good { color: #8ad87a; } :where(#mTitle) .bad { color: #ff8a7a; }
+/* barras de desplazamiento */
+#mTitle, #mTitle * { scrollbar-color: #6a5236 #0e0a07; scrollbar-width: thin; }

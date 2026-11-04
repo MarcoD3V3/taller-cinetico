@@ -48,7 +48,7 @@ showMain = function () {
   const world = lw ? `<section class="hpn hworld"><h3>Tu mundo</h3><div class="hwname">${esc(lw.name)}</div>
       <div class="hwrows"><span>🌱 Semilla</span><b>${esc(String(lw.seed ?? '—'))}</b><span>⚙ Núcleo</span><b>${esc(typeof TIERS !== 'undefined' && TIERS[lw.tier || 0] ? TIERS[lw.tier || 0].n.replace(/^Nivel \d+ · /, '') : 'Nivel ' + ((lw.tier || 0) + 1))}</b><span>🧱 Bloques</span><b>${lw.blocks || 0}</b><span>🕓 Última vez</span><b>${esc(fmtDate(lw.played))}</b></div>
       <button class="hmbtn pri" data-hm="cont:${esc(lw.id)}">▶ Continuar aquí</button></section>` : '';
-  $('tBody').innerHTML = `<canvas id="homeBg"></canvas><div class="home2">
+  $('tBody').innerHTML = `<div class="home2">
     <aside class="hcol hleft">${hero}
       <section class="hpn hsteps"><h3>Primeros pasos <small>${done}/${steps.length}</small></h3><i class="hprog"><b style="width:${done / steps.length * 100}%"></b></i><ul>${steps.map(([t, ok]) => `<li class="${ok ? 'ok' : ''}"><span>${ok ? '✔' : '○'}</span>${esc(t)}</li>`).join('')}</ul></section></aside>
     <main class="hcenter">
@@ -82,7 +82,7 @@ addEventListener('keydown', e => { if (ui.open !== 'title' || !document.querySel
 // Fondo: brasas que suben (como en el árbol de talentos), resplandor abajo y engranajes tenues que giran
 let _hbRaf = 0, _hbM = { x: -999, y: -999 };
 function homeBg() {
-  cancelAnimationFrame(_hbRaf); const cv = $('homeBg'); if (!cv) return; const g = cv.getContext('2d');
+  cancelAnimationFrame(_hbRaf); let cv = $('homeBg'); if (!cv) { cv = document.createElement('canvas'); cv.id = 'homeBg'; $('mTitle').prepend(cv); } const g = cv.getContext('2d'); /* el fondo vive en la portada entera: se ve en todas sus pantallas */
   const P = Array.from({ length: 90 }, () => ({ x: Math.random(), y: Math.random(), r: 0.6 + Math.random() * 2.2, v: 0.01 + Math.random() * 0.03, a: Math.random() * 6, w: (Math.random() - 0.5) * 0.4 }));
   const step = t => { if (!cv.isConnected) return; if (ui.open !== 'title') { _hbRaf = 0; return; }
     if (cv.width !== cv.clientWidth || cv.height !== cv.clientHeight) { cv.width = cv.clientWidth; cv.height = cv.clientHeight; } const W = cv.width, H = cv.height; g.clearRect(0, 0, W, H);
@@ -129,3 +129,6 @@ accHTML = function (inPause) {
 // Cerrar sesión en mitad de una partida en línea: fuera de ella
 { const m0 = menuNetChanged; menuNetChanged = () => { if (inGame() && NET.kind === 'ws' && !NET.me.verified && !(typeof dcSess === 'function' && dcSess())) { netLeave(true); toastErr('Has cerrado sesión: sales de la partida en línea'); } m0(); if (ui.open === 'title' && document.querySelector('.home, .home2')) showMain(); }; }
 if (ui.open === 'title') setTimeout(showMain, 0);
+
+// Si se vuelve a la portada por otro camino (sin pasar por el menú principal), el fondo se reanuda
+setInterval(() => { if (ui.open === 'title' && !_hbRaf) homeBg(); }, 1000);
