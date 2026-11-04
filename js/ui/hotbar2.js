@@ -67,7 +67,10 @@ function hbPop() {
     const it = ITEMS[id], q = typeof qParse === 'function' && qParse(id), tot = invCount(id), mx = typeof maxDur === 'function' ? maxDur(id) : 0, left = mx ? mx - wearOf(id) : 0;
     h = `<b style="${q ? 'color:' + Q_TIERS[q.tier].c : ''}">${esc(it.n)}</b><small>${esc(hbWhat(id))}</small><span class="hbchips">${tot > s.n ? `<i>${fmt(tot)} en total</i>` : ''}${mx ? `<i class="${left / mx < 0.25 ? 'bad' : ''}">${left}/${mx} usos</i>` : ''}${q ? `<i style="color:${Q_TIERS[q.tier].c}">${qStars(q.tier)}</i>` : ''}</span>`;
   }
-  hbPopEl.innerHTML = h; const r = sl.getBoundingClientRect(), z = parseFloat(getComputedStyle(hb).zoom) || 1;
+  hbPopEl.innerHTML = h; const r = sl.getBoundingClientRect(), z0 = parseFloat(getComputedStyle(hb).zoom) || 1;
+  /* con «zoom» en la barra: los navegadores nuevos ya dan la posición en píxeles de pantalla; los viejos no
+     (antes se multiplicaba siempre y el cartel salía arriba a la izquierda) */
+  const z = z0 !== 1 && Math.abs(r.width - sl.offsetWidth) < 0.5 ? z0 : 1;
   hbPopEl.style.left = (r.left + r.width / 2) * z + 'px'; hbPopEl.style.bottom = (innerHeight - r.top * z + 10) + 'px';
   hbPopEl.classList.remove('on'); void hbPopEl.offsetWidth; hbPopEl.classList.add('on');
   clearTimeout(_hbHide); _hbHide = setTimeout(() => hbPopEl.classList.remove('on'), 1800);
