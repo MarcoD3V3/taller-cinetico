@@ -10,34 +10,87 @@ const onlineOK = () => NET.kind === 'claude' || (NET.kind === 'ws' && NET.me.ver
 const needLogin = () => NET.kind === 'ws' && !NET.me.verified;
 let _homeTip = (Math.random() * LD_TIPS.length) | 0;
 function lastWorld() { const c = activeChar(), idx = worldIndex(); if (!c) return null; const seen = Object.entries(c.worlds || {}).filter(([k]) => idx.some(w => w.id === k)).sort((a, b) => (b[1].at || 0) - (a[1].at || 0))[0]; return seen ? idx.find(w => w.id === seen[0]) : null; }
+// Portada con el estilo del árbol de talentos: tu héroe a la izquierda, el menú en el centro y tu
+// mundo, los primeros pasos y las novedades a la derecha. Fondo de brasas que suben.
+const HOME_NEWS = [
+  ['🏴‍☠️', 'Piratas y batallas navales', 'Galeón con cañones, flotas, abordajes, mapas cifrados y el Capitán Fantasma.'],
+  ['🎣', 'Pesca profunda', 'Peces legendarios, cebos, récords, acuario y torneos.'],
+  ['🏘', 'Tu pueblo de colonos', 'Recluta aldeanos, dales oficio y haz crecer tu ciudad.'],
+  ['🔥', 'El Hogar del núcleo', 'Tu núcleo nace sobre una tarima, en una plaza que se adapta al bioma.'],
+  ['🌿', 'Mundo más natural', 'Lindes de bioma onduladas y transiciones pixeladas.'],
+];
+const HOME_GUIDE = [
+  ['🧑', 'Tu personaje', 'Crea a tu héroe: raza, profesión y aspecto. Lleva su propio inventario a cualquier mundo y sube de nivel jugando.'],
+  ['⛏', 'Recoge', 'Mantén el clic derecho para picar, talar o cavar. Pulsa F para comer, beber o usar lo que llevas. E abre el inventario.'],
+  ['⚙', 'Construye máquinas', 'Una rueda hidráulica o una manivela dan rotación; ejes y engranajes la llevan a taladros, hornos y bancos. B abre el recetario.'],
+  ['📦', 'Alimenta el Núcleo', 'Entrega al Núcleo lo que pide cada nivel para desbloquear máquinas nuevas: de la andesita a la electricidad y más allá.'],
+  ['⚔', 'Sobrevive y explora', 'Hambre, sed, frío y heridas. Pueblos, mazmorras, islas del tesoro, piratas y jefes enormes te esperan.'],
+  ['🏘', 'Haz crecer tu pueblo', 'Recluta aldeanos (✦), dales cama, comida y oficio. Con la Vara de capataz les marcas dónde trabajar.'],
+];
+let _hgStep = 0;
+function homeSteps(c, lw) { const idx = worldIndex(); return [
+  ['Crea tu personaje', !!c],
+  ['Crea tu primer mundo', idx.length > 0],
+  ['Juega una hora', !!c && (c.playMs || 0) > 3600e3],
+  ['Sube el Núcleo al nivel 2', idx.some(w => (w.tier || 0) >= 1)],
+  ['Construye 100 bloques', idx.some(w => (w.blocks || 0) >= 100)],
+]; }
 showMain = function () {
   const c = activeChar(), lw = lastWorld(), worlds = worldIndex().length, games = (NET.lobby || []).length;
   const mpSub = !NET.kind ? 'Sin servidor' : needLogin() ? '🔒 Inicia sesión para jugar en línea' : games ? `${games} partida${games > 1 ? 's' : ''} abierta${games > 1 ? 's' : ''} ahora` : NET.kind === 'claude' ? 'Salas de claude.ai' : 'Servidor conectado';
-  $('tBody').innerHTML = `<canvas id="homeBg"></canvas><div class="home">
-    ${c ? `<div class="hchar" data-pf="info:${c.id}" role="button" tabindex="0" title="Ver la ficha de ${esc(c.char.name)}"><canvas class="chav" data-av="${c.id}" width="96" height="104"></canvas>
-      <div class="hcinfo"><small>Juegas como</small><b>${esc(c.char.name)}</b><span class="mut small">${esc(RACE_OF(c).n)} · ${esc(PROF_OF(c).n)} · Nv. ${lvSum(c)} · ${fmtHours(c.playMs)}</span></div>
-      <button class="ghost" data-hm="chars">Cambiar</button></div>`
-    : `<button class="hchar new" data-pf="new"><span class="chplus">+</span><div class="hcinfo"><b>Crea tu personaje</b><span class="mut small">Nombre, raza, profesión… y su propio inventario, que viaja contigo a cualquier mundo.</span></div></button>`}
-    <div class="hacts">
-      ${lw ? `<button class="mm pri" data-hm="cont:${esc(lw.id)}">${svgI('M8 5l11 7-11 7V5z', 20)}<span>Continuar<small>${esc(lw.name)} · ${fmtDate(lw.played)}</small></span></button>` : ''}
-      <button class="mm ${lw ? '' : 'pri'}" data-mm="single" ${c ? '' : 'data-need="char"'}>${svgI('M3 12l9-8 9 8 M5 10v10h14V10', 20)}<span>Un jugador<small>${worlds} mundo${worlds !== 1 ? 's' : ''}${WNS ? ' en tu cuenta' : ''}</small></span></button>
-      <button class="mm ${needLogin() ? 'lock' : ''}" data-mm="multi" ${c ? '' : 'data-need="char"'}>${svgI(IC.lan, 20)}<span>Multijugador<small>${esc(mpSub)}</small></span></button>
-      <div class="mmrow"><button class="mm sm" data-mm="opts">${svgI(IC.opts, 18)}<span>Opciones</span></button><button class="mm sm" data-mm="acc">${svgI(IC.acc, 18)}<span>${NET.me.verified && NET.kind === 'ws' ? esc(NET.me.name) : 'Cuenta'}</span></button></div>
-    </div>
-    <div class="htip"><button data-hm="tip:-1" aria-label="Anterior">‹</button><p id="homeTip">💡 ${esc(LD_TIPS[_homeTip])}</p><button data-hm="tip:1" aria-label="Siguiente">›</button></div>
-    <div class="hfacts"><span title="Personajes guardados"><b>${PF.list.length}</b>/${MAX_CHARS} personajes</span><span title="Mundos guardados"><b>${worlds}</b> mundos</span><span title="Conexión"><i class="dot ${NET.room ? 'on' : ''}"></i>${esc(NET.kind === 'claude' ? 'claude.ai' : NET.kind === 'ws' ? (NET.me.verified ? 'Discord' : 'invitado') : 'sin conexión')}</span></div></div>`;
+  const steps = homeSteps(c, lw), done = steps.filter(s => s[1]).length;
+  const hero = c ? `<section class="hpn hhero"><h3>Tu héroe</h3>
+      <div class="hhav" data-pf="info:${c.id}" role="button" tabindex="0" title="Ver la ficha"><canvas class="chav chbig" data-av="${c.id}" width="180" height="200"></canvas><span class="hhring"></span></div>
+      <b class="hhname">${esc(c.char.name)}</b><span class="hhsub">${esc(RACE_OF(c).n)} · ${esc(PROF_OF(c).n)}</span>
+      <div class="hhstats"><div><small>Nivel</small><b>${lvSum(c)}</b></div><div><small>Jugado</small><b>${fmtHours(c.playMs)}</b></div><div><small>Mundos</small><b>${Object.keys(c.worlds || {}).length}</b></div></div>
+      <div class="hhbtns"><button class="hmbtn" data-pf="info:${c.id}">Ficha</button><button class="hmbtn" data-hm="chars">Cambiar</button></div></section>`
+    : `<section class="hpn hhero empty"><h3>Tu héroe</h3><button class="hhnew" data-pf="new"><span>+</span></button><b class="hhname">Crea tu personaje</b><span class="hhsub">Nombre, raza, profesión… y su propio inventario, que viaja contigo a cualquier mundo.</span><button class="hmbtn pri" data-pf="new">Crear personaje</button></section>`;
+  const world = lw ? `<section class="hpn hworld"><h3>Tu mundo</h3><div class="hwname">${esc(lw.name)}</div>
+      <div class="hwrows"><span>🌱 Semilla</span><b>${esc(String(lw.seed ?? '—'))}</b><span>⚙ Núcleo</span><b>${esc(typeof TIERS !== 'undefined' && TIERS[lw.tier || 0] ? TIERS[lw.tier || 0].n.replace(/^Nivel \d+ · /, '') : 'Nivel ' + ((lw.tier || 0) + 1))}</b><span>🧱 Bloques</span><b>${lw.blocks || 0}</b><span>🕓 Última vez</span><b>${esc(fmtDate(lw.played))}</b></div>
+      <button class="hmbtn pri" data-hm="cont:${esc(lw.id)}">▶ Continuar aquí</button></section>` : '';
+  $('tBody').innerHTML = `<canvas id="homeBg"></canvas><div class="home2">
+    <aside class="hcol hleft">${hero}
+      <section class="hpn hsteps"><h3>Primeros pasos <small>${done}/${steps.length}</small></h3><i class="hprog"><b style="width:${done / steps.length * 100}%"></b></i><ul>${steps.map(([t, ok]) => `<li class="${ok ? 'ok' : ''}"><span>${ok ? '✔' : '○'}</span>${esc(t)}</li>`).join('')}</ul></section></aside>
+    <main class="hcenter">
+      <div class="hbrand"><svg class="hgear" viewBox="0 0 100 100"><path d="${homeGearPath()}"/></svg><h1>Taller Cinético</h1><p>Automatización mecánica en un mundo infinito</p><i class="hrule"></i></div>
+      <nav class="hmenu">
+        ${lw ? `<button class="hplq main" data-hm="cont:${esc(lw.id)}"><span class="hpi">▶</span><span class="hpt">Continuar<small>${esc(lw.name)} · ${esc(fmtDate(lw.played))}</small></span><span class="hpk">Enter</span></button>` : ''}
+        <button class="hplq ${lw ? '' : 'main'}" data-mm="single" ${c ? '' : 'data-need="char"'}><span class="hpi">🏠</span><span class="hpt">Un jugador<small>${worlds} mundo${worlds !== 1 ? 's' : ''}${WNS ? ' en tu cuenta' : ''} · crea, carga o borra</small></span></button>
+        <button class="hplq ${needLogin() ? 'lock' : ''}" data-mm="multi" ${c ? '' : 'data-need="char"'}><span class="hpi">👥</span><span class="hpt">Multijugador<small>${esc(mpSub)}</small></span></button>
+        <div class="hrow2"><button class="hplq sm" data-hm="guide"><span class="hpi">📖</span><span class="hpt">Cómo se juega</span></button><button class="hplq sm" data-mm="opts"><span class="hpi">⚙</span><span class="hpt">Opciones</span></button><button class="hplq sm" data-mm="acc"><span class="hpi">🛡</span><span class="hpt">${NET.me.verified && NET.kind === 'ws' ? esc(NET.me.name) : 'Cuenta'}</span></button></div>
+      </nav>
+      <div class="htip2"><button data-hm="tip:-1" aria-label="Anterior">‹</button><p id="homeTip">💡 ${esc(LD_TIPS[_homeTip])}</p><button data-hm="tip:1" aria-label="Siguiente">›</button></div>
+    </main>
+    <aside class="hcol hright">${world}
+      <section class="hpn hnews"><h3>Novedades</h3><ul>${HOME_NEWS.map(([i, t, d]) => `<li><span>${i}</span><div><b>${esc(t)}</b><small>${esc(d)}</small></div></li>`).join('')}</ul></section></aside>
+    <footer class="hfoot"><span><b>${PF.list.length}</b>/${MAX_CHARS} personajes</span><span><b>${worlds}</b> mundos</span><span><i class="dot ${NET.room ? 'on' : ''}"></i>${esc(NET.kind === 'claude' ? 'claude.ai' : NET.kind === 'ws' ? (NET.me.verified ? 'Discord' : 'invitado') : 'sin conexión')}</span><span class="mut">Enter: continuar · H: cómo se juega</span></footer></div>`;
   chAnimate(); homeBg();
 };
-// Fondo: engranajes y chispas muy suaves que se apartan del ratón
+function homeGearPath() { let d = ''; for (let i = 0; i < 32; i++) { const a = i / 32 * Math.PI * 2, r = i % 4 < 2 ? 46 : 38; d += (i ? 'L' : 'M') + (50 + Math.cos(a) * r).toFixed(1) + ' ' + (50 + Math.sin(a) * r).toFixed(1); } return d + 'Z M50 30 A20 20 0 1 0 50 70 A20 20 0 1 0 50 30Z'; }
+// Guía «Cómo se juega» (pasos con flechas)
+function homeGuide() { const [i, t, d] = HOME_GUIDE[_hgStep];
+  let g = $('homeGuide'); if (!g) { g = document.createElement('div'); g.id = 'homeGuide'; $('mTitle').appendChild(g); g.addEventListener('mousedown', e => { if (e.target === g || e.target.closest('[data-hg="x"]')) g.remove(); }); }
+  g.innerHTML = `<div class="hgbox"><button class="hgx" data-hg="x" aria-label="Cerrar">✕</button><small>Cómo se juega · ${_hgStep + 1}/${HOME_GUIDE.length}</small><div class="hgi">${i}</div><h2>${esc(t)}</h2><p>${esc(d)}</p>
+    <div class="hgdots">${HOME_GUIDE.map((_, k) => `<i class="${k === _hgStep ? 'on' : ''}" data-hg="${k}"></i>`).join('')}</div>
+    <div class="hgnav"><button class="hmbtn" data-hg="prev" ${_hgStep ? '' : 'disabled'}>‹ Anterior</button>${_hgStep < HOME_GUIDE.length - 1 ? '<button class="hmbtn pri" data-hg="next">Siguiente ›</button>' : '<button class="hmbtn pri" data-hg="x">¡A jugar!</button>'}</div></div>`; }
+document.addEventListener('click', e => { const b = e.target.closest('[data-hg]'); if (!b) return; const v = b.dataset.hg; if (v === 'x') { const g = $('homeGuide'); if (g) g.remove(); return; }
+  _hgStep = v === 'next' ? Math.min(HOME_GUIDE.length - 1, _hgStep + 1) : v === 'prev' ? Math.max(0, _hgStep - 1) : +v; homeGuide(); });
+addEventListener('keydown', e => { if (ui.open !== 'title' || !document.querySelector('.home2') || e.target.tagName === 'INPUT') return; const g = $('homeGuide');
+  if (g) { if (e.key === 'ArrowRight') { _hgStep = Math.min(HOME_GUIDE.length - 1, _hgStep + 1); homeGuide(); } else if (e.key === 'ArrowLeft') { _hgStep = Math.max(0, _hgStep - 1); homeGuide(); } else if (e.key === 'Escape') { g.remove(); e.stopImmediatePropagation(); } return; }
+  if (e.key === 'Enter') { const c = document.querySelector('.home2 .hplq.main'); if (c) { c.click(); e.preventDefault(); } }
+  else if (e.key.toLowerCase() === 'h') { _hgStep = 0; homeGuide(); } }, true);
+// Fondo: brasas que suben (como en el árbol de talentos), resplandor abajo y engranajes tenues que giran
 let _hbRaf = 0, _hbM = { x: -999, y: -999 };
 function homeBg() {
   cancelAnimationFrame(_hbRaf); const cv = $('homeBg'); if (!cv) return; const g = cv.getContext('2d');
-  const P = Array.from({ length: 46 }, () => ({ x: Math.random(), y: Math.random(), r: 0.6 + Math.random() * 1.8, v: 0.004 + Math.random() * 0.01, a: Math.random() * 6 }));
-  const step = t => { if (!cv.isConnected) return; if (ui.open !== 'title') { _hbRaf = 0; return; } /* en partida no se dibuja */ if (cv.width !== cv.clientWidth || cv.height !== cv.clientHeight) { cv.width = cv.clientWidth; cv.height = cv.clientHeight; } const W = cv.width, H = cv.height; g.clearRect(0, 0, W, H);
-    for (const p of P) { p.y -= p.v / 60; if (p.y < -0.02) { p.y = 1.02; p.x = Math.random(); } let x = p.x * W, y = p.y * H; const dx = x - _hbM.x, dy = y - _hbM.y, d = Math.hypot(dx, dy); if (d < 120) { x += dx / d * (120 - d) * 0.35; y += dy / d * (120 - d) * 0.35; }
-      g.globalAlpha = 0.18 + 0.15 * Math.sin(t / 900 + p.a); g.fillStyle = '#e0b54c'; g.beginPath(); g.arc(x, y, p.r, 0, 7); g.fill(); }
-    g.globalAlpha = 0.05; g.strokeStyle = '#e0b54c'; g.lineWidth = 2; for (const [cx, cy, r, s] of [[0.1, 0.85, 90, 1], [0.92, 0.2, 70, -1.3]]) { g.save(); g.translate(cx * W, cy * H); g.rotate(t / 4000 * s); g.beginPath(); for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2, rr = i % 2 ? r * 0.82 : r; g.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } g.closePath(); g.stroke(); g.beginPath(); g.arc(0, 0, r * 0.3, 0, 7); g.stroke(); g.restore(); }
-    g.globalAlpha = 1; _hbRaf = requestAnimationFrame(step); };
+  const P = Array.from({ length: 90 }, () => ({ x: Math.random(), y: Math.random(), r: 0.6 + Math.random() * 2.2, v: 0.01 + Math.random() * 0.03, a: Math.random() * 6, w: (Math.random() - 0.5) * 0.4 }));
+  const step = t => { if (!cv.isConnected) return; if (ui.open !== 'title') { _hbRaf = 0; return; }
+    if (cv.width !== cv.clientWidth || cv.height !== cv.clientHeight) { cv.width = cv.clientWidth; cv.height = cv.clientHeight; } const W = cv.width, H = cv.height; g.clearRect(0, 0, W, H);
+    const glow = g.createRadialGradient(W / 2, H * 1.05, 10, W / 2, H * 1.05, H * 0.9); glow.addColorStop(0, 'rgba(255,120,40,.22)'); glow.addColorStop(0.5, 'rgba(160,60,20,.08)'); glow.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = glow; g.fillRect(0, 0, W, H);
+    g.strokeStyle = '#e8c890'; g.lineWidth = 2; for (const [cx, cy, r, s, al] of [[0.08, 0.82, 110, 1, 0.05], [0.94, 0.16, 80, -1.3, 0.05], [0.86, 0.9, 50, 1.7, 0.04]]) { g.globalAlpha = al; g.save(); g.translate(cx * W, cy * H); g.rotate(t / 5000 * s); g.beginPath(); for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2, rr = i % 2 ? r * 0.82 : r; g.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } g.closePath(); g.stroke(); g.beginPath(); g.arc(0, 0, r * 0.35, 0, 7); g.stroke(); g.restore(); }
+    for (const p of P) { p.y -= p.v / 60; p.x += Math.sin(t / 1400 + p.a) * 0.0004 + p.w / 6000; if (p.y < -0.02) { p.y = 1.02; p.x = Math.random(); } let x = p.x * W, y = p.y * H; const dx = x - _hbM.x, dy = y - _hbM.y, d = Math.hypot(dx, dy); if (d < 120) { x += dx / d * (120 - d) * 0.35; y += dy / d * (120 - d) * 0.35; }
+      const life = Math.min(1, (1 - p.y) * 1.6); g.globalAlpha = (0.25 + 0.35 * Math.sin(t / 500 + p.a) ** 2) * life; g.fillStyle = p.r > 1.8 ? '#ffd27a' : '#ff8a3a'; g.shadowColor = '#ff7a2a'; g.shadowBlur = 6; g.beginPath(); g.arc(x, y, p.r, 0, 7); g.fill(); }
+    g.shadowBlur = 0; g.globalAlpha = 1; _hbRaf = requestAnimationFrame(step); };
   _hbRaf = requestAnimationFrame(step);
 }
 $('mTitle').addEventListener('mousemove', e => { const cv = $('homeBg'); if (!cv) return; const r = cv.getBoundingClientRect(); _hbM = { x: e.clientX - r.left, y: e.clientY - r.top }; });
@@ -49,6 +102,7 @@ document.addEventListener('click', e => {
   if (a === 'tip') { _homeTip = (_homeTip + (+v) + LD_TIPS.length) % LD_TIPS.length; $('homeTip').textContent = '💡 ' + LD_TIPS[_homeTip]; }
   if (a === 'cont') worldAction('play:' + v);
   if (a === 'login') dcLogin();
+  if (a === 'guide') { _hgStep = 0; homeGuide(); }
 }, true);
 // ---------- Cuenta: una sola tarjeta ----------
 accHTML = function (inPause) {
