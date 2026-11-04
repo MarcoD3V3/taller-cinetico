@@ -23,8 +23,9 @@ const LD = { el: null, steps: [], cur: -1, tip: (Math.random() * LD_TIPS.length)
 function ldEl() {
   if (LD.el) return LD.el;
   const el = document.getElementById('loader') || document.createElement('div'); el.id = 'loader';
-  el.innerHTML = `<div class="ldin"><div class="ldgears" title="Tócalos">${ldGear(46, 10, 'g1')}${ldGear(30, 8, 'g2')}</div><h2 id="ldTitle">Cargando…</h2><div id="ldSub" class="mut small"></div>
-    <div class="ldbar"><i id="ldBar"></i></div><ol id="ldSteps"></ol>
+  const emb = Array.from({ length: 22 }, (_, i) => `<i style="--x:${(i * 47 % 100)}%;--d:${(i * 0.37 % 4).toFixed(2)}s;--t:${(4 + (i * 13 % 5)).toFixed(1)}s;--s:${1 + (i % 3)}px"></i>`).join('');
+  el.innerHTML = `<div class="ldembers">${emb}</div><div class="ldin"><div class="ldsig" title="Tócalo">${ldRing()}<div class="ldgears">${ldGear(40, 10, 'g1')}${ldGear(24, 8, 'g2')}</div></div><h2 id="ldTitle">Cargando…</h2><div id="ldSub" class="small"></div>
+    <div class="ldbar"><i id="ldBar"></i><b id="ldHead"></b></div><ol id="ldSteps"></ol>
     <div class="ldtip"><button data-ld="prev" aria-label="Consejo anterior">‹</button><p id="ldTip"></p><button data-ld="next" aria-label="Consejo siguiente">›</button></div>
     <div id="ldAct"></div></div>`;
   if (!el.parentNode) document.body.appendChild(el);
@@ -34,10 +35,14 @@ function ldGear(r, teeth, cls) {
   const pts = []; for (let i = 0; i < teeth * 2; i++) { const a = i / (teeth * 2) * Math.PI * 2, rr = i % 2 ? r * 0.78 : r; pts.push([Math.cos(a - 0.12) * rr, Math.sin(a - 0.12) * rr], [Math.cos(a + 0.12) * rr, Math.sin(a + 0.12) * rr]); }
   return `<svg class="${cls}" viewBox="${-r - 2} ${-r - 2} ${2 * r + 4} ${2 * r + 4}" width="${2 * r + 4}" height="${2 * r + 4}"><path d="M${pts.map(p => p.map(v => v.toFixed(1)).join(' ')).join('L')}Z" /><circle r="${r * 0.32}" /></svg>`;
 }
+// Anillo de espinas (cibersigilismo): gira despacio alrededor de los engranajes
+function ldRing() { let d = ''; const N = 12; for (let i = 0; i < N; i++) { const a = i / N * Math.PI * 2, a2 = a + Math.PI / N, P = (r, t) => (60 + Math.cos(t) * r).toFixed(1) + ' ' + (60 + Math.sin(t) * r).toFixed(1);
+    d += `M${P(50, a - 0.16)} Q${P(58, a - 0.05)} ${P(59, a)} Q${P(55, a + 0.09)} ${P(50, a + 0.2)} M${P(47, a2 - 0.1)} L${P(52, a2)} L${P(47, a2 + 0.1)} `; }
+  return `<svg class="ldring" viewBox="0 0 120 120"><defs><linearGradient id="ldg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff6e0"/><stop offset=".5" stop-color="#e8c890"/><stop offset="1" stop-color="#9aa6b8"/></linearGradient></defs><circle cx="60" cy="60" r="47" fill="none" stroke="url(#ldg)" stroke-width=".8" opacity=".6"/><circle cx="60" cy="60" r="43" fill="none" stroke="url(#ldg)" stroke-width=".5" stroke-dasharray="2 5" opacity=".5"/><path d="${d}" fill="url(#ldg)" stroke="url(#ldg)" stroke-width=".6"/></svg>`; }
 function ldTip(d) { LD.tip = (LD.tip + d + LD_TIPS.length) % LD_TIPS.length; const t = document.getElementById('ldTip'); if (t) { t.style.opacity = 0; setTimeout(() => { t.textContent = '💡 ' + LD_TIPS[LD.tip]; t.style.opacity = 1; }, d ? 120 : 0); } LD.tipT = 0; }
 // Abre la pantalla. steps: nombres de los pasos. cancel: función si se puede cancelar.
 function loadShow(title, steps, opt = {}) {
-  const el = ldEl(); clearInterval(LD.poll); LD.cancel = opt.cancel || null; LD.steps = steps || []; LD.cur = -1; LD.shownAt = performance.now();
+  const el = ldEl(); LD.target = 0; LD.shown = 0; clearInterval(LD.poll); LD.cancel = opt.cancel || null; LD.steps = steps || []; LD.cur = -1; LD.shownAt = performance.now();
   el.classList.remove('fail', 'done'); el.hidden = false; requestAnimationFrame(() => { if (!el.hidden && !el.classList.contains('done')) el.classList.add('on'); });
   document.getElementById('ldTitle').textContent = title; document.getElementById('ldSub').textContent = opt.sub || '';
   document.getElementById('ldAct').innerHTML = LD.cancel ? '<button data-ld="cancel">Cancelar</button>' : '';
@@ -47,11 +52,11 @@ function ldRenderSteps() { const ol = document.getElementById('ldSteps'); if (!o
 function loadStep(i, label) { if (!LD.el || LD.el.hidden) return; if (label) LD.steps[i] = label; LD.cur = i; ldRenderSteps(); if (LD.steps.length) loadProgress(i / LD.steps.length); }
 function loadProgress(p, txt) {
   const b = document.getElementById('ldBar'); if (!b) return; const n = Math.max(1, LD.steps.length), tot = LD.steps.length && LD.cur >= 0 ? (LD.cur + clamp(p, 0, 1)) / n : clamp(p, 0, 1);
-  b.style.width = (Math.max(tot, 0.03) * 100).toFixed(1) + '%'; const pc = document.getElementById('ldPct' + LD.cur); if (pc) pc.textContent = txt || (p > 0 && p < 1 ? Math.round(p * 100) + ' %' : '');
+  LD.target = Math.max(LD.target || 0, Math.max(tot, 0.03)); LD.stepEnd = LD.steps.length && LD.cur >= 0 ? Math.min(1, (LD.cur + 1) / n) : 1; ldBarSet(); const pc = document.getElementById('ldPct' + LD.cur); if (pc) pc.textContent = txt || (p > 0 && p < 1 ? Math.round(p * 100) + ' %' : '');
 }
 // Termina bien: se ve el último paso hecho un momento y se va (sin parpadeos en cargas cortas)
 function loadDone(msg) {
-  if (!LD.el || LD.el.hidden) return; clearInterval(LD.poll); LD.cur = LD.steps.length; ldRenderSteps(); document.getElementById('ldBar').style.width = '100%';
+  if (!LD.el || LD.el.hidden) return; clearInterval(LD.poll); LD.cur = LD.steps.length; ldRenderSteps(); LD.target = LD.shown = 1; ldBarSet();
   if (msg) document.getElementById('ldSub').textContent = msg; LD.el.classList.add('done');
   const wait = Math.max(250, 500 - (performance.now() - LD.shownAt)); setTimeout(() => { LD.el.classList.remove('on'); setTimeout(() => { if (!LD.el.classList.contains('on')) LD.el.hidden = true; }, 260); }, wait);
 }
@@ -60,6 +65,7 @@ function loadFail(msg) {
   document.getElementById('ldSub').textContent = msg || 'Algo ha fallado.'; document.getElementById('ldAct').innerHTML = '<button class="pri" data-ld="close">Volver</button>';
   const li = document.querySelectorAll('#ldSteps li')[LD.cur]; if (li) li.className = 'bad';
 }
+function ldBarSet() { const b = document.getElementById('ldBar'), h = document.getElementById('ldHead'); const v = Math.max(LD.shown || 0, 0.02); if (b) b.style.transform = `scaleX(${v.toFixed(4)})`; if (h) h.style.transform = `translateX(${(v * 100).toFixed(2)}cqw)`; }
 // Espera a que se cumpla algo, avisando de progreso: check() → true (listo) · false (sigue) · string (error)
 function loadWatch(check, timeout = 30000) {
   const t0 = performance.now(); clearInterval(LD.poll);
@@ -71,13 +77,17 @@ document.addEventListener('click', e => {
     if (a === 'cancel') { const c = LD.cancel; LD.cancel = null; loadFail('Cancelado.'); if (c) c(); setTimeout(() => { LD.el.classList.remove('on'); LD.el.hidden = true; }, 400); }
     if (a === 'close') { LD.el.classList.remove('on'); setTimeout(() => LD.el.hidden = true, 250); }
     return; }
-  if (e.target.closest('.ldgears')) { LD.spin = Math.min(9, LD.spin + 2.5); }
+  if (e.target.closest('.ldsig')) { LD.spin = Math.min(9, LD.spin + 2.5); }
 });
 // Engranajes: giran engranados, aceleran con los clics y vuelven poco a poco a su ritmo
 { let a = 0, last = performance.now(); const loop = now => { const dt = Math.min(0.1, (now - last) / 1000); last = now;
-  if (LD.el && !LD.el.hidden) { a += dt * 60 * LD.spin; LD.spin += (1 - LD.spin) * Math.min(1, dt * 1.5); const g1 = LD.el.querySelector('.g1'), g2 = LD.el.querySelector('.g2'); if (g1) g1.style.transform = `rotate(${a}deg)`; if (g2) g2.style.transform = `rotate(${-a * 1.25 + 9}deg)`;
+  if (LD.el && !LD.el.hidden) { LD.spin += (1 - LD.spin) * Math.min(1, dt * 1.5); if (Math.abs(LD.spin - (LD._rate || 1)) > 0.05) { LD._rate = LD.spin; for (const an of LD.el.querySelectorAll('.ldring, .g1, .g2')) for (const x of an.getAnimations()) x.playbackRate = LD.spin; }
+    // la barra avanza sola un poco dentro del paso actual (sin pasarse): nunca parece parada
+    if (!LD.el.classList.contains('fail') && LD.shown < 1) { const cap = Math.max(LD.target || 0, (LD.stepEnd || 1) * 0.92); if (LD.shown < cap) { LD.shown += (cap - LD.shown) * Math.min(1, dt * 0.6) + (LD.target > LD.shown ? (LD.target - LD.shown) * Math.min(1, dt * 8) : 0); ldBarSet(); } }
     LD.tipT += dt; if (LD.tipT > 6) ldTip(1); }
   requestAnimationFrame(loop); }; requestAnimationFrame(loop); }
+// Ejecuta fn cuando la pantalla ya se ha pintado (dos fotogramas), o a los 120 ms si la pestaña no pinta
+function ldAfterPaint(fn) { let done = false; const go = () => { if (done) return; done = true; fn(); }; requestAnimationFrame(() => requestAnimationFrame(go)); setTimeout(go, 120); }
 // ---------- Dónde aparece ----------
 // Arranque del juego: la pantalla ya está en el HTML; se va cuando hay menú y conexión (o a los 5 s)
 { loadShow('Taller Cinético', ['Cargando el juego', 'Preparando el menú', 'Buscando partidas en línea']);
@@ -87,7 +97,7 @@ document.addEventListener('click', e => {
   if (k === 'play' || k === 'create') {
     const name = k === 'play' ? ((worldIndex().find(w => w.id === act.split(':')[1]) || {}).name || 'Mundo') : (($('cwName') || {}).value || 'Mundo nuevo');
     loadShow(k === 'play' ? 'Abriendo ' + name : 'Creando ' + name, k === 'play' ? ['Leyendo la partida guardada', 'Generando el terreno', 'Colocando tus máquinas'] : ['Generando el terreno', 'Buscando un buen sitio para empezar', 'Preparando tu equipo']);
-    setTimeout(() => { loadStep(1); setTimeout(() => { try { w0(act, btn); } catch (e) { loadFail('No se pudo abrir: ' + e.message); return; } loadStep(2); setTimeout(() => ui.open === 'title' && !S ? loadFail('No se pudo abrir el mundo.') : loadDone(), 120); }, 40); }, 60);
+    ldAfterPaint(() => { loadStep(1); ldAfterPaint(() => { try { w0(act, btn); } catch (e) { loadFail('No se pudo abrir: ' + e.message); return; } loadStep(2); setTimeout(() => ui.open === 'title' && !S ? loadFail('No se pudo abrir el mundo.') : loadDone(), 120); }); });
     return;
   }
   return w0(act, btn); }; }
