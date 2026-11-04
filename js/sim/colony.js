@@ -39,7 +39,7 @@ const colDay = () => S.gen.dayLen || DAY_LEN;
 const colHour = () => typeof folkHour === 'function' ? folkHour() : 12;
 // ---------- Aldeanos que se quieren mudar ----------
 const colFolkKey = n => n.sid + ':' + (n.fi ?? 0);
-const colWilling = n => n && n.folk && !['elder', 'guard', 'child', 'merchant'].includes(n.role) && colHash(String(n.sid), (n.fi ?? 0) * 31 + 7) < 0.4;
+function colWilling(n) { return !!(n && n.folk && !['elder', 'guard', 'child', 'merchant'].includes(n.role) && colHash(String(n.sid), (n.fi ?? 0) * 31 + 7) < 0.4); }
 { const f0 = folkSpawn; folkSpawn = s => { const list = f0(s); list.forEach((n, i) => { n.fi = i; if (colWilling(n) && !/✦/.test(n.label)) n.label = '✦ ' + n.label; });
   const g = S && S.colony && S.colony.gone; if (g) { const keep = list.filter(n => !g[colFolkKey(n)]); list.length = 0; list.push(...keep); } return list; }; }
 function colFromFolk(n) {
@@ -172,7 +172,7 @@ function colEat(c) {
   const fid = ch => colFoods().find(id => slotsCount(ch.slots, id) > 0), ch = colNearChest(c.x / T, c.y / T, b => !!fid(b));
   if (!ch) { c.st = '¡Sin comida en los cofres!'; c.nofood = true; return false; } c.nofood = false;
   if (Math.hypot(ch.x * T + T / 2 - c.x, ch.y * T + T / 2 - c.y) > 1.6 * T) { colGo(c, ch.x, ch.y, 1.2); c.st = 'Va a comer'; return true; }
-  const id = fid(ch); slotsTake(ch.slots, id, 1); c.hun = Math.min(100, c.hun + Math.max(15, ITEMS[id].food.f * 1.6)); c.st = 'Comió ' + ITEMS[id].n.toLowerCase(); c.eatT = 1.5; return true;
+  const id = fid(ch); slotsTake(ch.slots, id, 1); (c.ate || (c.ate = [])).push(id); if (c.ate.length > 6) c.ate.shift(); c.hun = Math.min(100, c.hun + Math.max(15, ITEMS[id].food.f * 1.6)); c.st = 'Comió ' + ITEMS[id].n.toLowerCase(); c.eatT = 1.5; return true;
 }
 function colDoTask(c, w) {
   const { x, y, t } = w, g = GI[gnd(x, y)], sk = COL_JOBS[w.j || c.job].sk, gain = () => { c.sk[sk] = Math.min(10, Math.round((c.sk[sk] + 0.04 * colTrait(c, 'xp')) * 100) / 100); };
@@ -304,8 +304,8 @@ const _colGhost = new Map();
   for (const c of vis) { const J = COL_JOBS[(c.w && c.w.j) || colJobs(c)[0] || 'none'] || COL_JOBS.none, tool = c.sleeping ? null : (J.tool || []).find(id => ITEMS[id]) || null, ang = c.moving ? Math.atan2(c.gy - c.y, c.gx - c.x) : c.face > 0 ? 0 : Math.PI;
     const look = { ...c.look, shirt: J.c };
     ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(c.x, c.y + 8, 9, 3.5, 0, 0, 7); ctx.fill();
-    if (c.sleeping) { ctx.save(); ctx.translate(c.x, c.y + 4); ctx.rotate(-Math.PI / 2); drawAvatar(ctx, look, c.equip, 0, 0, 0, 0, false, 1.6, null, 0); ctx.restore(); }
-    else drawAvatar(ctx, look, c.equip, c.x, c.y + 8, ang, c.ph || 0, !!c.moving, 1.6, tool, c.work ? (Math.sin(c.work * 7) + 1) / 2 : 0);
+    if (c.sleeping) { ctx.save(); ctx.translate(c.x, c.y + 4); ctx.rotate(-Math.PI / 2); drawAvatar(ctx, look, c.equip, 0, 0, 0, 0, false, c.kid ? 1.15 : 1.6, null, 0); ctx.restore(); }
+    else drawAvatar(ctx, look, c.equip, c.x, c.y + 8, ang, c.ph || 0, !!c.moving, c.kid ? 1.15 : 1.6, c.kid ? null : tool, c.work ? (Math.sin(c.work * 7) + 1) / 2 : 0);
     const near = Math.hypot(S.player.x - c.x, S.player.y - c.y) < 5 * T;
     if (near || view.z > 1.2) { ctx.font = 'bold 9px system-ui'; ctx.textAlign = 'center'; const yl = c.y - 34, lab = `${J.i} ${c.name}`; ctx.fillStyle = '#000'; ctx.fillText(lab, c.x + 1, yl + 1); ctx.fillStyle = '#bfe8a8'; ctx.fillText(lab, c.x, yl); }
     const ic = c.sleeping ? '💤' : c.hun < 20 ? '🍖' : c.slp < 15 ? '🥱' : ''; if (ic) { ctx.font = '12px system-ui'; ctx.textAlign = 'center'; ctx.fillText(ic, c.x + 12, c.y - 26 - Math.sin(performance.now() / 300) * 2); } }

@@ -2074,3 +2074,9 @@ body.hudmin { --hud: rgba(14, 15, 17, .74); }
 .colpri { display: flex; gap: 4px; flex-wrap: wrap; } .colpri button { display: flex; align-items: center; gap: 3px; padding: 3px 6px; border-radius: 7px; font-size: 12px; background: #23262e; border: 1px solid #333744; }
 .colpri button b { font-size: 11px; min-width: 8px; } .colpri .p0 { opacity: .45; } .colpri .p1 { background: #4a3a14; border-color: #e0b54c; } .colpri .p2 { background: #3a3218; } .colpri .p3, .colpri .p4 { background: #2c2a20; }
 #colRod select { font-size: 12px; padding: 3px 6px; border-radius: 7px; max-width: 170px; }
+.colmood { display: grid; gap: 5px; } .colmood > div:first-child { display: grid; grid-template-columns: 110px 1fr; align-items: center; gap: 6px; font-size: 11px; }
+.colwhy { display: flex; flex-wrap: wrap; gap: 4px; } .colwhy span { font-size: 10.5px; padding: 1px 6px; border-radius: 99px; background: #23262e; }
+.colwhy .good, .colrel .good, .colmood .good { color: #8ad87a; } .colwhy .bad, .colrel .bad { color: #ff8a7a; }
+.colrel { display: flex; flex-wrap: wrap; gap: 5px; font-size: 11px; } .colrel span { padding: 1px 6px; border-radius: 99px; background: #1e2026; } .colrel .love { color: #ff9ac8; }
+.collog { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: #17181d; font-size: 12.5px; } .collog ul { list-style: none; margin: 6px 0 0; padding: 0; max-height: 180px; overflow: auto; }
+.collog li { padding: 3px 0; border-bottom: 1px solid #23252c; } .collog li small { color: var(--muted); margin-right: 6px; }
