@@ -40,7 +40,7 @@ function buildChunk(cx, cy, s = 1) {
   // A tamaño completo, el suelo se compone copiando píxeles de las texturas (mucho más rápido que 256 drawImage)
   if (s === 1) { const W = CH * T, img = c.createImageData(W, W), u = new Uint32Array(img.data.buffer);
     for (let y = 0; y < CH; y++) for (let x = 0; x < CH; x++) { const t0 = wc.g[(((y0 + y) & CMASK) << CSH) | ((x0 + x) & CMASK)], g0 = GI[t0]; if (g0.ruin || g0.abyss) continue;
-      const src = tileTexPx(g0.flora ? (g0.u >= 0 ? g0.u : G.GRASS) : t0, (hash2(x0 + x, y0 + y, 51) * TEX_VARS) | 0); for (let r = 0; r < T; r++) u.set(src.subarray(r * T, r * T + T), (y * T + r) * W + x * T); }
+      const tv = (hash2(x0 + x, y0 + y, 51) * TEX_VARS) | 0, src = g0.kelp ? kelpTexPx(kelpUnder(x0 + x, y0 + y), tv) : tileTexPx(g0.flora ? (g0.u >= 0 ? g0.u : G.GRASS) : t0, tv); for (let r = 0; r < T; r++) u.set(src.subarray(r * T, r * T + T), (y * T + r) * W + x * T); }
     blendEdges(u, W, x0, y0); paintCliffs(u, W, x0, y0);
     c.putImageData(img, 0, 0); _baseDone = true; }
   c.scale(s, s); _treeLayer = s === 1; _treeList = [];

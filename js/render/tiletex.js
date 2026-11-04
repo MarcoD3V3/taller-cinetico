@@ -17,6 +17,12 @@ function tileTex(t, v) {
 // Píxeles de una textura (para componer los chunks sin drawImage)
 let _baseDone = false; const _texPx = new Map();
 function tileTexPx(t, v) { const k = t * TEX_VARS + v; let p = _texPx.get(k); if (!p) { p = new Uint32Array(tileTex(t, v).getContext('2d').getImageData(0, 0, T, T).data.buffer.slice(0)); _texPx.set(k, p); } return p; }
+/* Algas: se pintan sobre el agua que las rodea (mar, mar profundo, frío…), sin su propio tono: así no salen cuadrados */
+const _kelpPx = new Map();
+function kelpUnder(x, y) { const n = {}; let best = G.WATER, bn = 0; for (let d = 0; d < 8; d++) { const t = gnd(x + BL_DX[d], y + BL_DY[d]), g = GI[t]; if (!g.liquid || g.kelp || g.glow) continue; n[t] = (n[t] || 0) + 1; if (n[t] > bn) { bn = n[t]; best = t; } } return best; }
+function kelpTexPx(under, v) { const k = under * TEX_VARS + v; let p = _kelpPx.get(k); if (p) return p;
+  const cv = mkCanvas(T, T), c = cv.getContext('2d'), g = GI[under]; paintTexBase(c, g, under, v); paintTexDetail(c, { ...g, kelp: 1, coral: 0 }, under, v);
+  p = new Uint32Array(c.getImageData(0, 0, T, T).data.buffer.slice(0)); _kelpPx.set(k, p); return p; }
 // Color base con grano por píxel (manchas grandes + ruido fino)
 function paintTexBase(c, g, t, v) {
   // En los líquidos cada casilla debe empalmar con la de al lado: sin cambio de tono por variante ni degradado
