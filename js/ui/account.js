@@ -66,6 +66,6 @@ async function accSyncWorlds() {
   try { for (const s of list) { if (!loc.has(s.id)) { await cloudDownload(s.id); down++; } } } finally { showList = sl; }
   for (const w of worldIndex()) { const c = list.find(s => s.id === w.id); if (!c || (w.played || 0) > new Date(c.updated).getTime() + 5000) { if (await cloudUpload(w.id, true)) up++; } }
   if (down || up) toast(`☁ Cuenta al día: ${down ? down + ' mundo' + (down > 1 ? 's' : '') + ' bajado' + (down > 1 ? 's' : '') : ''}${down && up ? ' · ' : ''}${up ? up + ' guardado' + (up > 1 ? 's' : '') + ' en la nube' : ''}`, true);
-  if (ui.open === 'title' && typeof showMain === 'function' && document.querySelector('.home')) showMain();
+  if (ui.open === 'title' && typeof showMain === 'function' && document.querySelector('.home, .home2')) showMain();
 }
 setInterval(accSyncWorlds, 2500);
