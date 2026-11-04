@@ -184,3 +184,11 @@ function separate(list, dt, whoOf) {
     if (passable(nx, ny, who)) { o.x = nx; o.y = ny; }
   }
 }
+// Los animales de agua (peces, medusas, calamares, delfines) nunca se quedan en tierra: si un golpe, una
+// carga o un cambio del terreno los deja fuera, vuelven al agua más cercana (o desaparecen si no hay)
+let _aqT = 0;
+{ const f0 = faunaTick; faunaTick = dt => { f0(dt); if ((_aqT -= dt) > 0 || !ANIMALS.length) return; _aqT = 0.5;
+  for (let i = ANIMALS.length - 1; i >= 0; i--) { const a = ANIMALS[i], sp = SPECIES[a.sp]; if (!sp || !sp.aq) continue;
+    const tx = Math.floor(a.x / T), ty = Math.floor(a.y / T); if (!peekChunk(tx >> CSH, ty >> CSH) || canStand(sp, tx, ty)) continue;
+    let best = null, bd = 1e9; for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) { const d = dx * dx + dy * dy; if (d < bd && canStand(sp, tx + dx, ty + dy)) { bd = d; best = [tx + dx, ty + dy]; } }
+    if (best) { a.x = (best[0] + 0.5) * T; a.y = (best[1] + 0.5) * T; a.tx = a.x; a.ty = a.y; a.vs = 0; } else ANIMALS.splice(i, 1); } }; }
