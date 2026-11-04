@@ -52,12 +52,13 @@ const colMoodN = m => m >= 85 ? 'Muy alto' : m >= 65 ? 'Alto' : m >= 40 ? 'Norma
 // Los niños no trabajan
 { const j0 = colJobs; colJobs = c => c.kid ? [] : j0(c); }
 // ---------- La tarde: a la plaza a charlar · rabietas ----------
+function colEveH() { return 19; } // hora a la que acaba la jornada (las leyes la cambian)
 function colGather() { const [hx, hy] = colHome(); const fire = blocks.find(b => b.type === 'campfire' && Math.hypot(b.x - hx, b.y - hy) < 25); return fire ? [fire.x, fire.y + 1] : [hx, hy]; }
 { const t0 = colTick; colTick = (c, dt) => {
   if (c.tantrum > 0 && !c.sleeping) { c.tantrum -= dt; c.st = 'Tiene una rabieta 😤'; c.w = null; colIdle(c, dt); return; }
   const h = colHour(), C = colS();
   const party = C.party && C.party.day === colDayN();
-  if (!c.sleeping && !c.w && c.hun > 30 && (h >= (party ? 17 : 19) && h < 21 || c.kid && h >= 8 && h < 21)) {
+  if (!c.sleeping && !c.w && c.hun > 30 && (h >= (party ? 17 : colEveH()) && h < 21 || c.kid && h >= 8 && h < 21)) {
     if (colCarryN(c) && !c.kid) return t0(c, dt);
     const [gx, gy] = colGather(); if (Math.hypot(c.x / T - gx, c.y / T - gy) > 4) { colGo(c, gx + ((colHash(String(c.id), 4) - 0.5) * 6 | 0), gy + ((colHash(String(c.id), 5) - 0.5) * 4 | 0), 0.5); const r = colMove(c, dt); c.st = c.kid ? 'Jugando' : party ? 'Va a la fiesta' : 'Va a la plaza'; if (r !== 'stuck') return; }
     c.st = c.kid ? 'Jugando en la plaza' : party ? '🎉 De fiesta' : 'Charla en la plaza'; c.moving = false; c.chat = (c.chat || 0) + dt; return;

@@ -51,7 +51,7 @@ function colFromFolk(n) {
   return { id: ++colS().n, name, look: { ...n.look }, equip: { ...(n.equip || {}) }, from: s ? s.name : '', cult: s ? s.cult : null, age: 18 + ((R() * 40) | 0), traits: tr, sk,
     job: n.role === 'farmer' ? 'farm' : n.role === 'miner' ? 'mine' : n.role === 'smith' ? 'smith' : 'none', bed: null, x: 0, y: 0, hun: 85, slp: 90, st: 'Llegando', carry: {}, starve: 0 };
 }
-const colTrait = (c, k) => c.traits.reduce((m, t) => m * ((COL_TRAITS[t] || {})[k] || 1), 1);
+function colTrait(c, k) { return c.traits.reduce((m, t) => m * ((COL_TRAITS[t] || {})[k] || 1), 1); }
 const colFoods = () => Object.keys(ITEMS).filter(id => ITEMS[id].food && ITEMS[id].food.f > 0);
 function colRecruitCost(n) { const free = colHash(colFolkKey(n), 11) < 0.3; return free ? null : 3 + ((colHash(colFolkKey(n), 13) * 4) | 0); } // cuánta comida piden (o nada)
 // ---------- Camas, cofres y núcleo ----------
