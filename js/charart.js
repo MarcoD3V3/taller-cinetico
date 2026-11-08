@@ -9,6 +9,7 @@
 const CA = (() => {
   const W = 48, H = 64, OFF = 3;
   const OPT = {
+    style: [['classic', 'Clásico 32×44'], ['hd', 'Detallado 48×64']],
     body: [['m', 'Chico'], ['f', 'Chica'], ['big', 'Fornido']],
     race: [['human', 'Humano'], ['elf', 'Elfo'], ['orc', 'Orco'], ['demon', 'Demonio'], ['beast', 'Bestia (orejas)'], ['sylvan', 'Silvano (astas)']],
     hair: [['spiky', 'De punta'], ['long', 'Melena larga'], ['bob', 'Media melena'], ['pony', 'Coleta'], ['wild', 'Salvaje'], ['short', 'Corto']],
@@ -132,7 +133,8 @@ const CA = (() => {
   // ---------- pintar ----------
   function rng(seed) { let a = seed | 0; return () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
   function render(cfg) {
-    const c = { ...cfg, aura: cfg.useAura === false ? null : cfg.aura };
+    if (cfg.style !== 'hd') return renderClassic(cfg);
+    const c ={ ...cfg, aura: cfg.useAura === false ? null : cfg.aura };
     const s = build(c), R = s.reg, get = (x, y) => x >= 0 && x < W && y >= 0 && y < H ? R[y * W + x] : null;
     const skin = hx(c.skin), cloth = hx(c.cloth), cloth2 = hx(c.cloth2), hair = hx(c.hairC), aura = hx(c.aura || '#ffffff'), metal = hx(c.metal || '#a8b2c6');
     const COL = { skin, hair, cloth, cloth2, eye: hx(c.eye), pants: mix(darken(cloth2, 0.55), [60, 56, 70], 0.5), boot: [112, 70, 42], cuff: [158, 112, 70], metal, metal2: darken(metal, 0.25), gold: [232, 190, 70], trim: [232, 196, 90], gem: aura, wood: [126, 88, 54], crystal: lighten(aura, 0.25), orb: aura, horn: [232, 222, 202], antler: [230, 216, 180], blade: [212, 230, 246], wing: [240, 244, 252], belt: [104, 66, 36], cape: darken(cloth, 0.35), scarf: cloth2, ear: [240, 160, 170], string: [230, 230, 220] };
@@ -152,16 +154,21 @@ const CA = (() => {
     // 2) cara
     const sk = T.skin, hr = T.hair, E = T.eye, ink = [24, 14, 18], helm = c.head === 'helm';
     for (let y = 0; y < 18; y++) for (let x = 0; x < W; x++) if (R[y * W + x] === 'skin' && get(x, y - 1) === 'hair') set(x, y, sk.sh);
-    for (const ex of [17, 28]) {
+    // ojos grandes de 4×5: pestaña gruesa, iris en degradado, pupila y dos brillos
+    for (const ex of [16, 28]) {
+      const L = ex === 16;
       for (let dx = -1; dx < 5; dx++) set(ex + dx, 18, ink);
-      for (let dy = 19; dy < 23; dy++) for (let dx = 0; dx < 3; dx++) set(ex + dx, dy, dy < 21 ? E.b : E.hi);
-      set(ex + 3, 19, ink); set(ex + 3, 20, ink); set(ex - 1, 19, ink); set(ex, 19, [255, 255, 255]); set(ex + 1, 20, c.glowEyes ? E.hi : E.dp); set(ex + 2, 22, [255, 255, 255]);
-      for (let dx = 0; dx < 3; dx++) set(ex + dx, 23, sk.sh);
-      if (!helm && c.head !== 'hood') for (let dx = 0; dx < 4; dx++) set(ex + dx, 16, hr.dp);
+      set(L ? ex - 2 : ex + 5, 18, ink); set(L ? ex - 1 : ex + 4, 17, ink);
+      for (let dy = 19; dy < 24; dy++) for (let dx = 0; dx < 4; dx++) set(ex + dx, dy, dy < 21 ? E.dp : dy < 22 ? E.b : E.hi);
+      for (const dy of [19, 20, 21]) { set(ex - 1, dy, ink); set(ex + 4, dy, ink); }
+      for (let dx = 0; dx < 4; dx++) set(ex + dx, 24, sk.sh);
+      set(ex + 1, 20, c.glowEyes ? E.hi : ink); set(ex + 2, 20, c.glowEyes ? E.hi : ink); set(ex + 1, 21, c.glowEyes ? E.hi : E.dp); set(ex + 2, 21, c.glowEyes ? E.hi : E.dp);
+      set(ex, 19, [255, 255, 255]); set(ex + 1, 19, [255, 255, 255]); set(ex + 3, 22, [255, 255, 255]);
+      if (!helm && c.head !== 'hood') for (let dx = 0; dx < 4; dx++) set(ex + dx, 16 - (L ? (dx === 0 ? 0 : dx < 3 ? 1 : 0) : (dx === 3 ? 0 : dx > 0 ? 1 : 0)) + 1, hr.dp);
     }
-    set(24, 23, sk.sh); set(24, 24, sk.sh); set(23, 26, [180, 70, 80]); set(24, 26, [180, 70, 80]); set(25, 26, [130, 50, 60]);
+    set(24, 24, sk.sh); set(23, 26, [180, 70, 80]); set(24, 26, [180, 70, 80]); set(25, 26, [130, 50, 60]);
     if (c.body === 'f') { set(22, 26, [200, 90, 100]); set(26, 26, [200, 90, 100]); }
-    set(16, 24, mix(skin, [240, 120, 130], 0.5)); set(32, 24, mix(skin, [240, 120, 130], 0.5));
+    const blush = mix(skin, [240, 110, 130], 0.45); for (const [x, y] of [[15, 25], [16, 25], [32, 25], [33, 25]]) set(x, y, blush);
     if (c.race === 'orc') { set(21, 26, [250, 248, 230]); set(27, 26, [250, 248, 230]); set(21, 25, [250, 248, 230]); set(27, 25, [250, 248, 230]); }
     // 3) mechones y detalles
     for (const [x0, y0, x1, y1] of [[18, 5, 16, 10], [23, 3, 22, 9], [28, 4, 30, 9], [33, 7, 34, 11], [14, 9, 13, 14]]) { const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)); for (let i = 0; i <= n; i++) { const x = Math.round(x0 + (x1 - x0) * i / n), y = Math.round(y0 + (y1 - y0) * i / n); if (get(x, y) === 'hair') set(x, y, hr.sh); } }
@@ -186,6 +193,53 @@ const CA = (() => {
     }
     g.putImageData(img, 0, 0); return cv;
   }
+  // ---------- estilo clásico 32×44: proporciones de RPG de 16 bits, ojos pequeños, sombra negra ----------
+  const SW = 32, SH = 44, HY = 18;
+  function palette(c) {
+    const skin = hx(c.skin), cloth = hx(c.cloth), cloth2 = hx(c.cloth2), hair = hx(c.hairC), aura = hx(c.aura || '#9ac8ff'), metal = hx(c.metal || '#a8b2c6');
+    const COL = { skin, hair, cloth, cloth2, eye: hx(c.eye), pants: mix(darken(cloth2, 0.55), [60, 56, 70], 0.5), boot: [112, 70, 42], cuff: [158, 112, 70], metal, metal2: darken(metal, 0.25), gold: [232, 190, 70], trim: [232, 196, 90], gem: aura, wood: [126, 88, 54], crystal: lighten(aura, 0.25), orb: aura, horn: [232, 222, 202], antler: [230, 216, 180], blade: [212, 230, 246], wing: [240, 244, 252], belt: [104, 66, 36], cape: darken(cloth, 0.35), scarf: cloth2, ear: [240, 160, 170], string: [230, 230, 220] };
+    const T = {}; for (const k in COL) T[k] = { hi: lighten(COL[k], 0.22), b: COL[k], sh: darken(COL[k], 0.3), dp: darken(COL[k], 0.55) }; return T;
+  }
+  function renderClassic(c) {
+    const big = build(c).reg, R = new Array(SW * SH).fill(null);
+    // la cabeza se encoge más que el cuerpo: unas 2,5 cabezas de alto, como los sprites de 16 bits
+    for (let y = 0; y < SH; y++) { const sy = y < HY ? Math.floor((y + .5) / 0.6) : Math.min(H - 1, 30 + Math.floor((y - HY + .5) * 34 / (SH - HY)));
+      for (let x = 0; x < SW; x++) R[y * SW + x] = big[sy * W + Math.floor((x + .5) * 1.5)]; }
+    const get = (x, y) => x >= 0 && x < SW && y >= 0 && y < SH ? R[y * SW + x] : null, T = palette(c);
+    const CW = SW + OFF * 2, CH = SH + OFF * 2, cv = document.createElement('canvas'); cv.width = CW; cv.height = CH;
+    const g = cv.getContext('2d'), img = g.createImageData(CW, CH), D = img.data;
+    const set = (x, y, col) => { if (x < -OFF || y < -OFF || x >= SW + OFF || y >= SH + OFF) return; const i = ((y + OFF) * CW + x + OFF) * 4; D[i] = col[0]; D[i + 1] = col[1]; D[i + 2] = col[2]; D[i + 3] = 255; };
+    const SHINY = new Set(['hair', 'metal', 'metal2', 'gold', 'trim', 'crystal', 'orb', 'blade', 'wing', 'horn', 'antler']);
+    for (let y = 0; y < SH; y++) for (let x = 0; x < SW; x++) { const r = get(x, y); if (!r) continue; const t = T[r]; let col = t.b;
+      if (get(x + 1, y) !== r || get(x, y + 1) !== r) col = t.sh;
+      if (get(x - 1, y) !== r || get(x, y - 1) !== r) col = SHINY.has(r) || get(x, y - 1) !== r ? t.hi : t.b;
+      if (x > 17 && col === t.b && r !== 'skin') col = t.sh;           // lado derecho en sombra: da volumen
+      if (x > 19 && r === 'skin' && col === t.b) col = t.sh;
+      set(x, y, col); }
+    // mechones del pelo: rayas oscuras cortas
+    for (let y = 2; y < 12; y++) for (let x = 0; x < SW; x++) { const lean = x < 16 ? (y >> 2) : -(y >> 2);
+      if (get(x, y) === 'hair' && get(x, y - 1) === 'hair' && get(x, y + 1) === 'hair' && get(x - 1, y) === 'hair' && get(x + 1, y) === 'hair' && ((x + lean) % 5 + 5) % 5 === 0 && y > 3) set(x, y, T.hair.sh); }
+    // cara: ojos de 2 px con blanco al lado, boca de 1 px
+    const ink = [24, 14, 18], E = T.eye, hood = c.head === 'helm';
+    for (const [ex, wx] of [[11, 10], [19, 21]]) {
+      if (!hood) { set(ex, 11, T.hair.dp); set(ex + 1, 11, T.hair.dp); }
+      set(ex, 12, ink); set(ex + 1, 12, ink);
+      set(ex, 13, ex < 16 ? E.b : E.dp); set(ex + 1, 13, ex < 16 ? E.dp : E.b);
+      if (get(wx, 13) === 'skin') set(wx, 13, [250, 250, 250]);
+      if (c.glowEyes) { set(ex, 13, E.hi); set(ex + 1, 13, E.hi); }
+    }
+    set(15, 16, darken(T.skin.b, 0.35)); set(16, 16, darken(T.skin.b, 0.35));
+    if (c.race === 'orc') { set(13, 16, [250, 248, 230]); set(18, 16, [250, 248, 230]); }
+    // contorno negro grueso y líneas entre piezas
+    const OUT = [12, 8, 10];
+    for (let y = -OFF; y < SH + OFF; y++) for (let x = -OFF; x < SW + OFF; x++) if (!get(x, y) && (get(x + 1, y) || get(x - 1, y) || get(x, y + 1) || get(x, y - 1))) set(x, y, OUT);
+    for (let y = 0; y < SH; y++) for (let x = 0; x < SW; x++) { const r = get(x, y), b = get(x, y + 1); if (r && b && b !== r && r !== 'skin' && b !== 'hair' && r !== 'hair') set(x, y, T[r].dp); }
+    // sombra negra sólida bajo los pies, hacia la izquierda como en los RPG clásicos
+    const a4 = i => D[i * 4 + 3];
+    for (let y = SH - 2; y < SH + OFF; y++) for (let x = -OFF; x < SW + OFF; x++) { const dx = (x + .5 - 14) / 11, dy = (y + .5 - (SH + .5)) / 2.2;
+      if (dx * dx + dy * dy <= 1 && !a4((y + OFF) * CW + x + OFF)) set(x, y, OUT); }
+    g.putImageData(img, 0, 0); return cv;
+  }
   // ---------- al azar ----------
   function random(seed) {
     const r = rng(seed || (Math.random() * 1e9) | 0), pick = a => a[(r() * a.length) | 0], P = pick(PALS);
@@ -193,7 +247,7 @@ const CA = (() => {
     let skin = pick(SKINS.slice(0, 5)); if (race === 'orc') skin = '#8fc27a'; if (race === 'demon' && r() < 0.5) skin = pick(['#c8a0e0', '#e8e0e8', '#9ab8e8']);
     const outfit = body === 'f' ? pick(['dress', 'leather', 'robe', 'tunic', 'armor']) : pick(OPT.outfit)[0];
     const extras = EXTRAS.map(e => e[0]).filter(() => r() < 0.3);
-    return { seed: (r() * 1e9) | 0, body, race, hair: pick(body === 'f' ? ['long', 'pony', 'bob', 'long', 'wild'] : ['spiky', 'short', 'wild', 'bob', 'spiky', 'pony']), outfit,
+    return { style: 'classic', seed: (r() * 1e9) | 0, body, race, hair: pick(body === 'f' ? ['long', 'pony', 'bob', 'long', 'wild'] : ['spiky', 'short', 'wild', 'bob', 'spiky', 'pony']), outfit,
       head: r() < 0.55 ? 'none' : pick(OPT.head.slice(1))[0], weapon: r() < 0.35 ? 'none' : pick(OPT.weapon.slice(1))[0], extras,
       skin, hairC: P[0], cloth: P[1], cloth2: P[2], eye: pick(EYES), metal: '#a8b2c6', aura: P[3], useAura: r() < 0.7, glowEyes: race === 'demon' };
   }

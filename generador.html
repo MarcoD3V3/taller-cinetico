@@ -32,13 +32,13 @@
   button.main { background:linear-gradient(#a8662a,#6b3b17); color:#fff4e0; }
   .stage { display:flex; flex-direction:column; align-items:center; gap:12px; }
   .view { display:flex; gap:24px; align-items:flex-end; justify-content:center; flex-wrap:wrap; }
-  .big { image-rendering:pixelated; background:repeating-conic-gradient(#2a2026 0 25%, #221a1f 0 50%) 0 0/24px 24px; border:1px solid var(--line); border-radius:4px; }
+  .big { image-rendering:pixelated; background:#8c8c8c; border:1px solid var(--line); border-radius:4px; }
   .sizes { display:flex; gap:14px; align-items:flex-end; }
   .sizes figure { margin:0; text-align:center; color:var(--mute); font-size:11px; }
   .sizes canvas { image-rendering:pixelated; display:block; margin:0 auto 4px; }
   .grass { background:#4f7a3c; padding:10px 14px; border-radius:4px; }
   .gallery { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:10px; }
-  .gallery canvas { image-rendering:pixelated; width:100%; cursor:pointer; background:#1a1316; border:1px solid var(--line); border-radius:4px; }
+  .gallery canvas { image-rendering:pixelated; width:100%; cursor:pointer; background:#8c8c8c; border:1px solid var(--line); border-radius:4px; }
   .gallery canvas:hover { border-color:var(--brass); }
   .toast { position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:#2a1c12; border:1px solid var(--brass); padding:8px 14px; border-radius:4px; opacity:0; transition:opacity .2s; pointer-events:none; }
   .toast.on { opacity:1; }
@@ -56,7 +56,7 @@
     <div id="sels"></div>
     <h2 style="margin-top:12px">Extras</h2>
     <div class="chips" id="extras"></div>
-    <div class="chips"><label><input type="checkbox" id="useAura" checked> Aura mágica</label><label><input type="checkbox" id="glowEyes"> Ojos brillantes</label></div>
+    <div class="chips"><label><input type="checkbox" id="useAura" checked> Aura (solo detallado)</label><label><input type="checkbox" id="glowEyes"> Ojos brillantes</label></div>
     <h2 style="margin-top:12px">Colores</h2>
     <div class="colors" id="cols"></div>
     <div class="btns">
@@ -88,7 +88,7 @@
 <script>
 'use strict';
 const $ = id => document.getElementById(id);
-const LABELS = { body: 'Cuerpo', race: 'Raza', hair: 'Peinado', outfit: 'Ropa', head: 'Cabeza', weapon: 'Arma' };
+const LABELS = { style: 'Estilo', body: 'Cuerpo', race: 'Raza', hair: 'Peinado', outfit: 'Ropa', head: 'Cabeza', weapon: 'Arma' };
 const COLS = [['skin', 'Piel'], ['hairC', 'Pelo'], ['eye', 'Ojos'], ['cloth', 'Ropa'], ['cloth2', 'Detalles'], ['metal', 'Metal'], ['aura', 'Aura']];
 let cfg = CA.random();
 for (const k in CA.OPT) {
@@ -105,7 +105,7 @@ function sync() {
   $('useAura').checked = cfg.useAura !== false; $('glowEyes').checked = !!cfg.glowEyes;
 }
 function paint(cv, src, sc) { cv.width = src.width * sc; cv.height = src.height * sc; const g = cv.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(src, 0, 0, cv.width, cv.height); }
-function draw() { const src = CA.render(cfg); paint($('big'), src, 6); paint($('s1'), src, 1); paint($('s2'), src, 2); }
+function draw() { const src = CA.render(cfg); paint($('big'), src, src.width < 45 ? 9 : 6); paint($('s1'), src, 1); paint($('s2'), src, 2); }
 function read() {
   document.querySelectorAll('select[data-k]').forEach(s => cfg[s.dataset.k] = s.value);
   cfg.extras = [...document.querySelectorAll('#extras input:checked')].map(i => i.value);
@@ -113,14 +113,14 @@ function read() {
   cfg.useAura = $('useAura').checked; cfg.glowEyes = $('glowEyes').checked; draw();
 }
 $('ctrl').addEventListener('input', read);
-$('rnd').onclick = () => { cfg = CA.random(); sync(); draw(); };
+$('rnd').onclick = () => { cfg = { ...CA.random(), style: cfg.style }; sync(); draw(); };
 $('pal').onclick = () => { const P = CA.PALS[(Math.random() * CA.PALS.length) | 0]; Object.assign(cfg, { hairC: P[0], cloth: P[1], cloth2: P[2], aura: P[3], seed: (Math.random() * 1e9) | 0 }); sync(); draw(); };
 $('png').onclick = () => { const src = CA.render(cfg), cv = document.createElement('canvas'); paint(cv, src, 4); const a = document.createElement('a'); a.download = `personaje_${cfg.race}_${cfg.outfit}.png`; a.href = cv.toDataURL('image/png'); a.click(); };
 $('json').onclick = async () => { const t = JSON.stringify(cfg); try { await navigator.clipboard.writeText(t); toast('Configuración copiada'); } catch { prompt('Copia esto:', t); } };
 function toast(t) { const e = $('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.h); toast.h = setTimeout(() => e.classList.remove('on'), 1600); }
 function gallery() {
   $('gal').innerHTML = '';
-  for (let i = 0; i < 12; i++) { const c = CA.random(), cv = document.createElement('canvas'); paint(cv, CA.render(c), 2); cv.title = 'Editar este'; cv.onclick = () => { cfg = { ...c }; sync(); draw(); scrollTo({ top: 0, behavior: 'smooth' }); }; $('gal').append(cv); }
+  for (let i = 0; i < 12; i++) { const c = { ...CA.random(), style: cfg.style }, cv = document.createElement('canvas'); paint(cv, CA.render(c), 3); cv.title = 'Editar este'; cv.onclick = () => { cfg = { ...c }; sync(); draw(); scrollTo({ top: 0, behavior: 'smooth' }); }; $('gal').append(cv); }
 }
 $('more').onclick = gallery;
 sync(); draw(); gallery();
