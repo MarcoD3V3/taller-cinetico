@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Generador de personajes · Taller Cinético</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#120d10; --panel:#1d1519; --line:#4a3426; --brass:#d9a54a; --text:#efe4d2; --mute:#a8957e; --hot:#ff8a3c; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:radial-gradient(ellipse at 50% 0%, #2a1a14 0%, var(--bg) 60%); color:var(--text); font:14px/1.4 Inter, system-ui, sans-serif; min-height:100vh; }
+  header { text-align:center; padding:22px 16px 6px; }
+  h1 { font-family:Cinzel, serif; color:var(--brass); margin:0; letter-spacing:2px; font-size:26px; text-shadow:0 0 18px rgba(255,138,60,.35); }
+  header p { color:var(--mute); margin:6px 0 0; }
+  main { display:grid; grid-template-columns:320px 1fr; gap:18px; max-width:1200px; margin:18px auto; padding:0 16px; }
+  @media (max-width:820px) { main { grid-template-columns:1fr; } }
+  .card { background:var(--panel); border:1px solid var(--line); outline:1px solid #2b1f17; outline-offset:3px; border-radius:6px; padding:14px; }
+  .card h2 { font-family:Cinzel, serif; color:var(--brass); font-size:15px; margin:0 0 10px; letter-spacing:1px; }
+  label.row { display:grid; grid-template-columns:96px 1fr; align-items:center; gap:8px; margin:6px 0; color:var(--mute); }
+  select, input[type=color] { width:100%; background:#140e11; color:var(--text); border:1px solid var(--line); border-radius:4px; padding:5px 6px; font:inherit; }
+  input[type=color] { height:30px; padding:2px; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0; }
+  .chips label { background:#140e11; border:1px solid var(--line); border-radius:12px; padding:3px 10px; cursor:pointer; color:var(--mute); user-select:none; }
+  .chips input { display:none; }
+  .chips label:has(input:checked) { border-color:var(--brass); color:var(--text); box-shadow:0 0 8px rgba(217,165,74,.35); }
+  .colors { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .colors label { color:var(--mute); font-size:12px; }
+  .btns { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+  button { background:linear-gradient(#3a2a1c,#22180f); color:var(--brass); border:1px solid var(--brass); border-radius:4px; padding:8px 12px; font:600 13px Inter, sans-serif; cursor:pointer; }
+  button:hover { color:#fff; box-shadow:0 0 12px rgba(255,138,60,.45); }
+  button.main { background:linear-gradient(#a8662a,#6b3b17); color:#fff4e0; }
+  .stage { display:flex; flex-direction:column; align-items:center; gap:12px; }
+  .view { display:flex; gap:24px; align-items:flex-end; justify-content:center; flex-wrap:wrap; }
+  .big { image-rendering:pixelated; background:repeating-conic-gradient(#2a2026 0 25%, #221a1f 0 50%) 0 0/24px 24px; border:1px solid var(--line); border-radius:4px; }
+  .sizes { display:flex; gap:14px; align-items:flex-end; }
+  .sizes figure { margin:0; text-align:center; color:var(--mute); font-size:11px; }
+  .sizes canvas { image-rendering:pixelated; display:block; margin:0 auto 4px; }
+  .grass { background:#4f7a3c; padding:10px 14px; border-radius:4px; }
+  .gallery { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:10px; }
+  .gallery canvas { image-rendering:pixelated; width:100%; cursor:pointer; background:#1a1316; border:1px solid var(--line); border-radius:4px; }
+  .gallery canvas:hover { border-color:var(--brass); }
+  .toast { position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:#2a1c12; border:1px solid var(--brass); padding:8px 14px; border-radius:4px; opacity:0; transition:opacity .2s; pointer-events:none; }
+  .toast.on { opacity:1; }
+  .hint { color:var(--mute); font-size:12px; margin:8px 0 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>✦ Forja de Personajes ✦</h1>
+  <p>Prueba el estilo nuevo antes de llevarlo al juego. Haz clic en un personaje de la galería para editarlo.</p>
+</header>
+<main>
+  <section class="card" id="ctrl">
+    <h2>Aspecto</h2>
+    <div id="sels"></div>
+    <h2 style="margin-top:12px">Extras</h2>
+    <div class="chips" id="extras"></div>
+    <div class="chips"><label><input type="checkbox" id="useAura" checked> Aura mágica</label><label><input type="checkbox" id="glowEyes"> Ojos brillantes</label></div>
+    <h2 style="margin-top:12px">Colores</h2>
+    <div class="colors" id="cols"></div>
+    <div class="btns">
+      <button class="main" id="rnd">🎲 Al azar</button>
+      <button id="pal">🎨 Otra paleta</button>
+      <button id="png">⬇ PNG</button>
+      <button id="json">⧉ Copiar config</button>
+    </div>
+    <p class="hint">«Copiar config» guarda el personaje como texto: pásamelo y lo meto tal cual en el juego.</p>
+  </section>
+  <section class="stage">
+    <div class="card" style="width:100%">
+      <div class="view">
+        <canvas id="big" class="big"></canvas>
+        <div class="sizes">
+          <figure><div class="grass"><canvas id="s1"></canvas></div>×1 (real)</figure>
+          <figure><div class="grass"><canvas id="s2"></canvas></div>×2 (en el juego)</figure>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="width:100%">
+      <h2>Galería al azar <button id="more" style="float:right;padding:4px 10px">↻ 12 nuevos</button></h2>
+      <div class="gallery" id="gal"></div>
+    </div>
+  </section>
+</main>
+<div class="toast" id="toast"></div>
+<script src="js/charart.js"></script>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const LABELS = { body: 'Cuerpo', race: 'Raza', hair: 'Peinado', outfit: 'Ropa', head: 'Cabeza', weapon: 'Arma' };
+const COLS = [['skin', 'Piel'], ['hairC', 'Pelo'], ['eye', 'Ojos'], ['cloth', 'Ropa'], ['cloth2', 'Detalles'], ['metal', 'Metal'], ['aura', 'Aura']];
+let cfg = CA.random();
+for (const k in CA.OPT) {
+  const l = document.createElement('label'); l.className = 'row';
+  l.innerHTML = `<span>${LABELS[k]}</span><select data-k="${k}">${CA.OPT[k].map(([v, n]) => `<option value="${v}">${n}</option>`).join('')}</select>`;
+  $('sels').append(l);
+}
+$('extras').innerHTML = CA.EXTRAS.map(([v, n]) => `<label><input type="checkbox" value="${v}"> ${n}</label>`).join('');
+$('cols').innerHTML = COLS.map(([k, n]) => `<label>${n}<input type="color" data-c="${k}"></label>`).join('');
+function sync() {
+  document.querySelectorAll('select[data-k]').forEach(s => s.value = cfg[s.dataset.k]);
+  document.querySelectorAll('#extras input').forEach(i => i.checked = (cfg.extras || []).includes(i.value));
+  document.querySelectorAll('input[data-c]').forEach(i => i.value = cfg[i.dataset.c]);
+  $('useAura').checked = cfg.useAura !== false; $('glowEyes').checked = !!cfg.glowEyes;
+}
+function paint(cv, src, sc) { cv.width = src.width * sc; cv.height = src.height * sc; const g = cv.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(src, 0, 0, cv.width, cv.height); }
+function draw() { const src = CA.render(cfg); paint($('big'), src, 6); paint($('s1'), src, 1); paint($('s2'), src, 2); }
+function read() {
+  document.querySelectorAll('select[data-k]').forEach(s => cfg[s.dataset.k] = s.value);
+  cfg.extras = [...document.querySelectorAll('#extras input:checked')].map(i => i.value);
+  document.querySelectorAll('input[data-c]').forEach(i => cfg[i.dataset.c] = i.value);
+  cfg.useAura = $('useAura').checked; cfg.glowEyes = $('glowEyes').checked; draw();
+}
+$('ctrl').addEventListener('input', read);
+$('rnd').onclick = () => { cfg = CA.random(); sync(); draw(); };
+$('pal').onclick = () => { const P = CA.PALS[(Math.random() * CA.PALS.length) | 0]; Object.assign(cfg, { hairC: P[0], cloth: P[1], cloth2: P[2], aura: P[3], seed: (Math.random() * 1e9) | 0 }); sync(); draw(); };
+$('png').onclick = () => { const src = CA.render(cfg), cv = document.createElement('canvas'); paint(cv, src, 4); const a = document.createElement('a'); a.download = `personaje_${cfg.race}_${cfg.outfit}.png`; a.href = cv.toDataURL('image/png'); a.click(); };
+$('json').onclick = async () => { const t = JSON.stringify(cfg); try { await navigator.clipboard.writeText(t); toast('Configuración copiada'); } catch { prompt('Copia esto:', t); } };
+function toast(t) { const e = $('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.h); toast.h = setTimeout(() => e.classList.remove('on'), 1600); }
+function gallery() {
+  $('gal').innerHTML = '';
+  for (let i = 0; i < 12; i++) { const c = CA.random(), cv = document.createElement('canvas'); paint(cv, CA.render(c), 2); cv.title = 'Editar este'; cv.onclick = () => { cfg = { ...c }; sync(); draw(); scrollTo({ top: 0, behavior: 'smooth' }); }; $('gal').append(cv); }
+}
+$('more').onclick = gallery;
+sync(); draw(); gallery();
+</script>
+</body>
+</html>
