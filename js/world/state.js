@@ -48,7 +48,7 @@ function makeB(type, x, y, dir) {
   }
   return b;
 }
-function addBlock(b) { setBlockAt(b.x, b.y, b); blocks.push(b); markAll(); onTileChange(b.x, b.y, true); }
+function addBlock(b) { if (!b || !BD[b.type]) { console.warn('Bloque de tipo desconocido, no se coloca:', b && b.type); return; } setBlockAt(b.x, b.y, b); blocks.push(b); markAll(); onTileChange(b.x, b.y, true); }
 function delBlock(b) {
   setBlockAt(b.x, b.y, null); const i = blocks.indexOf(b);
   if (i >= 0) { blocks[i] = blocks[blocks.length - 1]; blocks.pop(); }
@@ -60,6 +60,8 @@ function rebuildLists() {
   for (const k in BD) if (!L[k]) L[k] = [];
   L.gens = L.gens || []; L.emit = L.emit || []; L.rsc = L.rsc || []; L.kinB = L.kinB || []; L.light = L.light || [];
   L.gens.length = L.emit.length = L.rsc.length = L.kinB.length = L.light.length = 0;
+  // Bloques de un tipo que ya no existe (partida antigua, mod quitado…): se quitan en vez de romper cada fotograma
+  for (let i = blocks.length - 1; i >= 0; i--) { const b = blocks[i]; if (b && BD[b.type]) continue; if (b) { try { if (at(b.x, b.y) === b) setBlockAt(b.x, b.y, null); } catch (e) { } } blocks[i] = blocks[blocks.length - 1]; blocks.pop(); }
   for (const b of blocks) {
     const d = BD[b.type]; L[b.type].push(b);
     if (d.gen) L.gens.push(b);

@@ -84,11 +84,11 @@ const PERF = { low: ['Ligero', 'Para equipos modestos', { particles: 0.3, shake:
 const perfNow = () => Object.keys(PERF).find(p => Object.entries(PERF[p][2]).every(([k, v]) => OPT[k] === v));
 
 // ---------- Teclas ----------
-KEY_ACTIONS.push(['Hechizos', SPELL_KEYS.map((k, i) => ['spell' + (i + 1), `Hechizo ${i + 1}${i >= 4 ? ' (con varita)' : ''}`])], ['Otros', [['o', 'Ordenar inventario (con él abierto)'], ['p', 'Mostrar FPS']]]);
+KEY_ACTIONS.push(['Hechizos', SPELL_KEYS.map((k, i) => ['spell' + (i + 1), `Hechizo ${i + 1}${i >= 4 ? ' (con varita)' : ''}`])], ['Otros', [['o', 'Ordenar inventario (con él abierto)'], ['f3', 'Mostrar FPS']]]);
 KEY_ACTIONS[1][1].push(...'123456789'.split('').map(n => [n, `Hueco ${n} de la barra`]));
 const KGROUP_C = { Movimiento: '#7cc4ff', Acciones: '#e0b54c', Ventanas: '#7fd07a', Hechizos: '#b48cff', Otros: '#a39d8f' };
 const KB_ROWS = [['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'], ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'], ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'ñ'], ['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', 'enter'], [' ', 'arrowleft', 'arrowup', 'arrowdown', 'arrowright']];
-const KEY_PRESETS = { def: ['WASD', 'Por defecto', {}], arrows: ['Flechas', 'Moverse con ←↑↓→', { w: 'arrowup', a: 'arrowleft', s: 'arrowdown', d: 'arrowright' }], azerty: ['AZERTY', 'Teclados franceses (ZQSD)', { w: 'z', a: 'q', q: 'a', z: 'w', spell1: 'w' }] };
+const KEY_PRESETS = { def: ['WASD', 'Por defecto', {}], arrows: ['Flechas', 'Moverse con ←↑↓→', { w: 'arrowup', a: 'arrowleft', s: 'arrowdown', d: 'arrowright' }], azerty: ['AZERTY', 'Teclados franceses (ZQSD)', { w: 'z', a: 'q', q: 'a', z: 'w' }] };
 const keyOf = actKey;
 function keysPane() {
   const byKey = {}; for (const [g, list] of KEY_ACTIONS) for (const [o, n] of list) (byKey[keyOf(o)] = byKey[keyOf(o)] || []).push([o, n, g]);

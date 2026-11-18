@@ -146,8 +146,8 @@ addEventListener('keydown', e => {
   else if (k === 'j') openLore();
   else if (k === ' ') { if (e.shiftKey) dash(); else tryJump(); }
   else if (/^spell[1-8]$/.test(k)) castSpell(+k[5] - 1);
-  else if (k === 'n') { $('mini').hidden = !$('mini').hidden; }
-  else if (k === 'p' || k === 'f3') { ui.fps = !ui.fps; $('fps').hidden = !ui.fps; e.preventDefault(); }
+  else if (k === 'n') { OPT.minimap = !OPT.minimap; optSave(); optApply(); }
+  else if (k === 'f3') { OPT.fps = !ui.fps; optSave(); optApply(); e.preventDefault(); }
   if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'tab', 'alt'].includes(k)) e.preventDefault();
 });
 addEventListener('keyup', e => { keys.delete(e.key.toLowerCase()); if (!e.shiftKey) keys.delete('shift'); });

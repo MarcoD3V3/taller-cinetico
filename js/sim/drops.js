@@ -60,9 +60,7 @@ const _dh = { next: 0, c: 0 };
 function hudHoverKey() { const el = document.querySelector('#hotbar .s:hover'); return el ? el.dataset.k : null; }
 addEventListener('keydown', e => {
   if (!S || e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key.toLowerCase();
-  // L también es el hechizo 6 (solo con varita): con una varita y ese hueco lleno, L lanza el hechizo; si no, suelta
-  const spellL = k === 'spell6' && !ui.open && typeof wandHeld === 'function' && wandHeld() && typeof spellState === 'function' && spellState().slots[5];
-  if (!(k === 'l' || (k === 'spell6' && !spellL) || (k === 'q' && ui.open))) return;
+  if (!(k === 'l' || (k === 'q' && ui.open))) return;
   if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
   const hk0 = typeof _hoverKey !== 'undefined' ? _hoverKey : null;
   if (ui.open && !ui.held && !hk0) return;

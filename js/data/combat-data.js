@@ -131,7 +131,7 @@ const SPELL_RECIPE = {
 };
 for (const k in SPELLS) {
   const s = SPELLS[k], id = 'spell_' + k;
-  IT(id, 'Hechizo: ' + s.n, s.c, 'scroll', C_CAT, `Léelo con F para aprenderlo. Gasta ${s.m} de maná · recarga ${s.cd} s · elemento ${s.el}. Asígnalo a Z, V, Y o U en la ficha del personaje (C).`);
+  IT(id, 'Hechizo: ' + s.n, s.c, 'scroll', C_CAT, `Léelo con F para aprenderlo. Gasta ${s.m} de maná · recarga ${s.cd} s · elemento ${s.el}. Asígnalo a un hueco (Shift+1…4) en la ficha del personaje (C).`);
   ITEMS[id].learn = k;
   const [core, teeth] = SPELL_RECIPE[k]; RB(id, 1, core, 'parchment,' + teeth, 0, 4);
 }

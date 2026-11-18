@@ -136,7 +136,7 @@ function csMagic() {
   const st = spellState();
   let h = '<div class="cssub">Hechizos · elige su tecla</div>';
   if (!st.known.length) h += '<div class="mut small">Lee pergaminos de hechizo (F) para aprenderlos.</div>';
-  h += st.known.map(k => { const s = SPELLS[k]; return `<div class="spr"><span style="color:${s.c}">${s.i}</span><span>${esc(s.n)} <span class="mut">· ${s.m} ✦ · ${s.cd}s</span></span><span>${SPELL_KEYS.map((key, i) => `<button class="${st.slots[i] === k ? 'on' : ''}" data-slot="${k}|${i}">${key.toUpperCase()}</button>`).join('')}</span></div>`; }).join('');
+  h += st.known.map(k => { const s = SPELLS[k]; return `<div class="spr"><span style="color:${s.c}">${s.i}</span><span>${esc(s.n)} <span class="mut">· ${s.m} ✦ · ${s.cd}s</span></span><span>${SPELL_KEYS.map((key, i) => `<button class="${st.slots[i] === k ? 'on' : ''}" data-slot="${k}|${i}">${KEY_NAME(actKey('spell' + (i + 1)))}</button>`).join('')}</span></div>`; }).join('');
   h += '<div class="cssub">Mascotas</div>';
   if (!(S.pets || []).length) h += '<div class="mut small">Pulsa F sobre un animal con su comida favorita en la mano.</div>';
   h += (S.pets || []).map((pt, i) => { const tm = TAME[pt.sp], d = Math.round(Math.hypot(pt.x - S.player.x, pt.y - S.player.y) / T);

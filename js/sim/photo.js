@@ -52,13 +52,13 @@ document.addEventListener('click', e => { const b = e.target.closest('[data-phf]
   else if (b.dataset.phshot !== undefined) phShot(); else if (b.dataset.phx !== undefined) phToggle(false);
   else if (b.dataset.phg) phSave(PHO.shots[+b.dataset.phg]); else if (b.dataset.phvx !== undefined) { const v = $('photoView'); if (v) v.remove(); } });
 document.addEventListener('change', e => { const t = e.target.closest('[data-pho]'); if (t) PHO[t.dataset.pho] = t.checked ? 1 : 0; });
-KEY_ACTIONS.find(g => g[0] === 'Ventanas')[1].push(['z', 'Modo foto']); keymapBuild();
+KEY_ACTIONS.find(g => g[0] === 'Ventanas')[1].push(['p', 'Modo foto']); keymapBuild();
 addEventListener('keydown', e => {
   if (!S || ui.open === 'title' || e.ctrlKey || e.metaKey || _typing(e)) return; const k = e.key.toLowerCase();
-  if (k === 'z' && (!ui.open || PHO.on)) { phToggle(); e.preventDefault(); return; }
+  if (k === 'p' && !e.repeat && (!ui.open || PHO.on)) { phToggle(); e.preventDefault(); return; }
   if (!PHO.on) return;
   if (k === 'escape') { phToggle(false); e.stopImmediatePropagation(); }
   else if (k === ' ') { phShot(); e.preventDefault(); e.stopImmediatePropagation(); }
   else if (k === 'h') { PHO.bar = !PHO.bar; phRender(); e.stopImmediatePropagation(); }
 }, true);
-cmd('foto', { a: ['photo', 'captura'], u: '/foto', d: 'Abre el modo foto (también con la tecla Z).', run() { phToggle(true); } });
+cmd('foto', { a: ['photo', 'captura'], u: '/foto', d: 'Abre el modo foto (también con la tecla P).', run() { phToggle(true); } });

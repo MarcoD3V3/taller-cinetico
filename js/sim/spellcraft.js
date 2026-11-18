@@ -9,7 +9,7 @@
 //  · Cada hechizo tiene su espectáculo: sello mágico al lanzar, estelas, impactos, ondas,
 //    meteoritos que caen del cielo, rayos ramificados, burbuja de escudo, espirales, destellos…
 // =====================================================================================
-SPELL_KEYS.push('k', 'l', 'i', 'o');
+SPELL_KEYS.push('shift+5', 'shift+6', 'shift+7', 'shift+8');
 // Quién lanza: tú (SCX = null) u otro jugador cuyo hechizo se repite aquí. SGH: modo fantasma = solo se ve,
 // no hace daño (ya lo hace su dueño), ni te cura, ni te mueve, ni te gasta nada.
 let SCX = null, SGH = false;

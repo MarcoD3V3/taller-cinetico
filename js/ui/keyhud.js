@@ -34,7 +34,8 @@ function khContext() {
 const KH_ALL = [
   ['Moverse', [[['w', 'a', 's', 'd'], 'Andar'], [[' '], 'Saltar'], [['shift', ' '], 'Esquivar']]],
   ['Acciones', [[['f'], 'Usar / abrir'], [['r'], 'Girar'], [['t'], 'Ajustar bloque'], [['x'], 'Encender / apagar'], [['q'], 'Mano vacía'], [['l'], 'Soltar objeto']]],
-  ['Ventanas', [[['e'], 'Inventario'], [['c'], 'Personaje'], [['b'], 'Recetario'], [['m'], 'Mapa'], [['j'], 'Crónicas'], [['h'], 'Ayuda'], [['enter'], 'Chat']]],
+  ['Ventanas', [[['e'], 'Inventario'], [['c'], 'Personaje'], [['b'], 'Recetario'], [['m'], 'Mapa'], [['j'], 'Crónicas'], [['h'], 'Ayuda'], [['enter'], 'Chat'], [['y'], 'Aventura'], [['k'], 'Talentos'], [['p'], 'Modo foto'], [['u'], 'Multijugador']]],
+  ['Magia', [[['spell1'], 'Hechizo 1 (Shift+1…8)']]],
 ];
 function khAll() {
   return KH_ALL.map(([g, list]) => `<div class="khg"><small>${g}</small>${list.map(([ks, t]) => khRow(ks.map(k => k === 'shift' ? khCap('Shift', 1) : K(k)).join(''), t, ks.length === 1 && ks[0] !== ' ' ? ks[0] : '')).join('')}</div>`).join('');
@@ -49,7 +50,7 @@ function khRender() {
 setInterval(khRender, 200);
 document.addEventListener('click', e => {
   const t = e.target.closest && e.target.closest('#keyHud [data-kh]'); if (t) { if (t.dataset.kh === 'tog') KH.open = !KH.open; else { KH.hide = true; toast('Panel de teclas oculto: F1 para volver a verlo'); } try { localStorage.setItem('tc-keyhud', KH.open ? '1' : '0'); localStorage.setItem('tc-keyhud-off', KH.hide ? '1' : '0'); } catch (er) { } KH.sig = ''; khRender(); return; }
-  const r = e.target.closest && e.target.closest('#keyHud [data-khp]'); if (r) { const k = r.dataset.khp, ev = { key: k, bubbles: true, cancelable: true }; dispatchEvent(new KeyboardEvent('keydown', ev)); setTimeout(() => dispatchEvent(new KeyboardEvent('keyup', ev)), 60); r.classList.add('flash'); setTimeout(() => r.classList.remove('flash'), 300); }
+  const r = e.target.closest && e.target.closest('#keyHud [data-khp]'); if (r) { const k = r.dataset.khp, ev = { key: KEY_EVT(k), bubbles: true, cancelable: true }, fire = t => { const x = new KeyboardEvent(t, ev); x.__tc = 1; document.body.dispatchEvent(x); }; fire('keydown'); setTimeout(() => fire('keyup'), 60); r.classList.add('flash'); setTimeout(() => r.classList.remove('flash'), 300); }
 });
 // Las teclas se iluminan al pulsarlas (y F1 enseña u oculta el panel)
 const khLight = (k, on) => { if (!KH.el) return; KH.el.querySelectorAll(`[data-khk="${CSS.escape(k)}"]`).forEach(x => x.classList.toggle('down', on)); };

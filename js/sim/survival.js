@@ -201,7 +201,7 @@ function envCheck() {
   _warm = false;
   for (let dy = -3; dy <= 3 && !_warm; dy++) for (let dx = -3; dx <= 3; dx++) {
     const b = at(px + dx, py + dy), g = GI[gnd(px + dx, py + dy)];
-    if (g.liquid === 'lava' || (b && (b.type === 'furnace' || b.type === 'alloySmelter' || b.type === 'blastFurnace' || b.type === 'boiler' || b.type === 'campfire' || BD[b.type].heat || (typeof trFx === 'function' && trFx(b, 'warmB', 0))))) { _warm = true; break; }
+    if (g.liquid === 'lava' || (b && (b.type === 'furnace' || b.type === 'alloySmelter' || b.type === 'blastFurnace' || b.type === 'boiler' || b.type === 'campfire' || (BD[b.type] && BD[b.type].heat) || (typeof trFx === 'function' && trFx(b, 'warmB', 0))))) { _warm = true; break; }
   }
   _hot = _amb > 33;
   // Pisar tierra tóxica o cactus

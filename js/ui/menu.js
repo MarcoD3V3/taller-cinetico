@@ -214,12 +214,12 @@ document.addEventListener('change', e => {
 document.addEventListener('keydown', e => { if (e.target.closest && e.target.closest('#mPause,#mTitle') && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName) && e.key !== 'Escape') { e.stopPropagation(); if (e.key === 'Enter') { if (e.target.id === 'mpPass' || e.target.id === 'mpCodePass' || e.target.id === 'mpCode') { const b = e.target.parentNode.querySelector('button'); if (b) b.click(); } e.target.blur(); } } }, true);
 // ---------- Teclado: Esc abre el menú, U el multijugador, asignar teclas ----------
 addEventListener('keydown', e => {
-  if (PZ.bind && (ui.open === 'pause' || $('titleOpts'))) { e.stopImmediatePropagation(); e.preventDefault(); const k = e.key.toLowerCase();
+  if (PZ.bind && (ui.open === 'pause' || $('titleOpts'))) { e.stopImmediatePropagation(); e.preventDefault(); const k = evKey(e);
     if (k !== 'escape' && !['shift', 'control', 'alt', 'meta'].includes(k)) { if (k === actDef(PZ.bind)) delete OPT.keys[PZ.bind]; else OPT.keys[PZ.bind] = k; optSave(); keymapBuild(); toast(`Tecla asignada: ${KEY_NAME(k)}`); }
     PZ.bind = null; rerenderOpts(); return; }
   if (e.key === 'Escape' && S && !ui.open && !CHAT.open) { e.stopImmediatePropagation(); e.preventDefault(); openPause(); return; }
   if (!S || ui.open || CHAT.open || e.ctrlKey || e.metaKey || _typing(e)) return;
-  if (e.key.toLowerCase() === 'u') { e.stopImmediatePropagation(); openPause('lan'); }
+  if (e.key.toLowerCase() === 'u') { if (typeof _cxHov !== 'undefined' && _cxHov && document.contains(_cxHov) && _cxHov.closest('#hotbar')) return; e.stopImmediatePropagation(); openPause('lan'); }
 }, true);
 async function quitToMenu() {
   if (OPT.confirmQuit && inGame() && NET.game.host && !confirm('Si sales, tu mundo se cierra para los demás jugadores. ¿Salir?')) return;

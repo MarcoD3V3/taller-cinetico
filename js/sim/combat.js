@@ -327,7 +327,7 @@ function hitAnimal(an, dmg, w) {
   if (an.hp <= 0) { huntWith(an, w); gainXP('hunt', 4 + Math.round(SPECIES[an.sp].s / 2)); }
 }
 // ---------- Hechizos ----------
-const SPELL_KEYS = ['z', 'v', 'y', 'u'];
+const SPELL_KEYS = ['shift+1', 'shift+2', 'shift+3', 'shift+4']; // Shift+número (ver ui/opts.js)
 function spellState() { return S.spells || (S.spells = { known: [], slots: [null, null, null, null] }); }
 function learnSpell(k) {
   const st = spellState(); if (st.known.includes(k)) { toastErr('Ya conoces ' + SPELLS[k].n); return false; }

@@ -17,10 +17,10 @@ function optSave() { try { localStorage.setItem('tc-opts', JSON.stringify(OPT));
 // [tecla original, nombre]. Lo que pulses se traduce a la tecla original antes de que el juego lo vea.
 const KEY_ACTIONS = [
   ['Movimiento', [['w', 'Arriba'], ['a', 'Izquierda'], ['s', 'Abajo'], ['d', 'Derecha'], [' ', 'Saltar (Shift+: esquivar)']]],
-  ['Acciones', [['f', 'Usar / abrir / interactuar'], ['r', 'Girar bloque'], ['t', 'Ajustar bloque'], ['x', 'Encender / apagar bloque'], ['g', 'Modo redstone del bloque'], ['q', 'Mano vacía']]],
-  ['Ventanas', [['e', 'Inventario'], ['b', 'Recetario'], ['m', 'Mapa'], ['c', 'Personaje'], ['j', 'Crónicas'], ['h', 'Ayuda'], ['u', 'Multijugador'], ['enter', 'Chat'], ['n', 'Minimapa']]],
+  ['Acciones', [['f', 'Usar / abrir / interactuar'], ['r', 'Girar bloque'], ['t', 'Ajustar bloque'], ['x', 'Encender / apagar bloque'], ['g', 'Modo redstone del bloque'], ['q', 'Mano vacía'], ['l', 'Soltar objeto (Shift: el montón)']]],
+  ['Ventanas', [['e', 'Inventario'], ['b', 'Recetario'], ['m', 'Mapa'], ['c', 'Personaje'], ['j', 'Crónicas'], ['h', 'Ayuda'], ['u', 'Multijugador'], ['enter', 'Chat'], ['n', 'Minimapa'], [',', 'Mi pueblo (colonos)']]],
 ];
-const KEY_NAME = k => ({ ' ': 'Espacio', enter: 'Intro', escape: 'Esc', arrowup: '↑', arrowdown: '↓', arrowleft: '←', arrowright: '→', backspace: 'Retroceso', tab: 'Tab', control: 'Ctrl', alt: 'Alt' }[k] || k.toUpperCase());
+const KEY_NAME = k => /^shift\+\d$/.test(k) ? '⇧' + k.slice(6) : ({ ' ': 'Espacio', enter: 'Intro', escape: 'Esc', arrowup: '↑', arrowdown: '↓', arrowleft: '←', arrowright: '→', backspace: 'Retroceso', tab: 'Tab', control: 'Ctrl', alt: 'Alt' }[k] || k.toUpperCase());
 const KEY_EVT = k => ({ ' ': ' ', enter: 'Enter' }[k] || k);
 // Cada acción tiene un id propio (su tecla original, o «spell1»… para los hechizos), así dos acciones que
 // compartían tecla se pueden separar. KMAP: tecla física → ids que dispara (vacío = tecla bloqueada).
@@ -35,12 +35,20 @@ function keymapBuild() {
   for (const [p, l] of [...KMAP]) if (l.length === 1 && l[0] === p) KMAP.delete(p);
 }
 keymapBuild();
+// Tecla pulsada como la guarda el juego: Shift+número es «shift+N» (no depende de la distribución del teclado)
+const evKey = e => e.shiftKey && /^Digit[1-9]$/.test(e.code || '') ? 'shift+' + e.code[5] : e.key.toLowerCase();
+// ¿Se puede lanzar ya el hechizo de ese hueco? Si no, Shift+número cambia de hueco como siempre (y no molesta al correr)
+const spellReady = n => { try { const st = spellState(); return !!st.slots[n - 1] && (n <= 4 || (typeof wandHeld === 'function' && wandHeld())); } catch (e) { return false; } };
 const _typing = e => { const t = e.target, tg = t && t.tagName; return tg === 'INPUT' || tg === 'TEXTAREA' || tg === 'SELECT' || (t && t.isContentEditable); };
 for (const type of ['keydown', 'keyup']) addEventListener(type, e => {
   if (e.__tc || _typing(e) || e.ctrlKey || e.metaKey) return;
-  const k = e.key.toLowerCase(); if (!KMAP.has(k)) return;
+  const k = evKey(e), sh = /^shift\+\d$/.test(k);
+  let list = KMAP.get(k);
+  if (sh && type === 'keydown') { const live = typeof S !== 'undefined' && S && !ui.open; list = (list || []).filter(to => !/^spell\d$/.test(to) || (live && spellReady(+to[5]))); }
+  if (sh && (!list || !list.length)) list = [k[6]]; // sin hechizo: Shift+número = número
+  if (!list) return;
   e.stopImmediatePropagation(); e.preventDefault();
-  for (const to of KMAP.get(k)) { const ev = new KeyboardEvent(type, { key: KEY_EVT(to), shiftKey: e.shiftKey, altKey: e.altKey, repeat: e.repeat, bubbles: true, cancelable: true }); ev.__tc = 1; dispatchEvent(ev); }
+  for (const to of list) { const ev = new KeyboardEvent(type, { key: KEY_EVT(to), shiftKey: e.shiftKey, altKey: e.altKey, repeat: e.repeat, bubbles: true, cancelable: true }); ev.__tc = 1; (document.body || window).dispatchEvent(ev); } // desde el body: así las prioridades (fase de captura) son las de una tecla de verdad
 }, true);
 // ---------- Aplicar ----------
 // Filtro del canvas del mundo: solo si hace algo. Un filtro CSS (aunque sea «brightness(1)») obliga a la
