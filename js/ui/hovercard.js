@@ -88,7 +88,8 @@ function tileCard(tx, ty) {
   if (gi.drop) {
     const t = TOOLS[held], ok = toolOK(gi, t), hp = gi.hp ? treeHp(tx, ty) || gi.hp : 0;
     if (hp && gi.hp > 1) h += hcbar(hp / gi.hp, '#e0b54c', `${hp} / ${gi.hp} golpes`);
-    h += `<div class="hcr">${hchip(ok ? '✓ Puedes picarlo' : '✗ Herramienta inadecuada', ok ? 'ok' : 'bad')}${inReach(tx, ty) ? '' : hchip('Lejos', 'warn')}${gi.extra ? hchip('A veces ' + esc(ITEMS[gi.extra[0]].n), 'soft') : ''}</div>`;
+    const hand = !ui.hand && typeof needHand === 'function' && needHand(gi, held);
+    h += `<div class="hcr">${hchip(hand ? '✋ Con la mano (Q)' : ok ? '✓ Puedes picarlo' : '✗ Herramienta inadecuada', hand ? 'warn' : ok ? 'ok' : 'bad')}${inReach(tx, ty) ? '' : hchip('Lejos', 'warn')}${gi.extra ? hchip('A veces ' + esc(ITEMS[gi.extra[0]].n), 'soft') : ''}</div>`;
   }
   if (sel) { const e = canPlace(sel, tx, ty); h += `<div class="hcr">${hchip(e ? esc(e) : 'Clic para colocar ' + esc(BD[sel].n), e ? 'bad' : 'ok')}</div>`; }
   return h;

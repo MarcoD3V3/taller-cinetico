@@ -59,7 +59,7 @@ gear('abyssCharm', 'Amuleto abisal', '#8a6aff', 'gem', 'acc', { prot: { abyss: 1
 // Bloques: escalera para subir y bajar entre capas y farol que no gasta
 XB('ladder', { n: 'Escalera de mano', cat: HOUSE_CAT, walk: 1, look: { c: '#9a7448', g: '☰' }, d: 'Bajo tierra: ponla en el suelo y úsala (clic derecho) para abrir un hueco en el techo y subir a la capa de arriba. Sobre un pozo: úsala para bajar sin caerte.' });
 RR('ladder', 2, 'planks', 'stick,stick,stick,rope');
-XB('lichenLamp', { n: 'Farol de liquen', cat: HOUSE_CAT, light: 5, look: { c: '#7af0c8', g: '✺', a: 'glow' }, d: 'Ilumina sin combustible. Bajo tierra, los monstruos no aparecen cerca de la luz.' });
+XB('lichenLamp', { n: 'Farol de liquen', cat: HOUSE_CAT, walk: 1, light: 5, look: { c: '#7af0c8', g: '✺', a: 'glow' }, d: 'Ilumina sin combustible. Bajo tierra, los monstruos no aparecen cerca de la luz.' });
 RR('lichenLamp', 1, 'glass', 'glowLichen,glowLichen,stick');
 
 // ---------- Criaturas de las profundidades (solo aparecen bajo tierra) ----------

@@ -164,7 +164,7 @@ function render(fdt) {
     } else drawHoverMark(ctx); // marco animado y anillo bajo criaturas (ui/hovercard.js)
     drawBreak(ctx); // grietas al romper un bloque (sim/breaking.js)
     // Fuera de alcance o sin la herramienta adecuada: cursor rojo
-    if (!sel && !at(tx, ty) && (!inReach(tx, ty) || (GI[gnd(tx, ty)].drop && !toolOK(GI[gnd(tx, ty)], TOOLS[heldId()])))) { ctx.strokeStyle = 'rgba(255,107,91,.85)'; ctx.lineWidth = 2; ctx.strokeRect(tx * T + 1, ty * T + 1, T - 2, T - 2); }
+    if (!sel && !at(tx, ty) && (!inReach(tx, ty) || (GI[gnd(tx, ty)].drop && !toolOK(GI[gnd(tx, ty)], TOOLS[heldId()])) || (mouse.down && ui.mine.hand))) { ctx.strokeStyle = 'rgba(255,107,91,.85)'; ctx.lineWidth = 2; ctx.strokeRect(tx * T + 1, ty * T + 1, T - 2, T - 2); }
     // Grietas que crecen mientras picas
     if (ui.mine.t > 0 && ui.mine.x === tx && ui.mine.y === ty) {
       const p = Math.min(1, ui.mine.t / (ui.mine.need || mineTime(gnd(tx, ty)))), n = 1 + Math.floor(p * 6);

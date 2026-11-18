@@ -80,6 +80,14 @@ const inReach = (tx, ty, r = REACH) => Math.hypot((tx + 0.5) * T - S.player.x, (
 // Clase de casilla: roca/mena, madera, planta o suelo
 let tileClass = gi => gi.floorK ? gi.floorK : gi.rock || gi.dot || (gi.need && gi.need.k === 'pick' && !gi.tree && !gi.plant) ? 'rock' : gi.tree ? 'tree' : gi.plant ? 'plant' : 'ground';
 const CLASS_KINDS = { rock: ['pick', 'hammer', 'paxel', 'excav'], tree: ['axe', 'sickle', 'paxel'], plant: ['axe', 'sickle', 'paxel'], ground: ['shovel', 'paxel'] };
+// Lo que no pide herramienta (tierra, hierba, arena, plantas…) solo se rompe con la mano (✋, Q, o una ranura vacía)
+// o con la herramienta que le toca (pala para la tierra, hacha u hoz para plantas). Así no se rompe el suelo sin querer
+// llevando un arma, un bloque, comida o un pico. Lo que sí pide herramienta (roca, menas…) sigue igual.
+function needHand(gi, id) { if (!id || !gi || !gi.drop || gi.need) return false; const t = TOOLS[id]; return !(t && t.kind !== 'util' && (CLASS_KINDS[tileClass(gi)] || []).includes(t.kind)); }
+// Los bloques colocados (barriles, banderas, alfombras…) se quitan con clic izquierdo solo con la mano o una herramienta
+function blockNeedsHand(id) { if (!id) return false; const t = TOOLS[id]; return !(t && t.kind !== 'util'); }
+let _handHintT = 0;
+function handHint(what) { const now = performance.now(); if (now - _handHintT < 3500) return; _handHintT = now; toastErr(`✋ Para ${what} usa la mano: pulsa Q o elige una ranura vacía`); }
 const CLASS_SKILL = { rock: 'mining', tree: 'wood', plant: 'gather', ground: 'mining' };
 // Coste de maná de las armas mágicas
 const manaCost = id => { const it = ITEMS[id]; if (!it || !it.weapon) return 0; return it.s === 'staff' ? 10 : it.s === 'wand' ? 6 : it.weapon.el && it.weapon.el !== 'holy' && it.weapon.dmg >= 5 ? 15 : 0; };
@@ -141,6 +149,7 @@ function updateMining(fdt) {
   if (onBlock) {
     const b = at(tx, ty);
     if (!mouse.down || b.type === 'core' || !inReach(tx, ty)) { ui.mine.t = 0; return; }
+    if (!ui.hand && blockNeedsHand(id)) { ui.mine.t = 0; ui.mine.hand = true; handHint('quitar ' + BD[b.type].n.toLowerCase()); return; }
     if (ui.mine.x !== tx || ui.mine.y !== ty || !ui.mine.blk) ui.mine = { t: 0, x: tx, y: ty, blk: 1 };
     const tool = TOOLS[id], tm = tool && tool.kind !== 'util' ? Math.min(4, tool.mult) : 1;
     ui.mine.need = (BD[b.type].walk ? 0.25 : 0.7) / tm / workMul(); ui.mine.t += fdt;
@@ -156,6 +165,8 @@ function updateMining(fdt) {
     if (GROUND_PLACE[id] && !gi.drop) { ui.mine.t = 0; return; }
   }
   if (!gi.drop) { ui.mine.t = 0; return; }
+  if (!ui.hand && needHand(gi, id)) { ui.mine.t = 0; ui.mine.x = tx; ui.mine.y = ty; ui.mine.hand = true; handHint('romper ' + gi.n.toLowerCase()); return; }
+  ui.mine.hand = false;
   // Mientras mantienes el clic, solo se pica la capa (y el tipo: roca, árbol, planta o suelo) en la que
   // empezaste, o lo que está por encima. Lo de abajo no: para bajar, suelta y vuelve a pulsar.
   const lvNow = lvAt(tx, ty), cls0 = tileClass(gi);
