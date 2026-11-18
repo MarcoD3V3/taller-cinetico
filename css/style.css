@@ -2287,3 +2287,42 @@ body.hudmin { --hud: rgba(14, 15, 17, .74); }
 .home2 .hdl { display:flex; align-items:center; justify-content:center; gap:14px; margin-top:10px; }
 .home2 .hdl .hplq { text-decoration:none; flex:0 1 auto; min-width:300px; }
 .home2 .hdl > a.mut { text-decoration:underline; }
+
+/* ===== Tarjeta del cursor 2.0: más pequeña, cristal cálido, filo de latón con esquinas ===== */
+.hcard { min-width: 150px; max-width: 236px; padding: 7px 9px 6px; border-radius: 7px; font-size: 11.5px; line-height: 1.3;
+  background: linear-gradient(180deg, rgba(34,25,21,.93) 0%, rgba(18,13,13,.95) 100%);
+  border: 1px solid rgba(217,165,74,.32);
+  box-shadow: 0 8px 22px rgba(0,0,0,.55), 0 0 0 1px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,220,160,.07), inset 0 0 18px rgba(255,138,60,.04); }
+.hcard::before { content: ''; position: absolute; inset: 2px; border-radius: 5px; pointer-events: none; opacity: .75;
+  --g: linear-gradient(#e8bf6a, #e8bf6a);
+  background: var(--g) left top / 6px 1px, var(--g) left top / 1px 6px, var(--g) right top / 6px 1px, var(--g) right top / 1px 6px,
+              var(--g) left bottom / 6px 1px, var(--g) left bottom / 1px 6px, var(--g) right bottom / 6px 1px, var(--g) right bottom / 1px 6px;
+  background-repeat: no-repeat; }
+.hcard .hch { gap: 6px; margin-bottom: 3px; flex-wrap: nowrap; }
+.hcard .hch b { font-size: 12.5px; line-height: 1.15; color: #f0cf86; text-shadow: 0 1px 0 #000; display: flex; flex-direction: column; min-width: 0; }
+.hcard .hch b small { font-family: var(--body, system-ui); font-size: 9.5px; font-weight: 500; color: #a8957e; letter-spacing: .04em; text-transform: uppercase; }
+.hcard .hci { width: 22px; height: 22px; padding: 2px; flex: none; border-radius: 4px; background: radial-gradient(circle at 35% 30%, #3a2a1e, #140e0d); border: 1px solid rgba(217,165,74,.35); box-shadow: inset 0 0 6px rgba(0,0,0,.6); }
+.hcard .hcd .hci, .hcard .hcm .hci { width: 16px; height: 16px; padding: 0; border: 0; background: none; box-shadow: none; }
+.hcard .hcc { font-size: 9.5px; padding: 0 6px; line-height: 15px; }
+.hcard .hcb { height: 11px; border-radius: 3px; margin: 3px 0; background: #00000066; box-shadow: inset 0 0 0 1px #ffffff12; }
+.hcard .hcb > i { border-radius: 3px; } .hcard .hcb > span { font-size: 9.5px; line-height: 11px; }
+.hcard .hcs, .hcard .hcm, .hcard .hcx { font-size: 10.5px; }
+.hcard .hcdsc { color: #cfc3ae; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin: 1px 0 4px; }
+.hcard .hcn { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px 6px; margin: 3px 0; padding: 4px 6px; border-radius: 4px; background: #00000040; border: 1px solid #ffffff0d; }
+.hcard .hcn span { display: flex; justify-content: space-between; gap: 6px; font-size: 10.5px; min-width: 0; }
+.hcard .hcn small { color: #a8957e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .hcard .hcn b { color: #f3e6cc; font-weight: 600; white-space: nowrap; }
+.hcard .hck { gap: 2px 8px; margin-top: 5px; padding-top: 5px; border-top: 1px solid transparent; border-image: linear-gradient(90deg, transparent, rgba(217,165,74,.35), transparent) 1; font-size: 10px; color: #b8a890; }
+.hcard .hck > span { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.hcard .hck kbd { margin: 0; font-size: 9px; min-width: 14px; height: 14px; line-height: 13px; padding: 0 3px; text-align: center; border-radius: 3px; color: #f6dfae; background: linear-gradient(#4a3524, #2a1d14); border: 1px solid rgba(217,165,74,.5); box-shadow: 0 1px 0 #000; }
+.hcard .hck em { font-style: normal; color: #f0cf86; font-variant-numeric: tabular-nums; }
+.hcmouse { width: 9px; height: 13px; border: 1px solid rgba(217,165,74,.7); border-radius: 5px; position: relative; flex: none; background: #2a1d14; }
+.hcmouse::before { content: ''; position: absolute; top: 0; width: 50%; height: 45%; background: #f0cf86; border-radius: 4px 0 0 0; left: 0; }
+.hcmouse.der::before { left: auto; right: 0; border-radius: 0 4px 0 0; }
+/* Soltar al suelo (inventario) */
+.invdrop { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; align-items: center; padding: 9px 10px; border-radius: 6px; cursor: pointer;
+  border: 1px dashed rgba(217,165,74,.45); background: linear-gradient(180deg, rgba(60,40,26,.35), rgba(20,14,12,.35)); transition: border-color .15s, background .15s, transform .15s; }
+.invdrop .idi { grid-row: span 2; font-size: 18px; color: #f0cf86; }
+.invdrop b { font-size: 12.5px; color: #f0cf86; } .invdrop small { font-size: 10.5px; color: #a8957e; line-height: 1.3; }
+#mInv.candrop .invdrop { border-style: solid; border-color: #ffb04a; background: linear-gradient(180deg, rgba(120,70,30,.45), rgba(40,24,14,.45)); animation: invDropPulse 1.2s ease-in-out infinite; }
+#mInv.candrop .invdrop:hover { transform: scale(1.03); }
+@keyframes invDropPulse { 50% { box-shadow: 0 0 14px rgba(255,176,74,.45); } }

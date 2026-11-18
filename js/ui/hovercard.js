@@ -11,7 +11,8 @@ const _icon = new Map();
 const hicon = id => { let u = _icon.get(id); if (!u) { try { u = itemSprite(id).toDataURL(); } catch (e) { u = ''; } _icon.set(id, u); } return u ? `<img class="hci" src="${u}" alt="">` : ''; };
 const hchip = (t, cls = '') => `<span class="hcc ${cls}">${t}</span>`;
 const hcbar = (f, col, lab) => `<div class="hcb"><i style="width:${Math.round(clamp(f, 0, 1) * 100)}%;background:${col}"></i>${lab ? `<span>${lab}</span>` : ''}</div>`;
-const hkeys = list => `<div class="hck">${list.map(([k, t]) => `<span><kbd>${k}</kbd>${t}</span>`).join('')}</div>`;
+const HK_MOUSE = { 'Clic': 'izq', 'Clic der.': 'der' };
+const hkeys = list => `<div class="hck">${list.map(([k, t]) => `<span>${!k ? '' : HK_MOUSE[k] ? `<i class="hcmouse ${HK_MOUSE[k]}"></i>` : `<kbd>${k}</kbd>`}${t}</span>`).join('')}</div>`;
 // Rasgos de carácter (sim/mobai.js) en palabras
 function persChips(p) {
   if (!p) return ''; const c = [];
@@ -28,6 +29,7 @@ function hoverTarget() {
   const mw = mouseWorld(), f = nearestFoe(mw.x, mw.y, 26, o => dist(mw.x, mw.y, o.x, o.y) < o.D.s + 8);
   if (f) return { k: 'foe', o: f, key: 'f' + FOES.indexOf(f) };
   const an = animalAt(mw.x, mw.y); if (an) return { k: 'an', o: an, key: 'a' + ANIMALS.indexOf(an) };
+  const gi = typeof giAt === 'function' && giAt(mw.x, mw.y); if (gi) return { k: 'gi', o: gi, key: 'g' + gi.k };
   const b = at(mouse.tx, mouse.ty); if (b) return { k: 'block', o: b, key: 'b' + mouse.tx + ',' + mouse.ty };
   return { k: 'tile', key: 't' + mouse.tx + ',' + mouse.ty };
 }
@@ -53,7 +55,7 @@ function animalCard(a) {
   return h + hkeys([['Clic', 'cazar'], ['Trampa', 'en su camino']]);
 }
 function blockCard(b) {
-  const d = BD[b.type]; let h = `<div class="hch">${hicon(b.type)}<b>${esc(d.n)}</b>${b.off ? hchip('Apagado', 'bad') : d.machine || d.kin || d.pw ? hchip('Activo', 'ok') : ''}</div>`;
+  const d = BD[b.type]; let h = `<div class="hch">${hicon(b.type)}<b>${esc(d.n)}<small>${esc(typeof BR_N !== 'undefined' && BR_N[blockMat(b.type)] || '')}</small></b>${b.off ? hchip('Apagado', 'bad') : d.machine || d.kin || d.pw ? hchip('Activo', 'ok') : ''}</div>`;
   if (d.kin) h += `<div class="hcs"><span>⟳ ${fmt(b.rpm)} RPM</span>${b.comp ? `<span class="${b.comp.used > b.comp.cap ? 'bad' : ''}">${fmt(b.comp.used)}/${fmt(b.comp.cap)} SU</span>` : ''}</div>`;
   if (d.pw) h += hcbar((b.E || 0) / d.pw.cap, '#7cc4ff', `${fmt(b.E || 0)} / ${fmt(d.pw.cap)} FE`);
   if (b.tanks) for (const k in b.tanks) { const t = b.tanks[k]; h += hcbar(t.a / t.c, t.t && FLUIDS[t.t] ? FLUIDS[t.t].c : '#555', `${t.t ? esc(FLUIDS[t.t].n) : 'Vacío'} ${fmt(t.a)}/${fmt(t.c)}`); }
@@ -65,7 +67,7 @@ function blockCard(b) {
   const ks = Object.keys(inv); if (ks.length) h += `<div class="hcd">${ks.slice(0, 8).map(k => `<span title="${esc(ITEMS[k].n)}">${hicon(k)}${fmt(inv[k])}</span>`).join('')}${ks.length > 8 ? `<span class="mut">+${ks.length - 8}</span>` : ''}</div>`;
   const extra = blockInfo(b, true).replace(/<div class="mut">(Entrada|Salida|Tanque|Combustible|En la cinta)[^<]*<\/div>/g, '').replace(/<div>(Velocidad|Energía|Procesando)[^]*?<\/div>/g, '');
   if (extra.trim()) h += `<div class="hcx">${extra}</div>`;
-  const k = [['F', 'usar']]; if (d.dir) k.push(['R', 'girar']); if (d.cfg) k.push(['T', 'ajustar']); k.push(['X', b.off ? 'encender' : 'apagar']); if (b.type !== 'core') k.push(['Clic der.', `romper · ${breakTime(b).toFixed(1)} s (${BR_N[blockMat(b.type)]})`]);
+  const k = [['F', 'usar']]; if (d.dir) k.push(['R', 'girar']); if (d.cfg) k.push(['T', 'ajustar']); k.push(['X', b.off ? 'encender' : 'apagar']); if (b.type !== 'core') k.push(['Clic der.', `romper <em>${breakTime(b).toFixed(1).replace('.', ',')} s</em>`]);
   return h + hkeys(k);
 }
 function tileCard(tx, ty) {
@@ -91,7 +93,20 @@ function tileCard(tx, ty) {
   if (sel) { const e = canPlace(sel, tx, ty); h += `<div class="hcr">${hchip(e ? esc(e) : 'Clic para colocar ' + esc(BD[sel].n), e ? 'bad' : 'ok')}</div>`; }
   return h;
 }
-function hoverHTML(t) { return t.k === 'foe' ? foeCard(t.o) : t.k === 'an' ? animalCard(t.o) : t.k === 'block' ? blockCard(t.o) : tileCard(mouse.tx, mouse.ty); }
+// Objeto en el suelo: qué es, sus números y cuánto le queda
+function giCard(o) {
+  const it = ITEMS[o.id]; if (!it) return '';
+  const { nums, mods } = typeof itemNums === 'function' ? itemNums(o.id) : { nums: [], mods: [] };
+  let h = `<div class="hch">${hicon(o.id)}<b>${esc(it.n)}<small>${esc(ICATS[it.cat] || 'Objeto')}</small></b>${o.n > 1 ? hchip('×' + fmt(o.n), 'warn') : ''}</div>`;
+  if (it.d) h += `<div class="hcm hcdsc">${esc(it.d)}</div>`;
+  const nn = nums.filter(([a]) => a).slice(0, 6); if (nn.length) h += `<div class="hcn">${nn.map(([a, v]) => `<span><small>${esc(a)}</small><b>${esc(String(v))}</b></span>`).join('')}</div>`;
+  if (mods.length) h += `<div class="hcr">${mods.slice(0, 4).map(([a, v, g]) => hchip(esc(a) + ' ' + esc(v), g ? 'ok' : 'bad')).join('')}</div>`;
+  const left = Math.max(0, GI_LIFE - o.t), mm = Math.floor(left / 60), ss = String(Math.floor(left % 60)).padStart(2, '0');
+  const p = S.player, near = Math.hypot(o.x - p.x, o.y - p.y) < T * 3.2;
+  h += `<div class="hcs"><span class="${left < 60 ? 'bad' : ''}">⏳ Desaparece en ${mm}:${ss}</span></div>`;
+  return h + hkeys(near ? [['F', 'recoger'], ['⇧F', 'recoger todo cerca']] : [['', 'Acércate o pasa por encima para recogerlo']]);
+}
+function hoverHTML(t) { return t.k === 'foe' ? foeCard(t.o) : t.k === 'an' ? animalCard(t.o) : t.k === 'gi' ? giCard(t.o) : t.k === 'block' ? blockCard(t.o) : tileCard(mouse.tx, mouse.ty); }
 // Contenido: cada 0,15 s (lo llama updateInfo)
 function hoverRefresh() {
   if (!HC.el) { HC.el = document.createElement('div'); HC.el.id = 'hcard'; HC.el.className = 'hcard'; document.body.appendChild(HC.el); }
@@ -107,7 +122,7 @@ function hoverFrame(dt) {
   if (!HC.el) return;
   const moved = Math.abs(mouse.x - HC.lmx) + Math.abs(mouse.y - HC.lmy) > 2; HC.lmx = mouse.x; HC.lmy = mouse.y;
   HC.still = moved ? Math.min(HC.still, 0.05) : HC.still + dt;
-  const t = HC.target, want = !!t && !ui.open && HC.on && (t.k !== 'tile' ? HC.still > 0.12 : HC.still > 0.45);
+  const t = HC.target, want = !!t && !ui.open && HC.on && (t.k === 'gi' ? HC.still > 0.05 : t.k !== 'tile' ? HC.still > 0.12 : HC.still > 0.45);
   HC.show += ((want ? 1 : 0) - HC.show) * Math.min(1, dt * (want ? 10 : 14));
   const el = HC.el; if (!HC.wh && HC.show > 0.01 || want && !HC.wh) HC.wh = [el.offsetWidth || 220, el.offsetHeight || 80]; const [w, h] = HC.wh || [220, 80]; // el tamaño solo se mide cuando cambia el contenido
   let x = mouse.x + 20, y = mouse.y + 18; if (x + w > innerWidth - 8) x = mouse.x - w - 16; if (y + h > innerHeight - 90) y = Math.max(8, mouse.y - h - 14);
@@ -128,6 +143,7 @@ function drawHoverMark(ctx) {
     ctx.strokeStyle = `rgba(${col},${0.5 + pulse * 0.4})`; ctx.lineWidth = 1.6; ctx.setLineDash([5, 4]); ctx.lineDashOffset = -now * 12;
     ctx.beginPath(); ctx.ellipse(o.x, o.y + r * 0.55, r, r * 0.38, 0, 0, 7); ctx.stroke(); ctx.setLineDash([]); return;
   }
+  if (t.k === 'gi') return; // lo resalta drawGroundItems
   // Esquinas que se deslizan suavemente de casilla en casilla
   const gx = mouse.tx * T, gy = mouse.ty * T; if (HC.mx === undefined || Math.abs(HC.mx - gx) > T * 6 || Math.abs(HC.my - gy) > T * 6) { HC.mx = gx; HC.my = gy; }
   const k = Math.min(1, dt * 22); HC.mx += (gx - HC.mx) * k; HC.my += (gy - HC.my) * k;

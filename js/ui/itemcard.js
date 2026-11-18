@@ -28,9 +28,10 @@ function icMods(m) {
   });
 }
 const icIco = (id, sz = 18) => ITEMS[id] ? `<span class="icic" data-id="${id}">${itemImg(id, sz)}</span>` : '';
-function itemCardHTML(id, have) {
-  const it = ITEMS[id]; if (!it) return '';
-  const nums = [], X = icIndex(), d = BD[id];
+// Números y modificadores de un objeto (los usa la ficha y la tarjeta de los objetos del suelo)
+function itemNums(id) {
+  const it = ITEMS[id]; if (!it) return { nums: [], mods: [] };
+  const nums = [], d = BD[id];
   const W = typeof WEAPONS !== 'undefined' && WEAPONS[id], T2 = TOOLS[id];
   if (it.weapon) { const w = it.weapon; nums.push(['Daño', fmt(Math.round(w.dmg * 10) / 10)]); if (w.reach) nums.push(['Alcance', '+' + w.reach]); if (w.el) nums.push(['Elemento', (typeof EL_NAME !== 'undefined' && EL_NAME[w.el]) || w.el]); if (w.sweep) nums.push(['Barrido', 'sí']); }
   else if (W && W.dmg) nums.push(['Daño', fmt(W.dmg)]);
@@ -45,6 +46,11 @@ function itemCardHTML(id, have) {
   if (typeof LIGHT_R !== 'undefined' && LIGHT_R[id]) nums.push(['Luz de mano', LIGHT_R[id] + ' casillas']);
   if (d) { if (d.tier) nums.push(['Se desbloquea', 'nivel ' + (d.tier + 1)]); if (typeof blockStats === 'function') for (const s of blockStats(id).slice(0, 3)) nums.push(['', s]); }
   const mods = it.gear && it.gear.mods ? icMods(it.gear.mods) : it.armor ? icMods({ ...(it.armor.mods || {}), warm: it.armor.warm, fire: it.armor.fire }) : [];
+  return { nums, mods };
+}
+function itemCardHTML(id, have) {
+  const it = ITEMS[id]; if (!it) return '';
+  const X = icIndex(), d = BD[id], W = typeof WEAPONS !== 'undefined' && WEAPONS[id], T2 = TOOLS[id], { nums, mods } = itemNums(id);
   // Para qué sirve
   const uses = (X.use[id] || []).filter(o => ITEMS[o]);
   const how = [];
