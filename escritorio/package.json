@@ -25,7 +25,7 @@
       { "from": "../js", "to": "game/js" }
     ],
     "win": { "icon": "build/icon.png", "target": ["nsis", "portable"] },
-    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "shortcutName": "Taller Cinético", "artifactName": "TallerCinetico-Instalador-${version}.exe" },
-    "portable": { "artifactName": "TallerCinetico-Portable-${version}.exe" }
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "shortcutName": "Taller Cinético", "artifactName": "TallerCinetico-Instalador.exe" },
+    "portable": { "artifactName": "TallerCinetico-Portable.exe" }
   }
 }

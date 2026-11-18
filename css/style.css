@@ -2283,3 +2283,7 @@ body.hudmin { --hud: rgba(14, 15, 17, .74); }
 #olBox .mprow.ol:last-child { padding-bottom:12px; }
 #olBox select, #olBox input { flex:1; min-width:0; }
 #olBox label { display:flex; align-items:center; gap:6px; }
+/* Portada: botón «Descargar app» */
+.home2 .hdl { display:flex; align-items:center; justify-content:center; gap:14px; margin-top:10px; }
+.home2 .hdl .hplq { text-decoration:none; flex:0 1 auto; min-width:300px; }
+.home2 .hdl > a.mut { text-decoration:underline; }

@@ -46,3 +46,14 @@ document.addEventListener('click', e => {
 document.addEventListener('keydown', e => { if (e.target && e.target.closest && e.target.closest('#olBox')) e.stopPropagation(); }, true);
 // Mensajes de «sin servidor»: en la web o la app no existe jugar.bat
 { const n0 = menuNetChanged; menuNetChanged = () => { if (NET.status && /jugar\.bat/.test(NET.status)) NET.status = IS_DESKTOP ? 'Sin conexión: juegas sin internet (Un jugador funciona igual)' : 'Sin servidor de partidas'; n0(); }; }
+// ---------- «Descargar app» en la portada (solo en la web, no en la app ni en claude.ai) ----------
+const APP_DL = 'https://github.com/MarcoD3V3/taller-cinetico/releases/latest/download/TallerCinetico-Instalador.exe';
+const APP_PAGE = 'https://github.com/MarcoD3V3/taller-cinetico/releases/latest';
+{ const s0 = showMain; showMain = function () {
+  const r = s0.apply(this, arguments);
+  if (!IS_DESKTOP && /^https?:$/.test(location.protocol) && !inClaude()) {
+    const row = document.querySelector('.home2 .hrow2');
+    if (row && !document.querySelector('.hdl')) row.insertAdjacentHTML('afterend', `<div class="hdl"><a class="hplq sm" href="${APP_DL}" rel="noopener"><span class="hpi">💻</span><span class="hpt">Descargar app<small>Windows · más fluida y con pantalla completa</small></span></a><a class="mut small" href="${APP_PAGE}" target="_blank" rel="noopener">Versión portable y notas</a></div>`);
+  }
+  return r; }; }
+if (ui.open === 'title' && document.querySelector('.home2')) showMain();

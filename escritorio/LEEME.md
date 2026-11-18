@@ -13,7 +13,7 @@ cd escritorio
 npm install
 npm run dist
 ```
-Salen en `escritorio/dist/`: `TallerCinetico-Instalador-1.0.0.exe` y `TallerCinetico-Portable-1.0.0.exe`.
+Salen en `escritorio/dist/`: `TallerCinetico-Instalador.exe` y `TallerCinetico-Portable.exe`.
 
 Si falla con «no se pudo abrir StdUtils.nsh», la ruta de la carpeta es demasiado larga:
 `subst T: <carpeta del juego>` y ejecuta `npm run dist` desde `T:\escritorio`.
