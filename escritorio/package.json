@@ -1,0 +1,31 @@
+{
+  "name": "taller-cinetico-escritorio",
+  "productName": "Taller Cinético",
+  "version": "1.0.0",
+  "description": "Taller Cinético para escritorio",
+  "main": "main.js",
+  "author": "MarcoD3V3",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis portable"
+  },
+  "devDependencies": {
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "com.marcod3v3.tallercinetico",
+    "productName": "Taller Cinético",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["main.js", "preload.js", "splash.html", "build/icon.png"],
+    "extraResources": [
+      { "from": "../index.html", "to": "game/index.html" },
+      { "from": "../css", "to": "game/css" },
+      { "from": "../js", "to": "game/js" }
+    ],
+    "win": { "icon": "build/icon.png", "target": ["nsis", "portable"] },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "shortcutName": "Taller Cinético", "artifactName": "TallerCinetico-Instalador-${version}.exe" },
+    "portable": { "artifactName": "TallerCinetico-Portable-${version}.exe" }
+  }
+}

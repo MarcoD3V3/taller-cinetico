@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
+<title>Taller Cinético</title>
+<style>
+  html, body { margin:0; height:100%; background:radial-gradient(ellipse at 50% 30%, #2a1a14 0%, #120d10 65%); color:#efe4d2; font:15px/1.4 Georgia, serif; overflow:hidden; user-select:none; }
+  .c { height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; }
+  h1 { margin:0; color:#d9a54a; letter-spacing:4px; font-size:40px; font-variant:small-caps; text-shadow:0 0 22px rgba(255,138,60,.4); }
+  .gear { width:110px; height:110px; animation:spin 6s linear infinite; filter:drop-shadow(0 0 14px rgba(255,138,60,.45)); }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  p { margin:0; color:#a8957e; min-height:1.4em; }
+  .bar { width:320px; height:6px; background:#2b1f17; border:1px solid #4a3426; border-radius:4px; overflow:hidden; }
+  .bar i { display:block; height:100%; width:30%; background:linear-gradient(90deg, #a8662a, #ffb04a); animation:slide 1.4s ease-in-out infinite; }
+  @keyframes slide { 0% { transform:translateX(-100%); } 100% { transform:translateX(340%); } }
+  button { background:linear-gradient(#3a2a1c,#22180f); color:#d9a54a; border:1px solid #d9a54a; border-radius:4px; padding:9px 16px; font:600 14px Georgia, serif; cursor:pointer; }
+  button:hover { color:#fff; box-shadow:0 0 12px rgba(255,138,60,.45); }
+  .row { display:flex; gap:10px; }
+  small { color:#6e5d4c; position:fixed; bottom:12px; }
+</style>
+</head>
+<body>
+<div class="c">
+  <svg class="gear" viewBox="0 0 100 100"><path fill="#d9a54a" d="M43 4h14l2 12 8 3 10-7 10 10-7 10 3 8 12 2v14l-12 2-3 8 7 10-10 10-10-7-8 3-2 12H43l-2-12-8-3-10 7-10-10 7-10-3-8-12-2V43l12-2 3-8-7-10 10-10 10 7 8-3z"/><circle cx="50" cy="50" r="20" fill="#ff8a3c"/><circle cx="50" cy="50" r="9" fill="#1c1216"/></svg>
+  <h1>Taller Cinético</h1>
+  <div class="bar"><i></i></div>
+  <p id="st">Conectando con el servidor…</p>
+  <div class="row"><button id="off">Jugar sin conexión</button></div>
+  <small>F11 pantalla completa · El servidor gratuito puede tardar hasta un minuto en despertar</small>
+</div>
+<script>
+  const D = window.TC_DESKTOP;
+  document.getElementById('off').onclick = () => D && D.offline();
+  if (D) D.onStatus(s => { document.getElementById('st').textContent = s.text; });
+</script>
+</body>
+</html>

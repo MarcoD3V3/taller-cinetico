@@ -2278,3 +2278,8 @@ body.hudmin { --hud: rgba(14, 15, 17, .74); }
 .ldtip { border-top: 1px solid #e8c89022; padding-top: 10px; } .ldtip p { color: #c8b89c; } .ldtip button { border-color: #6a5236; color: #e8c890; background: #0a0705; } .ldtip button:hover { border-color: #e8c890; color: #fff2d0; }
 #ldAct button { background: linear-gradient(180deg, #2a2017, #140f0b); border: 1px solid #6a5236; color: #e8c890; border-radius: 4px; font-family: "Cinzel", Georgia, serif; } #ldAct button.pri { background: linear-gradient(180deg, #8a4a14, #3a1c06); border-color: #e8a050; color: #fff2d0; }
 @media (prefers-reduced-motion: reduce) { .ldembers i, .ldring, .ldgears svg, #loader::before { animation: none; } }
+/* Multijugador: abrir uno de mis mundos en línea */
+#olBox .mprow.ol { border:0; background:none; box-shadow:none; padding:4px 12px; gap:8px; }
+#olBox .mprow.ol:last-child { padding-bottom:12px; }
+#olBox select, #olBox input { flex:1; min-width:0; }
+#olBox label { display:flex; align-items:center; gap:6px; }
