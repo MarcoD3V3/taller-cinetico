@@ -39,8 +39,14 @@ function passable(x, y, who) {
   const d = BD[b.type];
   if (d.door) return who === 'player' || who === 'pet' || !!ghost || !!(o && o.proj);
   if (d.walk) return true;
-  return !!ghost;
+  if (ghost) return true;
+  // Vista 2,5D: de un objeto solo choca su base; por la parte de arriba se pasa por detrás (y se dibuja delante
+  // de ti). No si encima hay otro bloque sólido: así una columna de muros sigue cerrando el paso.
+  if (!(o && o.proj) && y - ty * T < T * BEHIND_FR && !solidBlockAt(tx, ty - 1)) return true;
+  return false;
 }
+const BEHIND_FR = 0.45;
+function solidBlockAt(tx, ty) { const b = at(tx, ty); if (!b) return false; const d = BD[b.type]; return !d.walk && !d.door; }
 // El jugador ocupa un poco más que un punto: se comprueban sus pies
 function playerFree(x, y) { return passable(x - 5, y + 5, 'player') && passable(x + 5, y + 5, 'player') && passable(x, y + 1, 'player'); }
 // ---------- Estadísticas ----------

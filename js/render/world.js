@@ -68,6 +68,21 @@ function drawFrontTiles(ctx) {
     ctx.drawImage(c, (tx - cx * CH) * T, (ty - cy * CH) * T, T, T, tx * T, ty * T, T, T);
   }
 }
+// Objetos delante del personaje: si estás detrás de un barril, una caja o una máquina (con los pies en la parte
+// de arriba de su casilla, o el cuerpo tapado por ella), se vuelve a dibujar encima de ti
+const FRONT_THIN = new Set(['signpost', 'lampPost', 'totemPole', 'dryingRack', 'bush', 'orePile', 'banner', 'pot', 'clanBanner', 'lichenLamp']);
+function drawFrontBlocks(ctx, k, ox, oy) {
+  const p = S.player, fy = p.y + 5, px = Math.floor(p.x / T), fr = Math.floor(fy / T); let any = false;
+  for (let ty = fr; ty <= fr + 1; ty++) for (let tx = px - 1; tx <= px + 1; tx++) {
+    const b = at(tx, ty); if (!b) continue; const d = BD[b.type], dr = DRAW[b.type];
+    if (!dr || dr.tall || (d.walk && !FRONT_THIN.has(b.type)) || d.door) continue;
+    const base = ty * T + T - 2, top = ty * T - 6; // el dibujo sobresale un poco por arriba
+    if (base <= fy || top >= fy || Math.abs(tx * T + 16 - p.x) > 26) continue;
+    if (!b._spr) b._spr = blockSprite(b);
+    ctx.setTransform(k, 0, 0, k, ox + (tx * T + 16) * k, oy + (ty * T + 16) * k); ctx.drawImage(b._spr, -20, -20, 40, 40); if (dr.a) dr.a(ctx, b, 0); any = true;
+  }
+  if (any) ctx.setTransform(k, 0, 0, k, ox, oy);
+}
 function mouseWorld() { return { x: (mouse.x - cw / 2) / view.z + view.x, y: (mouse.y - ch / 2) / view.z + view.y }; }
 let _vis = [], frameNo = 0, _staleBudget = 2;
 function render(fdt) {
@@ -149,6 +164,7 @@ function render(fdt) {
   if (sc === 1) drawTrees(ctx, k, ox, oy, x0, y0, x1, y1, false); // árboles de detrás (render/trees.js)
   drawPlayer(ctx);
   if (sc === 1) drawFrontTiles(ctx); // la roca que queda delante tapa al personaje
+  if (detail) drawFrontBlocks(ctx, k, ox, oy); // y los objetos que tienes delante (estás detrás de ellos)
   if (sc === 1) { drawTrees(ctx, k, ox, oy, x0, y0, x1, y1, true); ctx.setTransform(k, 0, 0, k, ox, oy); }
   // Partículas (render/fx.js)
   if (fdt) { fxTick(fdt); fxAmbient(fdt, x0, y0, x1, y1); } drawFxWorld(ctx); _fxOn = true;
