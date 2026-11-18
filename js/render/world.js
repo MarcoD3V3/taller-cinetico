@@ -68,20 +68,35 @@ function drawFrontTiles(ctx) {
     ctx.drawImage(c, (tx - cx * CH) * T, (ty - cy * CH) * T, T, T, tx * T, ty * T, T, T);
   }
 }
-// Objetos delante del personaje: si estás detrás de un barril, una caja o una máquina (con los pies en la parte
-// de arriba de su casilla, o el cuerpo tapado por ella), se vuelve a dibujar encima de ti
-const FRONT_THIN = new Set(['signpost', 'lampPost', 'totemPole', 'dryingRack', 'bush', 'orePile', 'banner', 'pot', 'clanBanner', 'lichenLamp']);
-function drawFrontBlocks(ctx, k, ox, oy) {
-  const p = S.player, fy = p.y + 5, px = Math.floor(p.x / T), fr = Math.floor(fy / T); let any = false;
-  for (let ty = fr; ty <= fr + 1; ty++) for (let tx = px - 1; tx <= px + 1; tx++) {
-    const b = at(tx, ty); if (!b) continue; const d = BD[b.type], dr = DRAW[b.type];
-    if (!dr || dr.tall || (d.walk && !FRONT_THIN.has(b.type)) || d.door) continue;
-    const base = ty * T + T - 2, top = ty * T - 6; // el dibujo sobresale un poco por arriba
-    if (base <= fy || top >= fy || Math.abs(tx * T + 16 - p.x) > 26) continue;
-    if (!b._spr) b._spr = blockSprite(b);
-    ctx.setTransform(k, 0, 0, k, ox + (tx * T + 16) * k, oy + (ty * T + 16) * k); ctx.drawImage(b._spr, -20, -20, 40, 40); if (dr.a) dr.a(ctx, b, 0); any = true;
+// Vista 2,5D: si alguien (tú, un animal, un enemigo, una mascota…) está detrás de un objeto, el objeto se vuelve a
+// dibujar encima de él. «Detrás» = sus pies están por encima de la base del objeto y su dibujo lo toca.
+// Los objetos planos (cintas, cables, alfombras, caminos, escaleras…) siempre quedan debajo.
+const FRONT_THIN = new Set(['signpost', 'lampPost', 'totemPole', 'dryingRack', 'bush', 'orePile', 'banner', 'pot', 'clanBanner', 'lichenLamp',
+  'chair', 'torch', 'flowerPot', 'scarecrow', 'candle', 'sapling', 'clothesline', 'stockpile', 'lamp', 'crop', 'transmitter', 'receiver', 'daysensor', 'thermometer']);
+function frontBlockOK(b) { const d = BD[b.type], dr = DRAW[b.type]; return dr && !dr.tall && !d.door && (!d.walk || FRONT_THIN.has(b.type)); }
+// who: [{x, fy: pies (para chocar), ft: pie del dibujo, hw: medio ancho}]
+function drawFrontBlocks(ctx, k, ox, oy, who) {
+  const done = new Set();
+  for (const w of who) {
+    const cx = Math.floor(w.x / T), r0 = Math.floor((w.fy - T * 0.6) / T), r1 = Math.floor((w.ft + 4) / T);
+    for (let ty = r0; ty <= r1; ty++) for (let tx = cx - 1; tx <= cx + 1; tx++) {
+      const key = tx + ',' + ty; if (done.has(key)) continue;
+      const b = at(tx, ty); if (!b || !frontBlockOK(b)) continue;
+      if (w.fy >= ty * T + T * 0.6 || w.ft <= ty * T - 4 || Math.abs(tx * T + 16 - w.x) > 18 + w.hw) continue;
+      done.add(key); if (!b._spr) b._spr = blockSprite(b);
+      ctx.setTransform(k, 0, 0, k, ox + (tx * T + 16) * k, oy + (ty * T + 16) * k); ctx.drawImage(b._spr, -20, -20, 40, 40); if (DRAW[b.type].a) DRAW[b.type].a(ctx, b, 0);
+    }
   }
-  if (any) ctx.setTransform(k, 0, 0, k, ox, oy);
+  if (done.size) ctx.setTransform(k, 0, 0, k, ox, oy);
+}
+// Las criaturas que se ven (las que vuelan no se tapan)
+function frontCreatures(x0, y0, x1, y1) {
+  const L = [], inV = (x, y) => x > x0 * T - 40 && x < (x1 + 1) * T + 40 && y > y0 * T - 40 && y < (y1 + 1) * T + 40;
+  if (typeof ANIMALS !== 'undefined') for (const a of ANIMALS) { const sp = SPECIES[a.sp]; if (!sp || sp.fly || sp.aq || !inV(a.x, a.y)) continue; const vs = animVS(sp); L.push({ x: a.x, fy: a.y, ft: a.y + sp.s * 0.6 * vs, hw: sp.s * vs * 0.6 }); }
+  if (typeof FOES !== 'undefined') for (const f of FOES) { const D = f.D; if (!D || foeWho(D) || !inV(f.x, f.y)) continue; L.push({ x: f.x, fy: f.y, ft: f.y + D.s * 0.6, hw: D.s * 0.6 }); }
+  for (const pt of S.pets || []) if (!pt.ride && inV(pt.x, pt.y)) L.push({ x: pt.x, fy: pt.y, ft: pt.y + 8, hw: 8 });
+  for (const n of S.npcs || []) if (inV(n.x, n.y)) L.push({ x: n.x, fy: n.y + 5, ft: n.y + 10, hw: 7 });
+  return L;
 }
 function mouseWorld() { return { x: (mouse.x - cw / 2) / view.z + view.x, y: (mouse.y - ch / 2) / view.z + view.y }; }
 let _vis = [], frameNo = 0, _staleBudget = 2;
@@ -162,9 +177,10 @@ function render(fdt) {
   drawCombat(ctx, k, ox, oy, x0, y0, x1, y1);
   const p = S.player, mw = mouseWorld();
   if (sc === 1) drawTrees(ctx, k, ox, oy, x0, y0, x1, y1, false); // árboles de detrás (render/trees.js)
+  if (detail) drawFrontBlocks(ctx, k, ox, oy, frontCreatures(x0, y0, x1, y1)); // animales y enemigos detrás de un objeto
   drawPlayer(ctx);
   if (sc === 1) drawFrontTiles(ctx); // la roca que queda delante tapa al personaje
-  if (detail) drawFrontBlocks(ctx, k, ox, oy); // y los objetos que tienes delante (estás detrás de ellos)
+  if (detail && !(P.z > 6)) drawFrontBlocks(ctx, k, ox, oy, [{ x: p.x, fy: p.y + 5, ft: p.y + 11 - (P.z || 0), hw: 8 }]); // y los objetos que tienes delante
   if (sc === 1) { drawTrees(ctx, k, ox, oy, x0, y0, x1, y1, true); ctx.setTransform(k, 0, 0, k, ox, oy); }
   // Partículas (render/fx.js)
   if (fdt) { fxTick(fdt); fxAmbient(fdt, x0, y0, x1, y1); } drawFxWorld(ctx); _fxOn = true;
