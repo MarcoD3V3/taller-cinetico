@@ -4,7 +4,7 @@
 //   · L: suelta 1 del objeto de la barra rápida (o de la ranura bajo el ratón en el inventario);
 //     Shift+L: la pila entera. Se lanza hacia el ratón (unas casillas) y rebota en las paredes.
 //   · En el inventario (como en Minecraft): con una pila en la mano, haz clic fuera del panel.
-//     Clic izquierdo suelta la pila; clic derecho, solo 1.
+//     Clic izquierdo suelta la pila; clic derecho, solo 1. O arrastra el objeto fuera y suelta el botón.
 //   · Se recoge al pasar por encima (lo que lanzas tú, tras un momento). Los objetos cercanos
 //     se acercan solos cuando ya se pueden coger. Duran 10 minutos en el suelo.
 //   · En línea lo ve todo el mundo; el anfitrión decide quién lo coge (nadie lo duplica).
@@ -149,7 +149,7 @@ FILL_ORDER.length = 0; for (let i = 0; i < INV_N; i++) FILL_ORDER.push(i);
   const wrap = document.createElement('div'); wrap.className = 'invwrap'; const col = document.createElement('div'); col.className = 'invcol';
   g[0].before(wrap); col.append(g[0], g[1]); wrap.append(col);
   wrap.insertAdjacentHTML('beforeend', `<aside class="invside">
-    <div class="invdrop" data-drop><span class="idi">⬇</span><b>Soltar al suelo</b><small>Con una pila cogida: clic suelta toda · clic der., 1</small></div>
+    <div class="invdrop" data-drop><span class="idi">⬇</span><b>Soltar al suelo</b><small>Arrastra aquí (o fuera del panel) y suelta · con una pila en la mano: clic suelta toda, clic der. 1</small></div>
     <div class="invtip"><kbd>L</kbd> o <kbd>Q</kbd> sobre una ranura: suelta 1 · con <kbd>Shift</kbd>, la pila · mantén pulsado para soltar seguido</div></aside>`);
 }; }
 // Clic fuera del panel con algo en la mano: se suelta (izquierdo, la pila; derecho, 1)
@@ -159,6 +159,35 @@ document.addEventListener('mousedown', e => {
   e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
   dropHeld(e.button !== 2); refreshInvUI(true);
 }, true);
+// ---------- Arrastrar y soltar de verdad ----------
+// Mantén el botón sobre un objeto, arrástralo y suelta: sobre otra ranura se coloca (o se cambia por lo que había),
+// sobre «Soltar al suelo» o fuera del panel cae al suelo, y en cualquier otro sitio vuelve a su ranura.
+// Un clic sin mover sigue como siempre: el objeto se queda en la mano hasta el siguiente clic.
+let _dd = null;
+{ const sd0 = slotDown; slotDown = (k, e) => {
+  const had = !!ui.held; sd0(k, e);
+  _dd = !had && ui.held && !e.shiftKey && !e.ctrlKey ? { from: k, x: e.clientX, y: e.clientY, id: ui.held.id } : null;
+}; }
+// Lo que quede en la mano vuelve a su ranura (si está libre) o a la mochila; si no cabe, al suelo
+function heldHome(k) {
+  const h = ui.held; if (!h) return; const r = slotRef(k);
+  if (r && !r.out && !r.get() && (!r.canPut || r.canPut(h.id))) { r.set({ id: h.id, n: h.n }); ui.held = null; return; }
+  const l = invAdd(h.id, h.n); if (l > 0) throwItem(h.id, l, P.faceA ?? Math.PI / 2); ui.held = null;
+}
+addEventListener('mouseup', e => {
+  const d = _dd; _dd = null;
+  if (!d || !S || ui.open !== 'inv' || !ui.held || ui.held.id !== d.id) return;
+  if (Math.hypot(e.clientX - d.x, e.clientY - d.y) < 8) return; // fue un clic: lo llevas en la mano
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const s = el && el.closest && el.closest('#mInv .s[data-k]');
+  if (s) { if (s.dataset.k !== d.from) slotClick(s.dataset.k, 0); heldHome(d.from); }
+  else if (!el || !el.closest || !el.closest('#mInv .modal-in') || el.closest('[data-drop]')) dropHeld(true);
+  else heldHome(d.from);
+  if (typeof drag !== 'undefined') drag.on = false;
+  refreshHeld(); refreshInvUI(true);
+}, true);
+// Si se cierra el inventario a medio arrastre no queda nada pendiente
+addEventListener('blur', () => { _dd = null; });
 // Fuera del panel el cursor avisa de que se puede soltar
 setInterval(() => { const m = document.getElementById('mInv'); if (m) m.classList.toggle('candrop', !!(ui && ui.held && ui.open === 'inv')); }, 150);
 // ---------- Dar sin perder nada ----------
