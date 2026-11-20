@@ -149,4 +149,24 @@ function csIcon(c, set, r) { const b = csBox(set.raw, 24), s0 = r / Math.max(b.w
   if (held && AV_PASS !== 1 && sa >= -0.3) { ctx.save(); ctx.translate(x + ca * w * 0.38, y - h * 0.42); ctx.rotate((swing || 0) * (ca >= 0 ? 1 : -1)); drawItem(ctx, held, 0, 0, 12 * sc / 1.6); ctx.restore(); }
   ctx.imageSmoothingEnabled = sm;
 }; }
+// Árboles propios: sprites/arboles/<nombre>.png, o <nombre>_1.png, <nombre>_2.png… (variantes; Roble → roble_1.png).
+// Escala: 1 píxel de la imagen = 1,6 unidades del mundo, el mismo píxel grande del personaje (un árbol de
+// 2×3 casillas mide unos 40×60 píxeles), sin suavizado. La parte de abajo de la imagen (sombra incluida)
+// va donde nace el árbol de serie.
+const CS_TREE_PX = 1.6, _csTreeImgs = new Map(), _csTreeSpr = new Map();
+function csTreeImgs(t) {
+  if (!CSPR.ready) return null; if (_csTreeImgs.has(t)) return _csTreeImgs.get(t);
+  const g = GI[t], n = g && _cslug(g.n), L = [];
+  if (n) { const one = csGet('arboles', n); if (one) L.push(one.raw); for (let i = 1; i <= 8; i++) { const s = csGet('arboles', n + '_' + i); if (s) L.push(s.raw); } }
+  const r = L.length ? L : null; _csTreeImgs.set(t, r); return r;
+}
+{ const t0 = treeSprite; treeSprite = (t, v, size) => {
+  const imgs = csTreeImgs(t); if (!imgs) return t0(t, v, size);
+  const key = t * 16 + v * 4 + size; let s = _csTreeSpr.get(key); if (s) return s;
+  const im = imgs[v % imgs.length], b = csBox(im, 100), k = [0.62, 0.78, 0.9, 1][size] || 1; // talado a medias: más pequeño
+  // El lienzo va a la escala de la imagen (1 píxel = 1,6 unidades): se amplía al dibujar, sin suavizado y sin deformar
+  const S2 = CS_TREE_PX * k, cw = Math.ceil(TREE_W / S2), ch = Math.ceil(TREE_H / S2), cv = csCanvas(cw, ch), c = cv.getContext('2d');
+  c.drawImage(im, b.x, b.y, b.w, b.h, Math.round(TREE_AX / S2 - b.w / 2), Math.round((TREE_AY + 6) / S2) - b.h, b.w, b.h);
+  s = { cv, k }; _csTreeSpr.set(key, s); return s;
+}; }
 csLoad();
