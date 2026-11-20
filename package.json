@@ -5,7 +5,8 @@
   "description": "Taller Cinético: juego de automatización con servidor de partidas en línea",
   "main": "servidor.js",
   "scripts": {
-    "start": "node servidor.js"
+    "start": "node servidor.js",
+    "sprites": "node sprites-lista.js"
   },
   "engines": {
     "node": ">=18"

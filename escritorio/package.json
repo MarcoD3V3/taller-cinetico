@@ -22,7 +22,8 @@
     "extraResources": [
       { "from": "../index.html", "to": "game/index.html" },
       { "from": "../css", "to": "game/css" },
-      { "from": "../js", "to": "game/js" }
+      { "from": "../js", "to": "game/js" },
+      { "from": "../sprites", "to": "game/sprites" }
     ],
     "win": { "icon": "build/icon.png", "target": ["nsis", "portable"] },
     "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "shortcutName": "Taller Cinético", "artifactName": "TallerCinetico-Instalador.exe" },
