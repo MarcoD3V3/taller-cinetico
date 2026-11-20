@@ -3,3 +3,4 @@ node_modules/
 *.log
 escritorio/node_modules/
 escritorio/dist/
+herramientas/recortador/node_modules/

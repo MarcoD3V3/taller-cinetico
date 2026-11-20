@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<title>Recortador de Sprites</title>
+<style>
+:root { --bg: #15161a; --panel: #1d1f25; --panel2: #24272e; --line: #ffffff14; --line2: #ffffff24; --txt: #e8e4dc; --mut: #9a968e; --acc: #ffb04a; --acc2: #ff8a3a; --sel: #4ad0ff; --bad: #ff6b5b; --ok: #6be08a; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; background: var(--bg); color: var(--txt); font: 13px/1.4 "Segoe UI", system-ui, sans-serif; overflow: hidden; user-select: none; }
+button, select, input { font: inherit; color: inherit; }
+button { background: var(--panel2); border: 1px solid var(--line2); border-radius: 7px; padding: 5px 10px; cursor: pointer; white-space: nowrap; }
+button:hover { border-color: #ffffff44; background: #2c2f37; }
+button.pri { background: linear-gradient(180deg, var(--acc), var(--acc2)); color: #1a1208; border-color: transparent; font-weight: 600; }
+button.pri:hover { filter: brightness(1.08); }
+button.danger:hover { border-color: var(--bad); color: var(--bad); }
+button:disabled { opacity: .45; cursor: default; }
+input, select { background: #121317; border: 1px solid var(--line2); border-radius: 6px; padding: 4px 7px; min-width: 0; }
+input:focus, select:focus { outline: none; border-color: var(--acc); }
+input[type=number] { width: 100%; }
+input[type=checkbox] { accent-color: var(--acc); }
+.app { display: grid; grid-template-rows: 48px 1fr 26px; height: 100%; }
+header { display: flex; align-items: center; gap: 8px; padding: 0 12px; background: var(--panel); border-bottom: 1px solid var(--line); }
+header h1 { font-size: 14px; margin: 0 10px 0 0; letter-spacing: .3px; display: flex; align-items: center; gap: 8px; }
+header h1 i { width: 18px; height: 18px; border-radius: 4px; background: conic-gradient(var(--acc) 0 25%, #3a3d46 0 50%, var(--acc) 0 75%, #3a3d46 0); display: inline-block; }
+.path { color: var(--mut); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 34vw; direction: rtl; text-align: left; }
+.sp { flex: 1; }
+main { display: grid; grid-template-columns: 210px 1fr 300px; min-height: 0; }
+aside { background: var(--panel); min-height: 0; overflow: auto; }
+#files { border-right: 1px solid var(--line); padding: 8px; }
+#panel { border-left: 1px solid var(--line); }
+.ttl { font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: var(--mut); margin: 4px 2px 8px; display: flex; justify-content: space-between; align-items: center; }
+.file { display: grid; grid-template-columns: 44px 1fr; gap: 8px; align-items: center; padding: 6px; border-radius: 8px; cursor: pointer; border: 1px solid transparent; }
+.file:hover { background: var(--panel2); }
+.file.on { background: #2a2418; border-color: #ffb04a66; }
+.file .th { width: 44px; height: 44px; border-radius: 6px; background: #0d0e11; display: grid; place-items: center; overflow: hidden; }
+.file .th img { max-width: 40px; max-height: 40px; image-rendering: pixelated; }
+.file b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file small { color: var(--mut); font-size: 11px; }
+.file .new { color: var(--acc); font-weight: 700; }
+.empty { color: var(--mut); padding: 10px 4px; font-size: 12px; }
+#center { display: grid; grid-template-rows: 1fr 196px; min-width: 0; min-height: 0; }
+#stage { position: relative; min-width: 0; min-height: 0; background: #0f1013; overflow: hidden; }
+#anim { display: grid; grid-template-columns: 180px 1fr 250px; border-top: 1px solid var(--line); background: var(--panel); min-height: 0; }
+#anim > div { padding: 8px 10px; min-width: 0; min-height: 0; overflow: auto; }
+.aclips { border-right: 1px solid var(--line); }
+.aprev { border-left: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
+button.mini { padding: 2px 8px; font-size: 11.5px; border-radius: 6px; }
+.btns2 { display: flex; gap: 4px; text-transform: none; letter-spacing: 0; }
+.clip { padding: 5px 8px; border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between; gap: 6px; }
+.clip:hover { background: var(--panel2); } .clip.on { background: #2a2418; outline: 1px solid #ffb04a66; }
+.clip small { color: var(--mut); }
+#frames { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; min-height: 92px; align-items: flex-start; }
+.fr { flex: 0 0 auto; width: 74px; border-radius: 7px; background: #121317; border: 1px solid var(--line2); padding: 4px; cursor: grab; position: relative; text-align: center; }
+.fr canvas { width: 64px; height: 64px; image-rendering: pixelated; display: block; margin: 0 auto; }
+.fr small { display: block; font-size: 10px; color: var(--mut); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fr.cur { border-color: var(--acc); box-shadow: 0 0 0 1px var(--acc) inset; }
+.fr.sel { background: #163040; }
+.fr.over { border-color: var(--sel); border-style: dashed; }
+.fr .x { position: absolute; top: 2px; right: 2px; width: 16px; height: 16px; padding: 0; line-height: 14px; font-size: 11px; border-radius: 4px; opacity: 0; }
+.fr:hover .x { opacity: 1; }
+#pv { width: 100%; height: 96px; background: #0d0e11; border-radius: 7px; image-rendering: pixelated; }
+.pvc { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.pvc .ck { margin: 0; font-size: 11px; }
+.pvc input#aName { flex: 1; min-width: 80px; }
+label.f.in { flex-direction: row; align-items: center; gap: 4px; } label.f.in input { width: 52px; }
+#cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#drop { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: var(--mut); pointer-events: none; }
+#drop b { display: block; color: var(--txt); font-size: 16px; margin-bottom: 6px; }
+#drop code { background: #ffffff10; padding: 2px 6px; border-radius: 5px; color: var(--acc); }
+.zoombar { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 4px; background: #1d1f25e8; border: 1px solid var(--line); border-radius: 9px; padding: 4px; }
+.zoombar button { padding: 3px 8px; }
+.sec { padding: 12px; border-bottom: 1px solid var(--line); }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.row.c4 { grid-template-columns: repeat(4, 1fr); }
+.row.c1 { grid-template-columns: 1fr; }
+label.f { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: var(--mut); }
+label.ck { display: flex; align-items: center; gap: 6px; font-size: 12px; margin: 4px 0; }
+.btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.btns button { flex: 1; }
+.hint { color: var(--mut); font-size: 11px; margin-top: 6px; }
+#list { max-height: 260px; overflow: auto; margin-top: 4px; }
+.it { display: grid; grid-template-columns: 30px 1fr auto; gap: 8px; align-items: center; padding: 4px 6px; border-radius: 6px; cursor: pointer; }
+.it:hover { background: var(--panel2); }
+.it.on { background: #163040; outline: 1px solid #4ad0ff66; }
+.it canvas { width: 28px; height: 28px; image-rendering: pixelated; background: #0d0e11; border-radius: 4px; }
+.it span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.it small { color: var(--mut); font-size: 10.5px; }
+.it.dup span { color: var(--bad); }
+footer { display: flex; gap: 16px; align-items: center; padding: 0 12px; background: var(--panel); border-top: 1px solid var(--line); color: var(--mut); font-size: 11.5px; }
+footer .dirty { color: var(--acc); }
+#toast { position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%) translateY(20px); background: #24272ef2; border: 1px solid var(--line2); border-radius: 10px; padding: 9px 14px; display: flex; gap: 12px; align-items: center; opacity: 0; pointer-events: none; transition: .2s; box-shadow: 0 10px 30px #0008; max-width: 70vw; }
+#toast.show { opacity: 1; transform: translateX(-50%); pointer-events: auto; }
+#toast.ok { border-color: #6be08a66; } #toast.bad { border-color: #ff6b5b88; }
+kbd { background: #ffffff12; border: 1px solid #ffffff22; border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; font-size: 10.5px; }
+.keys { color: var(--mut); font-size: 11px; line-height: 1.8; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1><i></i>Recortador de Sprites</h1>
+    <button id="bAdd" title="Copia imágenes a la carpeta vigilada">＋ Añadir imagen</button>
+    <button id="bIn" title="Abrir la carpeta vigilada en el explorador">📂 Carpeta</button>
+    <button id="bInChange" title="Elegir otra carpeta para vigilar">Cambiar…</button>
+    <span class="path" id="inPath"></span>
+    <span class="sp"></span>
+    <button id="bUndo" title="Deshacer (Ctrl+Z)">↶</button>
+    <button id="bRedo" title="Rehacer (Ctrl+Y)">↷</button>
+    <button id="bRevert" title="Volver a lo último guardado">Revertir</button>
+    <button id="bExport" class="pri" title="Guardar los recortes como PNG (Ctrl+S)">💾 Exportar recortes</button>
+  </header>
+  <main>
+    <aside id="files"><div class="ttl"><span>Hojas</span><span id="fCount"></span></div><div id="fileList"></div></aside>
+    <section id="center">
+    <div id="stage">
+      <canvas id="cv"></canvas>
+      <div id="drop"><div><b>Mete una imagen en la carpeta vigilada</b>y se abrirá sola aquí.<br>También puedes arrastrarla a esta ventana o usar <code>＋ Añadir imagen</code>.</div></div>
+      <div class="zoombar"><button id="zOut">−</button><button id="zFit" title="Ajustar (F)">Ajustar</button><button id="z1" title="Tamaño real (1)">1:1</button><button id="zIn">+</button></div>
+    </div>
+    <div id="anim">
+      <div class="aclips">
+        <div class="ttl"><span>Animaciones</span><button id="aNew" class="mini">＋ Nueva</button></div>
+        <div id="clipList"></div>
+      </div>
+      <div class="atl">
+        <div class="ttl"><span id="aTitle">Fotogramas</span><span class="btns2"><button id="aAddSel" class="mini" title="Añade el recorte seleccionado (A)">＋ Seleccionado</button><button id="aAddAll" class="mini" title="Añade todos los recortes en orden">＋ Todos</button><button id="aClearF" class="mini danger">Vaciar</button></span></div>
+        <div id="frames"><div class="empty">Crea una animación y añade recortes como fotogramas. Arrástralos para cambiar el orden.</div></div>
+      </div>
+      <div class="aprev">
+        <canvas id="pv"></canvas>
+        <div class="pvc">
+          <button id="aPlay" class="mini" title="Reproducir / pausar">⏸</button>
+          <label class="f in">FPS<input type="number" id="aFps" value="8" min="1" max="60"></label>
+          <label class="ck"><input type="checkbox" id="aLoop" checked>Bucle</label>
+          <label class="ck"><input type="checkbox" id="aPing">Ida y vuelta</label>
+          <label class="ck" title="Muestra el fotograma anterior en transparente"><input type="checkbox" id="aOnion">Papel cebolla</label>
+        </div>
+        <div class="pvc"><input id="aName" spellcheck="false" placeholder="nombre (p. ej. caminar/derecha)" title="Nombre del archivo de la tira; con / se crea una subcarpeta"><button id="aExport" class="mini pri" title="Guarda los fotogramas en una tira horizontal (formato del juego)">Exportar tira</button><button id="aDel" class="mini danger" title="Borrar la animación">🗑</button></div>
+      </div>
+    </div>
+    </section>
+    <aside id="panel">
+      <div class="sec">
+        <div class="ttl"><span>Recortar (Slice)</span></div>
+        <div class="row c1"><label class="f">Tipo<select id="sType">
+          <option value="auto">Automático (por transparencia)</option>
+          <option value="size">Cuadrícula por tamaño de celda</option>
+          <option value="count">Cuadrícula por número de celdas</option>
+        </select></label></div>
+        <div id="oAuto">
+          <div class="row"><label class="f" title="Dos piezas grandes más cerca que esto se unen en un solo sprite">Unir piezas a (px)<input type="number" id="aMerge" value="2" min="0" max="64"></label><label class="f" title="Las piezas más pequeñas que esto son chispas o detalles sueltos">Tamaño mínimo (px²)<input type="number" id="aMin" value="150" min="1"></label></div>
+          <div class="row"><label class="f" title="Las chispas sueltas se pegan al sprite más cercano si están a menos de esto">Pegar chispas a (px)<input type="number" id="aSpark" value="14" min="0" max="128"></label><label class="f">Margen (px)<input type="number" id="aPad" value="1" min="0" max="32"></label></div>
+          <div class="row"><label class="f">Umbral de alfa (0-255)<input type="number" id="aAlpha" value="16" min="1" max="255"></label><span></span></div>
+        </div>
+        <div id="oSize" hidden>
+          <div class="row"><label class="f">Ancho de celda<input type="number" id="gW" value="32" min="1"></label><label class="f">Alto de celda<input type="number" id="gH" value="32" min="1"></label></div>
+        </div>
+        <div id="oCount" hidden>
+          <div class="row"><label class="f">Columnas<input type="number" id="gC" value="4" min="1"></label><label class="f">Filas<input type="number" id="gR" value="4" min="1"></label></div>
+        </div>
+        <div id="oGrid" hidden>
+          <div class="row c4"><label class="f">Desp. X<input type="number" id="gOX" value="0" min="0"></label><label class="f">Desp. Y<input type="number" id="gOY" value="0" min="0"></label><label class="f">Sep. X<input type="number" id="gPX" value="0" min="0"></label><label class="f">Sep. Y<input type="number" id="gPY" value="0" min="0"></label></div>
+          <label class="ck"><input type="checkbox" id="gSkip" checked> Saltar celdas vacías</label>
+          <label class="ck"><input type="checkbox" id="gTrim"> Ajustar cada celda a su contenido</label>
+        </div>
+        <div class="row c1"><label class="f">Método<select id="sMethod"><option value="replace">Reemplazar los recortes</option><option value="add">Añadir a los que hay</option></select></label></div>
+        <div class="btns"><button id="bSlice" class="pri">✂ Recortar</button><button id="bClear" class="danger">Borrar todos</button></div>
+        <div class="hint">Arrastra en un hueco vacío para dibujar un recorte a mano.</div>
+      </div>
+      <div class="sec" id="selSec">
+        <div class="ttl"><span>Sprite seleccionado</span><span id="selIdx"></span></div>
+        <div id="selNone" class="empty">Haz clic en un recorte para editarlo.</div>
+        <div id="selBox" hidden>
+          <div class="row c1"><label class="f">Nombre del archivo<input id="iName" list="gameNames" spellcheck="false" placeholder="espada_de_bronce"></label></div>
+          <div class="row c4"><label class="f">X<input type="number" id="iX"></label><label class="f">Y<input type="number" id="iY"></label><label class="f">Ancho<input type="number" id="iW" min="1"></label><label class="f">Alto<input type="number" id="iH" min="1"></label></div>
+          <div class="row"><label class="f">Pivote<select id="iPiv">
+            <option value=".5,.5">Centro</option><option value="0,0">Arriba izquierda</option><option value=".5,0">Arriba</option><option value="1,0">Arriba derecha</option>
+            <option value="0,.5">Izquierda</option><option value="1,.5">Derecha</option><option value="0,1">Abajo izquierda</option><option value=".5,1">Abajo (pies)</option><option value="1,1">Abajo derecha</option><option value="custom">Personalizado</option>
+          </select></label><div class="row" style="margin:0"><label class="f">Piv. X<input type="number" id="iPX" step="0.05" min="0" max="1"></label><label class="f">Piv. Y<input type="number" id="iPY" step="0.05" min="0" max="1"></label></div></div>
+          <div class="row c4" title="Bordes para escalar en 9 partes (9-slice), como en Unity"><label class="f">Borde I<input type="number" id="iBL" min="0"></label><label class="f">Borde S<input type="number" id="iBT" min="0"></label><label class="f">Borde D<input type="number" id="iBR" min="0"></label><label class="f">Borde Inf<input type="number" id="iBB" min="0"></label></div>
+          <div class="btns"><button id="bTrim" title="Quitar el borde transparente">Ajustar al contenido</button><button id="bDup" title="Duplicar (Ctrl+D)">Duplicar</button><button id="bDel" class="danger" title="Borrar (Supr)">Borrar</button></div>
+          <div class="hint" id="nameHint"></div>
+        </div>
+        <datalist id="gameNames"></datalist>
+      </div>
+      <div class="sec">
+        <div class="ttl"><span>Recortes</span><span id="rCount">0</span></div>
+        <div id="list"></div>
+      </div>
+      <div class="sec">
+        <div class="ttl"><span>Exportar</span></div>
+        <div class="row c1"><label class="f">Guardar en<select id="eTarget">
+          <option value="objetos">sprites/objetos (iconos de objetos)</option>
+          <option value="animales">sprites/animales</option>
+          <option value="enemigos">sprites/enemigos</option>
+          <option value="bloques">sprites/bloques</option>
+          <option value="jugador">sprites/jugador</option>
+          <option value="custom">Otra carpeta…</option>
+        </select></label></div>
+        <div class="row"><label class="f">Tamaño<select id="eSize"><option value="0">Original</option><option value="32">32×32</option><option value="48">48×48</option><option value="64">64×64</option></select></label><label class="f">&nbsp;<button id="bOut">📁 Abrir</button></label></div>
+        <label class="ck"><input type="checkbox" id="eOver" checked> Sobrescribir si ya existe</label>
+        <div class="hint">Con el nombre de un objeto del juego (lista al escribir), el juego usa tu imagen en lugar de su dibujo.</div>
+      </div>
+      <div class="sec keys">
+        <kbd>Rueda</kbd> zoom · <kbd>Clic der.</kbd>/<kbd>Espacio</kbd>+arrastrar mover vista<br>
+        <kbd>Supr</kbd> borrar · <kbd>Flechas</kbd> mover 1 px (<kbd>Shift</kbd> 10) · <kbd>Alt</kbd>+flechas tamaño<br>
+        <kbd>Tab</kbd> siguiente · <kbd>Ctrl+D</kbd> duplicar · <kbd>A</kbd> añadir a la animación<br>
+        <kbd>Ctrl+Z</kbd>/<kbd>Ctrl+Y</kbd> · <kbd>Ctrl+S</kbd> exportar · <kbd>F</kbd> ajustar · <kbd>P</kbd> reproducir
+      </div>
+    </aside>
+  </main>
+  <footer><span id="stFile">Sin imagen</span><span id="stSize"></span><span id="stZoom"></span><span id="stPos"></span><span class="sp"></span><span id="stDirty"></span></footer>
+</div>
+<div id="toast"><span id="toastMsg"></span><button id="toastBtn" hidden></button></div>
+<script src="renderer.js"></script>
+</body>
+</html>

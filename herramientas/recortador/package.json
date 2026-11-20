@@ -1,0 +1,14 @@
+{
+  "name": "recortador-sprites",
+  "productName": "Recortador de Sprites",
+  "version": "1.0.0",
+  "description": "Recorta hojas de sprites para Taller Cinético (al estilo del Sprite Editor de Unity)",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "33.2.1"
+  }
+}
