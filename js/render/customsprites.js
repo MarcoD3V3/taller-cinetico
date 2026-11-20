@@ -104,7 +104,8 @@ function csFit(key, orig, set, frames) {
   _csFit.set(key, out); return out;
 }
 // Icono: lo que se ve de la imagen, centrado en una caja de lado «r»
-function csIcon(c, set, r) { const b = csBox(set.raw, 24), s = r / Math.max(b.w, b.h), sm = c.imageSmoothingEnabled; c.imageSmoothingEnabled = false; c.drawImage(set.raw, b.x, b.y, b.w, b.h, -b.w * s / 2, -b.h * s / 2, b.w * s, b.h * s); c.imageSmoothingEnabled = sm; }
+function csIcon(c, set, r) { const b = csBox(set.raw, 24), s0 = r / Math.max(b.w, b.h), s = s0 >= 1 ? Math.floor(s0) : s0, // escala entera: píxeles iguales y nítidos
+  sm =c.imageSmoothingEnabled; c.imageSmoothingEnabled = false; c.drawImage(set.raw, b.x, b.y, b.w, b.h, -b.w * s / 2, -b.h * s / 2, b.w * s, b.h * s); c.imageSmoothingEnabled = sm; }
 // ---------- Enganches ----------
 { const b0 = blockSprite; blockSprite = b => {
   const set = b && csBlock(b.type); if (!set) return b0(b);
@@ -113,6 +114,13 @@ function csIcon(c, set, r) { const b = csBox(set.raw, 24), s = r / Math.max(b.w,
   return c;
 }; }
 { const d0 = drawBlockIcon; drawBlockIcon = (c, id) => { const set = csItem(id); if (set) return csIcon(c, set, 34); return d0(c, id); }; }
+// Motor píxel: los objetos con sprite propio se dibujan en el mundo sin suavizado, desde la imagen original
+// (no desde una copia reescalada), así sus píxeles salen nítidos y del mismo tamaño que los del personaje.
+{ const d0 = drawItem; drawItem = (c, id, x, y, s) => {
+  const set = !BD[id] && csItem(id); if (!set) return d0(c, id, x, y, s);
+  const im = set.raw, sm = c.imageSmoothingEnabled, sz = s * 1.25; c.imageSmoothingEnabled = false;
+  c.drawImage(im, x - sz / 2, y - sz / 2, sz, sz * im.height / im.width); c.imageSmoothingEnabled = sm;
+}; }
 { const d0 = drawItemPath; drawItemPath = (c, id, s) => { const set = csItem(id); if (set) return csIcon(c, set, s * 1.15); return d0(c, id, s); }; }
 { const a0 = animalSprite; animalSprite = id => {
   const s = a0(id), sp = SPECIES[id], set = csGet('animales', id, sp && sp.n); if (!set) return s;
