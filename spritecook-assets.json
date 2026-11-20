@@ -1,5 +1,25 @@
 {
  "assets": [
-  { "asset_id": "9987ee56-5520-44ae-992c-82ddc652d783", "sha12": "ccdec73de1be", "label": "hojas/espadas.png (16 espadas)" }
+  {
+   "asset_id": "9987ee56-5520-44ae-992c-82ddc652d783",
+   "sha12": "ccdec73de1be",
+   "label": "hojas/espadas.png (16 espadas)"
+  },
+  {
+   "asset_id": "bf9268c4-796b-4a92-b83c-7f3fee0b3eb9",
+   "sha12": "8b05b18a63aa",
+   "label": "UI simplista (muestra del preset)"
+  },
+  {
+   "asset_id": "6e279b3c-160d-4ba8-849d-aaf42b24d1c8",
+   "sha12": "dba899fdefcc",
+   "label": "16 iconos HUD (css/ui)"
+  }
+ ],
+ "presets": [
+  {
+   "preset_id": "6a82a2de-2972-487c-9c02-d2f572f62e7a",
+   "title": "UI Taller simplista"
+  }
  ]
 }

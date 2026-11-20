@@ -1,0 +1,38 @@
+/* =====================================================================================
+   Estilo pixel art (Opciones → Interfaz): fuente «Taller Pixel» en todo el juego (html.pixfont)
+   y una interfaz simplista de paneles carbón con borde de latón e iconos pixel art (html.pixui).
+   Fuente dibujada para el juego (css/fonts); iconos hechos con SpriteCook (css/ui).
+   ===================================================================================== */
+@font-face { font-family: "Taller Pixel"; src: url("fonts/taller-pixel.woff") format("woff"), url("fonts/taller-pixel.ttf") format("truetype"); font-display: swap; }
+
+/* ---------- Fuente ---------- */
+html.pixfont { --display: "Taller Pixel", "Chakra Petch", ui-sans-serif, system-ui, sans-serif; --body: "Taller Pixel", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif; }
+/* Todo el juego, también lo que tenía su fuente escrita a mano (los emojis siguen saliendo de la fuente del sistema) */
+html.pixfont body, html.pixfont body *:not(svg):not(svg *) { font-family: "Taller Pixel", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif !important; letter-spacing: 0 !important; }
+html.pixfont body { -webkit-font-smoothing: none; text-rendering: optimizeSpeed; }
+
+/* ---------- Interfaz simplista ---------- */
+html.pixui { --px-line: #4a4a45; --px-dark: #0b0c0d; --px-brass: #b8892e; }
+html.pixui .panel, html.pixui .modal-in, html.pixui #hotbar, html.pixui #tip, html.pixui.hudmin #topbar, html.pixui .hudmin #topbar {
+  border-radius: 0 !important; border: 2px solid var(--px-line) !important;
+  box-shadow: 0 0 0 2px var(--px-dark), inset 0 0 0 1px #ffffff08 !important; backdrop-filter: none !important;
+}
+html.pixui .modal-in, html.pixui #tip { border-color: var(--px-brass) !important; }
+html.pixui .modal-in { background: #1c1d1f !important; }
+html.pixui #tip { background: #141517 !important; }
+/* Ranuras: cuadradas con bisel de 2 px */
+html.pixui .s { border-radius: 0 !important; border: 2px solid #3a3a37 !important; background: #2a2b2e !important; box-shadow: inset 2px 2px 0 #00000059, inset -2px -2px 0 #ffffff0c !important; }
+html.pixui .s:hover { border-color: #5a5a54 !important; }
+html.pixui .s.on, html.pixui #hotbar .s.on { border-color: var(--brass) !important; box-shadow: inset 2px 2px 0 #00000059, 0 0 0 1px var(--px-dark) !important; transform: none !important; }
+/* Botones: rectos, con sombra de 2 px abajo */
+html.pixui button { border-radius: 0 !important; border-width: 2px !important; box-shadow: inset 0 -2px 0 #00000066 !important; }
+html.pixui button:active { box-shadow: inset 0 2px 0 #00000066 !important; transform: translateY(1px); }
+html.pixui .hudmin .hbtn, html.pixui.hudmin .hbtn { box-shadow: none !important; border: 0 !important; }
+html.pixui input, html.pixui select, html.pixui textarea { border-radius: 0 !important; }
+html.pixui #mini { border-radius: 0 !important; border: 2px solid var(--px-line) !important; box-shadow: 0 0 0 2px var(--px-dark) !important; }
+html.pixui kbd { border-radius: 0 !important; }
+/* Iconos pixel art en lugar de los de línea */
+.pxic { display: none; image-rendering: pixelated; pointer-events: none; }
+html.pixui .pxic { display: inline-block; }
+html.pixui svg.lic { display: none; }
+html.pixui .hbtn:hover .pxic { filter: brightness(1.2); transform: translateY(-1px); }

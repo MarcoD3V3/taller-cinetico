@@ -6,7 +6,7 @@
 //  Reutiliza lo de opts.js / menu.js (OPT, optSet, data-opt, data-key, PZ.bind) y solo cambia
 //  cómo se ve y añade ajustes nuevos.
 // =====================================================================================
-Object.assign(OPT_DEF, { sat: 1, shakeAmt: 1, flyZoom: true, flyClouds: true, altHud: true, accent: 'brass', reduceMotion: false, cb: 'none', hiContrast: false, muteBlur: false });
+Object.assign(OPT_DEF, { sat: 1, shakeAmt: 1, flyZoom: true, flyClouds: true, altHud: true, accent: 'brass', reduceMotion: false, cb: 'none', hiContrast: false, muteBlur: false, pixFont: true, pixUi: true });
 for (const k in OPT_DEF) if (!(k in OPT)) OPT[k] = OPT_DEF[k];
 
 // ---------- Ajustes nuevos: efectos ----------
@@ -19,7 +19,7 @@ const CB_MODES = { none: 'Normal', prot: 'Protanopía', deut: 'Deuteranopía', t
 cvFilter = () => { const c = document.getElementById('c'); if (!c) return; const f = []; if (c._ill) f.push(c._ill); if (+OPT.bright !== 1) f.push('brightness(' + OPT.bright + ')'); if (+OPT.contrast !== 1) f.push('contrast(' + OPT.contrast + ')'); if (+OPT.sat !== 1) f.push('saturate(' + OPT.sat + ')'); if (OPT.cb && OPT.cb !== 'none') f.push(`url(#cb-${OPT.cb})`); const s = f.join(' ') || 'none'; if (c.style.filter !== s) c.style.filter = s; };
 { const a0 = optApply; optApply = () => { a0(); const h = document.documentElement;
   h.style.setProperty('--brass', (ACCENTS[OPT.accent] || ACCENTS.brass)[1]);
-  h.classList.toggle('rm', !!OPT.reduceMotion); h.classList.toggle('hc', !!OPT.hiContrast);
+  h.classList.toggle('rm', !!OPT.reduceMotion); h.classList.toggle('pixfont', !!OPT.pixFont); h.classList.toggle('pixui', !!OPT.pixUi); h.classList.toggle('hc', !!OPT.hiContrast);
   const pv = document.getElementById('stPrev'); if (pv) pv.style.filter = (document.getElementById('c') || {}).style?.filter || ''; }; }
 // Temblor: se escala solo lo que sube (si no, se iría encogiendo en cada fotograma)
 { let last = 0; const r0 = render; render = fdt => { if (shake > last + 1e-4) shake = last + (shake - last) * OPT.shakeAmt; r0(fdt); last = shake; }; }
@@ -47,7 +47,7 @@ const ST_CATS = {
     ['illFx', 'Visión borrosa al enfermar', 'check', 0, 0, 0, 0, 'La pantalla se emborrona cuando tu personaje está enfermo.'],
     ['flyClouds', 'Nubes al volar alto', 'check', 0, 0, 0, 0, 'Al subir con alas o cohetes pasan nubes por delante.']]],
   perf: ['Rendimiento', 'M13 2L4 14h7l-1 8 9-12h-7z', 'Elige un perfil y el juego ajusta varios efectos de golpe. Luego puedes retocar cada uno.', [
-    ['fps', 'Mostrar FPS', 'check', 0, 0, 0, 0, 'Muestra en una esquina las imágenes por segundo (también con P o F3).']]],
+    ['fps', 'Mostrar FPS', 'check', 0, 0, 0, 0, 'Muestra en una esquina las imágenes por segundo (también con F3).']]],
   cam: ['Cámara y ratón', 'M4 8h3l2-3h6l2 3h3v11H4z M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', 'Cómo te sigue la cámara y qué hace la rueda del ratón.', [
     ['camFollow', 'Velocidad de la cámara', 'range', 2, 20, 1, v => v < 5 ? 'Muy suave' : v < 9 ? 'Suave' : v < 14 ? 'Rápida' : 'Instantánea', 'Lo rápido que la cámara alcanza a tu personaje.'],
     ['zoomSens', 'Sensibilidad del zoom', 'range', 0.3, 3, 0.1, v => '×' + (+v).toFixed(1), 'Cuánto se acerca o aleja con cada paso de la rueda.'],
@@ -67,6 +67,8 @@ const ST_CATS = {
     ['chatFade', 'Se oculta tras', 'range', 4, 60, 1, v => v + ' s', 'Segundos que siguen visibles los mensajes nuevos.']]],
   acc: ['Accesibilidad', 'M12 4a2 2 0 1 0 0 .01 M5 8l7 1 7-1 M12 9v5l-3 6 M12 14l3 6', 'Para que el juego se vea y se juegue cómodo para todos.', [
     ['cb', 'Modo daltónico', 'seg', Object.entries(CB_MODES), 0, 0, 0, 'Ajusta los colores del mundo para distinguir mejor rojos, verdes o azules.'],
+    ['pixFont', 'Fuente pixel art', 'check', 0, 0, 0, 0, 'Todos los textos del juego con la fuente de píxeles «Taller Pixel». Apágalo para volver a la de siempre.'],
+    ['pixUi', 'Interfaz pixel art', 'check', 0, 0, 0, 0, 'Paneles rectos con borde de latón, ranuras con bisel e iconos de píxeles. Apágalo para la interfaz redondeada.'],
     ['hiContrast', 'Interfaz de alto contraste', 'check', 0, 0, 0, 0, 'Paneles más opacos, bordes y textos secundarios más claros.'],
     ['reduceMotion', 'Reducir animaciones de menús', 'check', 0, 0, 0, 0, 'Las ventanas aparecen al instante, sin deslizarse ni brillar.']]],
   game: ['Juego', 'M6 12h4 M8 10v4 M15 11h.01 M18 13h.01 M3 8a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v6a5 5 0 0 1-9 3 5 5 0 0 1-9-3z', 'Guardado y avisos. También puedes llevarte tus ajustes a otro navegador.', [

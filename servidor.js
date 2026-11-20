@@ -24,7 +24,7 @@ let DB = null; const MAX_SAVE = 8e6;
 const baseOf = req => PUBLIC || ((req.headers['x-forwarded-proto'] || 'http').split(',')[0] + '://' + req.headers.host);
 const oauthStates = new Map();
 const redirect = (res, to) => { res.writeHead(302, { Location: to, 'Cache-Control': 'no-store' }); res.end(); };
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg', '.wav': 'audio/wav' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg', '.wav': 'audio/wav' };
 // Carpetas que puede pedir el navegador. Todo lo demás (raíz, .datos, node_modules) no se sirve.
 const STATIC_DIRS = ['css', 'js', 'assets', 'img', 'audio', 'fonts', 'sprites'];
 // Sprites propios (carpeta sprites/): la lista de imágenes se rehace al arrancar
