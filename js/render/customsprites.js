@@ -165,8 +165,9 @@ function csTreeImgs(t) {
   const key = t * 16 + v * 4 + size; let s = _csTreeSpr.get(key); if (s) return s;
   const im = imgs[v % imgs.length], b = csBox(im, 100), k = [0.62, 0.78, 0.9, 1][size] || 1; // talado a medias: más pequeño
   // El lienzo va a la escala de la imagen (1 píxel = 1,6 unidades): se amplía al dibujar, sin suavizado y sin deformar
-  const S2 = CS_TREE_PX * k, cw = Math.ceil(TREE_W / S2), ch = Math.ceil(TREE_H / S2), cv = csCanvas(cw, ch), c = cv.getContext('2d');
-  c.drawImage(im, b.x, b.y, b.w, b.h, Math.round(TREE_AX / S2 - b.w / 2), Math.round((TREE_AY + 6) / S2) - b.h, b.w, b.h);
-  s = { cv, k }; _csTreeSpr.set(key, s); return s;
+  // Lienzo del tamaño del árbol (+1 px de margen): nunca se corta, por ancho que sea
+  const S2 = CS_TREE_PX * k, cw = b.w + 2, ch = b.h + 2, cv = csCanvas(cw, ch), c = cv.getContext('2d');
+  c.drawImage(im, b.x, b.y, b.w, b.h, 1, 1, b.w, b.h);
+  s = { cv, k, dw: cw * S2, dh: ch * S2, ax: (1 + b.w / 2) * S2, ay: (1 + b.h) * S2 - 6 }; _csTreeSpr.set(key, s); return s;
 }; }
 csLoad();

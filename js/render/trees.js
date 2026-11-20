@@ -142,7 +142,7 @@ function drawTrees(ctx, k, ox, oy, x0, y0, x1, y1, front) {
       const tx = list[i], ty = list[i + 1]; if (tx < x0 - 2 || tx > x1 + 2 || ty < y0 - 1 || ty > y1 + 5) continue;
       const baseY = ty * T + 26; if ((baseY > pty) !== front) continue;
       const s = treeSprite(list[i + 2], list[i + 3] & 3, list[i + 3] >> 2);
-      dc.drawImage(s.cv, tx * T + 16 - TREE_AX, baseY - TREE_AY, TREE_W, TREE_H);
+      dc.drawImage(s.cv, tx * T + 16 - (s.ax ?? TREE_AX), baseY - (s.ay ?? TREE_AY), s.dw || TREE_W, s.dh || TREE_H); // los árboles propios traen su tamaño
     }
   }
   if (layer) {
