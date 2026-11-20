@@ -29,7 +29,10 @@ function drawPlayer(ctx) {
   // En un hoyo: el borde del suelo de delante tapa los pies (y más cuanto más hondo; ver world/layers.js)
   const hc = !swm && !m && typeof holeCut === 'function' ? holeCut(x, p.y) : null;
   if (hc !== null) { ctx.save(); ctx.beginPath(); ctx.rect(x - 60, y - 120, 120, hc - (y - 120)); ctx.clip(); }
-  drawAvatar(ctx, ch.look, S.equip, x, y + 8 - z + (swm === 2 ? 9 + bob : swm ? 2 : 0), fa, air ? 1.2 : P.walk, (moving || air) && !m, 1.6, held, sw2);
+  const avArgs = [ctx, ch.look, S.equip, x, y + 8 - z + (swm === 2 ? 9 + bob : swm ? 2 : 0), fa, air ? 1.2 : P.walk, (moving || air) && !m, 1.6, held, sw2];
+  const cut = held && (swm || hc !== null); // recortado: el cuerpo dentro del recorte y el arma entera encima
+  if (cut) AV_PASS = 1; drawAvatar(...avArgs); AV_PASS = 0;
+  if (cut) { if (hc !== null) ctx.restore(); if (swm) ctx.restore(); AV_PASS = 2; drawAvatar(...avArgs); AV_PASS = 0; if (swm) ctx.save(); if (hc !== null) ctx.save(); }
   if (hc !== null) { ctx.restore(); ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(x, hc, 11, 2.2, 0, 0, 7); ctx.fill(); }
   if (swm) { ctx.restore(); ctx.globalAlpha = 1;
     // Superficie alrededor del cuerpo: anillo claro y brillo que se mueve con el oleaje

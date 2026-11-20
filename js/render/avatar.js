@@ -283,16 +283,18 @@ function avatarSheet(look, equip) {
 function avatarDir(a) { const o = Math.round(((a + Math.PI * 2) % (Math.PI * 2)) / (Math.PI / 4)) % 8; return [[2, 0], [1, 0], [0, 0], [1, 1], [2, 1], [3, 1], [4, 0], [3, 0]][o]; }
 // Mano que sujeta el objeto en cada dirección (en píxeles del cuerpo, sin margen)
 const AV_HAND = [[3, 15], [12, 15], [10, 15], [12, 13], [12, 14]];
+// Pasada: 0 = todo, 1 = solo el cuerpo, 2 = solo el objeto de la mano (para recortar el cuerpo en el agua o en un hoyo sin cortar el arma)
+let AV_PASS = 0;
 function drawAvatar(ctx, look, equip, x, y, ang, walk, moving, sc = 2, held, swing) {
   const sh = avatarSheet(look, equip), [d, flip] = avatarDir(ang), f = moving ? 1 + (Math.floor(walk) & 3) : 0;
   const w = sh.FW * sc, h = sh.FH * sc, ox = -w / 2, oy = -h + 4 * sc;
   ctx.save(); ctx.translate(Math.round(x), Math.round(y)); if (flip) ctx.scale(-1, 1);
   const smooth = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
-  const drawHeld = () => { if (!held) return; const [hx, hy] = AV_HAND[d], an = sh.an && sh.an[d * AV_FR + f], px = ox + (hx + 1 + AV_M) * sc, py = oy + (hy + 1 + AV_M + (an ? an.yo || 0 : 0)) * sc;
+  const drawHeld = () => { if (!held || (AV_PASS === 1 && d < 3) || (AV_PASS === 2 && d >= 3)) return; const [hx, hy] = AV_HAND[d], an = sh.an && sh.an[d * AV_FR + f], px = ox + (hx + 1 + AV_M) * sc, py = oy + (hy + 1 + AV_M + (an ? an.yo || 0 : 0)) * sc;
     if (typeof avHeld === 'function') { ctx.imageSmoothingEnabled = smooth; avHeld(ctx, held, d, flip, ang, swing, px, py, sc, f); ctx.imageSmoothingEnabled = false; return; }
     ctx.save(); ctx.translate(px, py); const base = d === 0 ? 2.4 : d === 4 ? -0.8 : 0.6; ctx.rotate(base + (swing || 0)); const s = ITEMS[held] && (ITEMS[held].weapon || ITEMS[held].tool) ? 20 : 12; ctx.imageSmoothingEnabled = smooth; drawItem(ctx, held, s * 0.3, -s * 0.3, s); ctx.restore(); };
   if (d >= 3) drawHeld();
-  ctx.drawImage(sh.cv, f * sh.FW * 2, d * sh.FH * 2, sh.FW * 2, sh.FH * 2, ox, oy, w, h); // hoja a doble resolución
+  if (AV_PASS !== 2) ctx.drawImage(sh.cv, f * sh.FW * 2, d * sh.FH * 2, sh.FW * 2, sh.FH * 2, ox, oy, w, h); // hoja a doble resolución
   if (d < 3) drawHeld();
   ctx.imageSmoothingEnabled = smooth; ctx.restore();
 }

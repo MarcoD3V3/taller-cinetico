@@ -144,9 +144,9 @@ function csIcon(c, set, r) { const b = csBox(set.raw, 24), s0 = r / Math.max(b.w
   const f = moving && n > 1 ? d.walk[Math.floor(ph / (Math.PI * 2) * n) % n] : d.idle;
   const bb = set.box, k = CS_AV_H * sc / 1.6 / bb.h, w = bb.w * k, h = bb.h * k;
   const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
-  if (held && sa < -0.3) drawItem(ctx, held, x + ca * w * 0.35, y - h * 0.45, 12 * sc / 1.6); // mirando hacia arriba: el objeto queda detrás
-  ctx.drawImage(f, bb.x, bb.y, bb.w, bb.h, x - w / 2, y + 3 - h, w, h); // los pies, donde los del dibujo de serie
-  if (held && sa >= -0.3) { ctx.save(); ctx.translate(x + ca * w * 0.38, y - h * 0.42); ctx.rotate((swing || 0) * (ca >= 0 ? 1 : -1)); drawItem(ctx, held, 0, 0, 12 * sc / 1.6); ctx.restore(); }
+  if (held && AV_PASS !== 1 && sa < -0.3) drawItem(ctx, held, x + ca * w * 0.35, y - h * 0.45, 12 * sc / 1.6); // mirando hacia arriba: el objeto queda detrás
+  if (AV_PASS !== 2) ctx.drawImage(f, bb.x, bb.y, bb.w, bb.h, x - w / 2, y + 3 - h, w, h); // los pies, donde los del dibujo de serie
+  if (held && AV_PASS !== 1 && sa >= -0.3) { ctx.save(); ctx.translate(x + ca * w * 0.38, y - h * 0.42); ctx.rotate((swing || 0) * (ca >= 0 ? 1 : -1)); drawItem(ctx, held, 0, 0, 12 * sc / 1.6); ctx.restore(); }
   ctx.imageSmoothingEnabled = sm;
 }; }
 csLoad();

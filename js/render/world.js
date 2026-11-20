@@ -65,7 +65,9 @@ function drawFrontTiles(ctx) {
     const g = GI[gnd(tx, ty)]; if (!g.solid || g.tree || g.flora || g.liquid) continue;
     if (typeof fogHidden === 'function' && fogHidden(tx, ty)) continue;
     const cx = Math.floor(tx / CH), cy = Math.floor(ty / CH), c = chunks.get(chunkKey(cx, cy)); if (!c) continue;
-    ctx.drawImage(c, (tx - cx * CH) * T, (ty - cy * CH) * T, T, T, tx * T, ty * T, T, T);
+    // Solo hasta los pies: la roca tapa los pies, pero no corta el arma que asoma por debajo (al apuntar hacia abajo)
+    const h = Math.min(T, Math.ceil(p.y + 14 - (P.z || 0) - ty * T)); if (h <= 0) continue;
+    ctx.drawImage(c, (tx - cx * CH) * T, (ty - cy * CH) * T, T, h, tx * T, ty * T, T, h);
   }
 }
 // Vista 2,5D: si alguien (tú, un animal, un enemigo, una mascota…) está detrás de un objeto, el objeto se vuelve a
