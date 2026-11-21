@@ -36,7 +36,10 @@ const _gdPick = new Map(); // tipo de suelo → lista ponderada de categorías
 function gdSets() {
   if (_gd || typeof CSPR === 'undefined' || !CSPR.ready) return _gd;
   const out = {};
-  for (const [key, set] of CSPR.sets) { if (!key.startsWith('suelo/')) continue; const cat = key.slice(6).replace(/_?\d+$/, ''); (out[cat] = out[cat] || []).push(set.raw); }
+  for (const [key, set] of CSPR.sets) { if (!key.startsWith('suelo/')) continue; const cat = key.slice(6).replace(/_?\d+$/, '');
+    const a = typeof ajSpr === 'function' && ajSpr(key); if (a && a.oculto) continue; // oculto en el motor
+    if (window.MOTOR_SOLO && window.MOTOR_SOLO.startsWith('suelo/' + cat) && window.MOTOR_SOLO !== key && window.MOTOR_SOLO.replace(/_?\d+$/, '') === 'suelo/' + cat) continue; // probando una sola imagen
+    set.raw.__key = key; (out[cat] = out[cat] || []).push(set.raw); }
   // Las piedras y rocas usan las rocas nuevas (rocam_*), a 1 píxel = 1 unidad como las del mundo
   const R = g => out['rocam_' + g] || [];
   if (R('gris').length) {
@@ -73,7 +76,7 @@ function gdVariant(im, cat, si, hi, rot) {
   const hues = GD_HUE[cat]; if (hues && hues[hi % hues.length]) g.filter = `hue-rotate(${hues[hi % hues.length]}deg)`;
   g.drawImage(im, 0, 0, w, h); // vecino más cercano: no se emborrona
   if (rot) { c = mkCanvas(h, w); const g2 = c.getContext('2d'); g2.translate(h, 0); g2.rotate(Math.PI / 2); g2.drawImage(a, 0, 0); } else c = a;
-  _gdVar.set(k2, c); return c;
+  c.__key = im.__key; _gdVar.set(k2, c); return c;
 }
 // Qué hay en una casilla: { cat, im, px, py, w, h, flip } o null. Nunca en el borde entre dos suelos
 // (así no tapa las transiciones), ni donde hay un bloque, ni lo ya recogido.
@@ -113,7 +116,21 @@ function gdPatch(tx, ty, t) {
   if (!out.length) return null;
   out.sort((a, b) => a.py - b.py); out[0].group = out; return out[0];
 }
-function gdAt0(tx, ty) {
+// Ajustes del motor por imagen: escala, mover dibujo, línea de orden, choque, viento
+function gdAdj(o) {
+  if (!o || typeof ajSpr !== 'function') return o;
+  for (const q of o.group || [o]) {
+    const a = ajSpr(q.im && q.im.__key); if (!a) continue;
+    if (a.esc && a.esc !== 1) { const w0 = q.w, h0 = q.h; q.w *= a.esc; q.h *= a.esc; q.px += (w0 - q.w) / 2; if (!q.tall && !q.up) q.py += 0; }
+    if (a.dx) q.px += a.dx * (q.flip ? -1 : 1);
+    q.oy = a.dy || 0; q.sortDy = a.orden || 0;
+    if (a.col) q.col = { cx: a.col.cx, cy: a.col.cy, rx: a.col.rx, ry: a.col.ry };
+    if (a.viento != null) q.sw = (q.sw || (GD_SWAY[q.cat] ? GD_SWAY[q.cat][0] : 1)) * a.viento;
+  }
+  return o;
+}
+function gdAt0(tx, ty) { return gdAdj(gdAt00(tx, ty)); }
+function gdAt00(tx, ty) {
   if (OPT.decor === false || !gdSets() || !Object.keys(_gd).length) return null;
   const t = gnd(tx, ty);
   if (gdPatchCats(t) && !at(tx, ty) && !(S && S.picked && S.picked['g' + tx + ',' + ty])) { const pg = gdPatch(tx, ty, t); if (pg) return pg; }
@@ -145,9 +162,9 @@ function drawGroundDecor(ctx, k, ox, oy, x0, y0, x1, y1) {
 }
 function gdPut(ctx, o) {
   {
-    const x = Math.round(o.px), y = Math.round(o.py - o.h);
+    const x = Math.round(o.px), y = Math.round(o.py - o.h + (o.oy || 0));
     // perspectiva: sombra pequeña en el suelo, bajo el objeto (vista 3/4 como el resto del juego)
-    if (!o.nosh) ctx.fillStyle = 'rgba(0,0,0,.22)'; else ctx.fillStyle = 'rgba(0,0,0,.08)'; ctx.beginPath(); ctx.ellipse(x + o.w / 2 + 1, o.py - 0.5, o.w * 0.42, Math.max(1.2, o.h * 0.14), 0, 0, 7); ctx.fill();
+    if (!o.nosh) ctx.fillStyle = 'rgba(0,0,0,.22)'; else ctx.fillStyle = 'rgba(0,0,0,.08)'; ctx.beginPath(); ctx.ellipse(x + o.w / 2 + 1, o.py + (o.oy || 0) - 0.5, o.w * 0.42, Math.max(1.2, o.h * 0.14), 0, 0, 7); ctx.fill();
     const sw = o.sw && typeof windSway === 'function' ? windSway(o.seed, o.sw) : 0;
     if (o.flip || Math.abs(sw) > 0.05) { ctx.save(); ctx.translate(x + o.w / 2, y + o.h); if (sw) ctx.transform(1, 0, -sw / o.h, 1, 0, 0); if (o.flip) ctx.scale(-1, 1); ctx.drawImage(o.im, -o.w / 2, -o.h, o.w, o.h); ctx.restore(); }
     else ctx.drawImage(o.im, x, y, o.w, o.h);
@@ -190,6 +207,6 @@ function treeExtras(items, dc, x0, y0, x1, y1, front, pty) {
   if (OPT.decor === false || !gdSets()) return;
   for (let ty = y0 - 1; ty <= y1 + 3; ty++) for (let tx = x0 - 2; tx <= x1 + 2; tx++) {
     const o0 = gdAt(tx, ty); if (!o0 || !o0.up || (typeof fogHidden === 'function' && fogHidden(tx, ty))) continue;
-    for (const o of o0.group || [o0]) if ((o.py > pty) === front) items.push([o.py, () => gdPut(dc, o)]);
+    for (const o of o0.group || [o0]) { const sy = o.py + (o.sortDy || 0); if ((sy > pty) === front) items.push([sy, () => gdPut(dc, o)]); }
   }
 }

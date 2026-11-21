@@ -177,20 +177,34 @@ function csShadowFix(img) {
 function csTreeImgs(t) {
   if (!CSPR.ready) return null; if (_csTreeImgs.has(t)) return _csTreeImgs.get(t);
   const g = GI[t], n = g && _cslug(g.n), L = [];
-  if (n) { const one = csGet('arboles', n); if (one) L.push(one.raw); for (let i = 1; i <= 48; i++) { const s = csGet('arboles', n + '_' + i); if (s) L.push(s.raw); } }
-  const r = L.length ? L.map(csShadowFix) : null; _csTreeImgs.set(t, r); return r;
+  // cada imagen recuerda su archivo (para los ajustes del motor); las ocultas en el motor no salen
+  const add = (s, k) => { if (!s) return; const a = ajSpr(k); if (a && a.oculto) return; if (window.MOTOR_SOLO && window.MOTOR_SOLO.startsWith('arboles/' + n) && window.MOTOR_SOLO !== k) return; s.raw.__key = k; L.push(s.raw); };
+  if (n) { add(csGet('arboles', n), 'arboles/' + n); for (let i = 1; i <= 64; i++) add(csGet('arboles', n + '_' + i), 'arboles/' + n + '_' + i); }
+  const r = L.length ? L.map(im => { const c = csShadowFix(im); c.__key = im.__key; return c; }) : null; _csTreeImgs.set(t, r); return r;
+}
+// Ajustes del motor (sprites/ajustes.js, herramienta «motor.bat»): por imagen
+const AJ = () => window.AJUSTES || {}, ajSpr = k => (k && AJ().sprites && AJ().sprites[k]) || null;
+// Un árbol listo para dibujar: su lienzo, tamaño, punto de anclaje y choque. a = ajustes de esa imagen
+// (escala, mover dibujo, choque propio o sin choque, línea de orden, viento). Lo usa también el motor para la vista previa.
+function csTreeMake(im, flip, k, a) {
+  a = a || {}; const b = csBox(im, 40), esc = a.esc || 1;
+  // El lienzo va a la escala de la imagen (1 píxel = 1,6 unidades): se amplía al dibujar, sin suavizado y sin deformar
+  // Lienzo del tamaño del árbol (+1 px de margen): nunca se corta, por ancho que sea
+  const S2 = CS_TREE_PX * k * esc, cw = b.w + 2, ch = b.h + 2, cv = mkCanvas(cw, ch), c = cv.getContext('2d', { willReadFrequently: true }); c.imageSmoothingEnabled = false;
+  if (flip) { c.translate(cw, 0); c.scale(-1, 1); } c.drawImage(im, b.x, b.y, b.w, b.h, 1, 1, b.w, b.h);
+  const mx = flip ? -1 : 1, dx = (a.dx || 0) * k * mx, dy = (a.dy || 0) * k;
+  const s = { cv, k, dw: cw * S2, dh: ch * S2, ax: (1 + b.w / 2) * S2 - dx, ay: (1 + b.h) * S2 - 6 - dy, sortDy: (a.orden || 0) * k, wind: a.viento ?? 1, key: im.__key };
+  if (a.col === false) { s.col = null; s.noCol = true; }
+  else if (a.col) s.col = { cx: a.col.cx * k * mx, cy: a.col.cy * k, rx: a.col.rx * k, ry: a.col.ry * k };
+  else s.col = csTrunkBase(c, cw, ch, S2, s.ax, s.ay);
+  return s;
 }
 { const t0 = treeSprite; treeSprite = (t, v, size) => {
   const imgs = csTreeImgs(t); if (!imgs) return t0(t, v, size);
   const key = t * 256 + v * 4 + size; let s = _csTreeSpr.get(key); if (s) return s;
   // variante: qué dibujo y si va en espejo (así cada árbol del bosque es distinto al de al lado)
-  const im = imgs[(v >> 1) % imgs.length], flip = v & 1, b = csBox(im, 40), k = [0.62, 0.78, 0.9, 1][size] || 1; // talado a medias: más pequeño
-  // El lienzo va a la escala de la imagen (1 píxel = 1,6 unidades): se amplía al dibujar, sin suavizado y sin deformar
-  // Lienzo del tamaño del árbol (+1 px de margen): nunca se corta, por ancho que sea
-  const S2 = CS_TREE_PX * k, cw = b.w + 2, ch = b.h + 2, cv = csCanvas(cw, ch), c = cv.getContext('2d');
-  if (flip) { c.translate(cw, 0); c.scale(-1, 1); } c.drawImage(im, b.x, b.y, b.w, b.h, 1, 1, b.w, b.h);
-  s = { cv, k, dw: cw * S2, dh: ch * S2, ax: (1 + b.w / 2) * S2, ay: (1 + b.h) * S2 - 6 };
-  s.col = csTrunkBase(c, cw, ch, S2, s.ax, s.ay); _csTreeSpr.set(key, s); return s;
+  const im = imgs[(v >> 1) % imgs.length], flip = v & 1, k = [0.62, 0.78, 0.9, 1][size] || 1; // talado a medias: más pequeño
+  s = csTreeMake(im, flip, k, ajSpr(im.__key)); _csTreeSpr.set(key, s); return s;
 }; }
 // Choque del árbol: la base del tronco (y raíces) tal como está dibujada, no un punto en el centro de la casilla.
 // Se mira la fila opaca más baja del dibujo (la sombra es translúcida y no cuenta) y el ancho del tronco ahí.
@@ -213,10 +227,16 @@ function treeBlocks(x, y) {
   for (let ty = ty0 - 1; ty <= ty0 + 1; ty++) for (let tx = tx0 - 1; tx <= tx0 + 1; tx++) {
     const ch = peekChunk(tx >> CSH, ty >> CSH); if (!ch) continue;
     const i = ((ty & CMASK) << CSH) | (tx & CMASK), t = ch.g[i], g = GI[t]; if (!g.tree) continue;
-    let col = null;
-    if (csTreeImgs(t)) { const sz = g.hp ? clamp(Math.round((ch.t[i] || g.hp) / g.hp * 3), 0, 3) : 3; col = treeSprite(t, (hash2(tx, ty, 61) * 64) | 0, sz).col; }
+    let col = null, noCol = false;
+    if (csTreeImgs(t)) { const sz = g.hp ? clamp(Math.round((ch.t[i] || g.hp) / g.hp * 3), 0, 3) : 3, sp = treeSprite(t, (hash2(tx, ty, 61) * 64) | 0, sz); col = sp.col; noCol = !!sp.noCol; }
+    if (noCol) continue;
     if (col) { const dx = (x - (tx * T + 16) - col.cx) / col.rx, dy = (y - (ty * T + 26) - col.cy) / col.ry; if (dx * dx + dy * dy < 1) return true; }
     else if (tx === tx0 && ty === ty0) { const dx = x - (tx * T + 16), dy = (y - (ty * T + 25)) * 1.6, r = g.tree.big || g.tree.s === 'jungle' || g.tree.s === 'baobab' ? 9 : 6.5; if (dx * dx + dy * dy < r * r) return true; }
+  }
+  // matas y objetos del suelo con choque puesto en el motor
+  if (typeof gdAt === 'function') for (let ty = ty0 - 1; ty <= ty0 + 1; ty++) for (let tx = tx0 - 1; tx <= tx0 + 1; tx++) {
+    const o0 = gdAt(tx, ty); if (!o0) continue;
+    for (const o of o0.group || [o0]) { if (!o.col) continue; const dx = (x - (o.px + o.w / 2) - o.col.cx * (o.flip ? -1 : 1)) / o.col.rx, dy = (y - o.py - o.col.cy) / o.col.ry; if (dx * dx + dy * dy < 1) return true; }
   }
   return false;
 }

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Motor de sprites · Taller Cinético</title>
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+<header>
+  <div class="marca"><b>MOTOR DE SPRITES</b><span>Taller Cinético</span></div>
+  <div class="barra">
+    <button id="bSubir" title="Añadir tus imágenes PNG o WEBP">＋ Subir sprites</button>
+    <span class="sep"></span>
+    <button id="bGuardar" class="pri" disabled title="Escribe los cambios en el código del juego (sprites/ajustes.js)">Guardar en el juego</button>
+    <button id="bExportar" title="Descargar los ajustes (ajustes.js)">Exportar</button>
+    <label class="btn" title="Cargar un ajustes.js exportado">Importar<input id="fImportar" type="file" accept=".js,.json" hidden></label>
+    <span class="sep"></span>
+    <button id="bProbar" class="ok" title="Abre el juego con este sprite y tus cambios (sin guardar nada)">▶ Probar</button>
+    <span id="estado" class="mut"></span>
+  </div>
+</header>
+<main>
+  <aside id="izq">
+    <input id="buscar" type="search" placeholder="Buscar sprite…">
+    <div class="filtros"><button data-f="todo" class="on">Todo</button><button data-f="arboles">Árboles</button><button data-f="suelo">Suelo</button></div>
+    <div id="lista"><p class="mut pad">Cargando el juego…</p></div>
+  </aside>
+  <section id="centro">
+    <canvas id="vista"></canvas>
+    <div class="ayuda">
+      <span><i class="k sw"></i>Arrastra el dibujo para moverlo</span>
+      <span><i class="k rojo"></i>Choque: centro y bordes</span>
+      <span><i class="k azul"></i>Línea de orden</span>
+      <span><i class="k amar"></i>Personaje de prueba (arrástralo)</span>
+      <span class="mut">Rueda: zoom · Mayús: pasos finos</span>
+    </div>
+  </section>
+  <aside id="der"><p class="mut pad">Elige un sprite de la lista.</p></aside>
+</main>
+
+<!-- Probar -->
+<div class="modal" id="mProbar" hidden><div class="caja">
+  <h3>Probar en el juego</h3>
+  <label>Mundo<select id="pMundo"></select></label>
+  <label>Suelo del mundo pequeño<select id="pSuelo"></select></label>
+  <label class="chk"><input type="checkbox" id="pSolo" checked> Solo esta imagen (en su tipo o categoría)</label>
+  <p class="mut small">Se abre el juego en otra pestaña con tus cambios, aunque no estén guardados. No se guarda nada de esa partida. Dentro, pulsa <b>C</b> para ver los choques (rojo) y las líneas de orden (azul).</p>
+  <div class="fila"><button id="pPegar">Pegar un mundo exportado…</button><span class="esp"></span><button data-cerrar>Cancelar</button><button class="ok" id="pIr">▶ Abrir</button></div>
+</div></div>
+<div class="modal" id="mPegar" hidden><div class="caja">
+  <h3>Traer un mundo</h3>
+  <p class="mut small">En el juego: Un jugador → tu mundo → <b>Exportar</b> → Copiar. Pégalo aquí: se copia al motor para probar (el original no se toca).</p>
+  <textarea id="tMundo" rows="6" placeholder="{&quot;v&quot;:3, …}"></textarea>
+  <div class="fila"><span class="esp"></span><button data-cerrar>Cancelar</button><button class="pri" id="bPegarOk">Traer</button></div>
+</div></div>
+<!-- Subir -->
+<div class="modal" id="mSubir" hidden><div class="caja">
+  <h3>Subir sprites</h3>
+  <label>Imágenes (PNG o WEBP, con fondo transparente)<input type="file" id="sArchivos" accept="image/png,image/webp" multiple></label>
+  <div class="fila"><label class="chk"><input type="radio" name="sDest" value="arboles" checked> Árbol</label><label class="chk"><input type="radio" name="sDest" value="suelo"> Suelo (flores, pastos, arbustos, piedras…)</label></div>
+  <label id="sTipoL">Tipo de árbol<select id="sTipo"></select></label>
+  <label id="sCatL" hidden>Categoría (una existente o una nueva: solo minúsculas, números y _)<input id="sCat" list="dlCats" placeholder="arbusto_p, flor, pasto_verde…"><datalist id="dlCats"></datalist></label>
+  <p class="mut small">Escala: 1 píxel de la imagen = 1,6 unidades del juego (como el personaje y los árboles). Se guardan como <code>nombre_N.png</code> en <code>sprites/</code>. Luego puedes ajustar todo y repartirlas por biomas.</p>
+  <div id="sPrev" class="prev"></div>
+  <div class="fila"><span class="esp"></span><button data-cerrar>Cancelar</button><button class="pri" id="bSubirOk">Subir</button></div>
+</div></div>
+<div id="toast" hidden></div>
+<iframe id="juego" title="juego" aria-hidden="true"></iframe>
+<script src="app.js"></script>
+</body>
+</html>
