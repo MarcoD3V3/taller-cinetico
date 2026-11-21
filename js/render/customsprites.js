@@ -177,17 +177,18 @@ function csShadowFix(img) {
 function csTreeImgs(t) {
   if (!CSPR.ready) return null; if (_csTreeImgs.has(t)) return _csTreeImgs.get(t);
   const g = GI[t], n = g && _cslug(g.n), L = [];
-  if (n) { const one = csGet('arboles', n); if (one) L.push(one.raw); for (let i = 1; i <= 8; i++) { const s = csGet('arboles', n + '_' + i); if (s) L.push(s.raw); } }
+  if (n) { const one = csGet('arboles', n); if (one) L.push(one.raw); for (let i = 1; i <= 48; i++) { const s = csGet('arboles', n + '_' + i); if (s) L.push(s.raw); } }
   const r = L.length ? L.map(csShadowFix) : null; _csTreeImgs.set(t, r); return r;
 }
 { const t0 = treeSprite; treeSprite = (t, v, size) => {
   const imgs = csTreeImgs(t); if (!imgs) return t0(t, v, size);
-  const key = t * 16 + v * 4 + size; let s = _csTreeSpr.get(key); if (s) return s;
-  const im = imgs[v % imgs.length], b = csBox(im, 40), k = [0.62, 0.78, 0.9, 1][size] || 1; // talado a medias: más pequeño
+  const key = t * 256 + v * 4 + size; let s = _csTreeSpr.get(key); if (s) return s;
+  // variante: qué dibujo y si va en espejo (así cada árbol del bosque es distinto al de al lado)
+  const im = imgs[(v >> 1) % imgs.length], flip = v & 1, b = csBox(im, 40), k = [0.62, 0.78, 0.9, 1][size] || 1; // talado a medias: más pequeño
   // El lienzo va a la escala de la imagen (1 píxel = 1,6 unidades): se amplía al dibujar, sin suavizado y sin deformar
   // Lienzo del tamaño del árbol (+1 px de margen): nunca se corta, por ancho que sea
   const S2 = CS_TREE_PX * k, cw = b.w + 2, ch = b.h + 2, cv = csCanvas(cw, ch), c = cv.getContext('2d');
-  c.drawImage(im, b.x, b.y, b.w, b.h, 1, 1, b.w, b.h);
+  if (flip) { c.translate(cw, 0); c.scale(-1, 1); } c.drawImage(im, b.x, b.y, b.w, b.h, 1, 1, b.w, b.h);
   s = { cv, k, dw: cw * S2, dh: ch * S2, ax: (1 + b.w / 2) * S2, ay: (1 + b.h) * S2 - 6 }; _csTreeSpr.set(key, s); return s;
 }; }
 csLoad();

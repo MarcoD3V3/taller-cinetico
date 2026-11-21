@@ -10,7 +10,7 @@ const TREE_RES = 2, TREE_W = 104, TREE_H = 136, TREE_AX = 52, TREE_AY = 126; // 
 const _treeSpr = new Map(), tileTrees = new Map();
 let _treeLayer = false, _treeList = null;
 function treeSprite(t, v, size) {
-  const key = t * 16 + v * 4 + size; let s = _treeSpr.get(key); if (s) return s;
+  v &= 3; const key = t * 16 + v * 4 + size; let s = _treeSpr.get(key); if (s) return s; // los árboles dibujados por código tienen 4 variantes
   const tr = GI[t].tree, q = TREE_RES, W = TREE_W * q, H = TREE_H * q, cv = mkCanvas(W, H), c = cv.getContext('2d', { willReadFrequently: true });
   const k = (tr.big || tr.s === 'jungle' ? 1.18 : 1) * [0.62, 0.78, 0.9, 1][size]; // los árboles talados a medias son más pequeños
   const bx = TREE_AX * q, by = TREE_AY * q, img = c.createImageData(W, H), u = new Uint32Array(img.data.buffer);
@@ -124,7 +124,7 @@ function drawTrees(ctx, k, ox, oy, x0, y0, x1, y1, front) {
     const ptx = Math.floor(p.x / T), pty0 = Math.floor(pty / T);
     for (let cy = Math.floor(pty0 / CH); cy <= Math.floor((pty0 + 5) / CH); cy++) for (let cx = Math.floor((ptx - 3) / CH); cx <= Math.floor((ptx + 3) / CH); cx++) {
       const list = tileTrees.get(chunkKey(cx, cy)); if (!list) continue;
-      for (let i = 0; i < list.length; i += 4) { const tx = list[i], ty = list[i + 1]; if (Math.abs(tx - ptx) > 3 || ty < pty0 - 1 || ty > pty0 + 5) continue; const baseY = ty * T + 26; if (baseY <= pty) continue; const k2 = treeSprite(list[i + 2], list[i + 3] & 3, list[i + 3] >> 2).k; if (Math.abs(p.x - (tx * T + 16)) < 40 * k2 && pty > baseY - 112 * k2) covered = true; }
+      for (let i = 0; i < list.length; i += 4) { const tx = list[i], ty = list[i + 1]; if (Math.abs(tx - ptx) > 3 || ty < pty0 - 1 || ty > pty0 + 5) continue; const baseY = ty * T + 26; if (baseY <= pty) continue; const k2 = treeSprite(list[i + 2], list[i + 3] & 63, list[i + 3] >> 6).k; if (Math.abs(p.x - (tx * T + 16)) < 40 * k2 && pty > baseY - 112 * k2) covered = true; }
     }
     const target = covered && !((P.z || 0) > 6) ? 1 : 0; _xray += // volando vas por encima: sin círculo transparente (descuadraba las rocas)
       (target - _xray) * Math.min(1, dt * 7); if (Math.abs(target - _xray) < 0.003) _xray = target;
@@ -143,7 +143,7 @@ function drawTrees(ctx, k, ox, oy, x0, y0, x1, y1, front) {
     for (let i = 0; i < list.length; i += 4) {
       const tx = list[i], ty = list[i + 1]; if (tx < x0 - 2 || tx > x1 + 2 || ty < y0 - 1 || ty > y1 + 5) continue;
       const baseY = ty * T + 26; if ((baseY > pty) !== front) continue;
-      const s = treeSprite(list[i + 2], list[i + 3] & 3, list[i + 3] >> 2);
+      const s = treeSprite(list[i + 2], list[i + 3] & 63, list[i + 3] >> 6);
       const dw = s.dw || TREE_W, dh = s.dh || TREE_H, X = tx * T + 16 - (s.ax ?? TREE_AX), Y = baseY - (s.ay ?? TREE_AY), sd = hash2(tx, ty, 91);
       items.push([baseY, typeof windDraw === 'function' ? () => windDraw(dc, s.cv, X, Y, dw, dh, sd, 2.4) : () => dc.drawImage(s.cv, X, Y, dw, dh)]); // los árboles propios traen su tamaño
     }

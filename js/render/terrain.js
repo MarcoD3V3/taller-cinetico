@@ -75,7 +75,7 @@ function drawTerrainTile(c, x, y, t, px, py, hpLeft) {
   if (g.flora) {
     drawGround(c, x, y, g.u >= 0 ? g.u : G.GRASS, px, py);
     if (g.tree && _treeLayer) { // árbol grande en su propia capa: aquí solo la base del tronco
-      const sz = g.hp ? clamp(Math.round((hpLeft || g.hp) / g.hp * 3), 0, 3) : 3; _treeList.push(x, y, t, ((hash2(x, y, 61) * 4) | 0) | (sz << 2));
+      const sz = g.hp ? clamp(Math.round((hpLeft || g.hp) / g.hp * 3), 0, 3) : 3; _treeList.push(x, y, t, ((hash2(x, y, 61) * 64) | 0) | (sz << 6)); // variante 0..63 (dibujo y espejo) y tamaño
       c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(px + 18, py + 25, 11, 4, 0, 0, 7); c.fill(); return;
     }
     if (g.tree) drawTree(c, x, y, g.tree, px, py, g.hp ? clamp(hpLeft / g.hp, 0.3, 1) : 1);

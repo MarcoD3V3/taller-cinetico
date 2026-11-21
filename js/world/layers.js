@@ -291,11 +291,15 @@ function caveSpawn(dt, k) {
 // ---------- Perspectiva en los hoyos ----------
 // Dentro de un hoyo, el borde del suelo de delante (más alto) tapa la parte de abajo del personaje:
 // cuanto más hondo estás, más te tapa. Devuelve la línea de corte (o null si no hace falta).
+// Lo que tapa el suelo más alto que tienes delante: justo las casillas más altas que el dibujo pisa, desde su
+// borde de arriba (no antes). Devuelve los rectángulos a ocultar, o null si nada te tapa.
 function holeCut(px, py) {
-  const fr = Math.floor((py + 5) / T), lp = lvPoint(px, py + 5); let d = 0;
-  for (const ox of [-8, 0, 8]) { const tx = Math.floor((px + ox) / T), g = GI[gnd(tx, fr + 1)]; if (g.solid && !g.flora) continue; d = Math.max(d, lvAt(tx, fr + 1) - lp); }
-  if (d <= 0) return null;
-  return Math.min((fr + 1) * T, py + 10 - Math.min(6, d) * 5);
+  const fr = Math.floor((py + 5) / T), lp = lvPoint(px, py + 5), out = [];
+  for (let ty = fr + 1; ty <= fr + 2; ty++) for (let tx = Math.floor((px - 12) / T); tx <= Math.floor((px + 12) / T); tx++) {
+    const g = GI[gnd(tx, ty)]; if (g.solid && !g.flora) continue;           // la roca ya se tapa en drawFrontTiles
+    if (lvAt(tx, ty) > lp) out.push([tx * T, ty * T, T, T]);
+  }
+  return out.length ? out : null;
 }
 
 // ---------- Interfaz: indicador de capa, cartel al llegar y ambiente ----------
