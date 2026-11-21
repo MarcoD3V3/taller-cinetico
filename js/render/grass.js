@@ -64,6 +64,31 @@ function worldFlowers() { if (typeof CSPR === 'undefined' || !CSPR.ready) return
   }
   return d0(c, x, y, t, px, py);
 }; }
+// ---------- Piedras del mundo: las de serie (piedrecita, con musgo, hielo, nieve) se cambian por rocas nuevas ----------
+// 56 rocas distintas de 10-13 px a 1 píxel = 1 unidad (como las de serie), elegidas según el suelo, y a veces en espejo.
+const ROCK_BY_GROUND = { SAND: ['arenisca', 'playa'], BLACKSAND: ['volcan', 'gris', 'playa'], REDSAND: ['arenisca'], TERRACOTTA: ['arenisca'], DRYGRASS: ['arenisca', 'gris'],
+  ASH: ['volcan', 'gris'], BASALTFLOOR: ['volcan', 'gris'], CINDERFLOOR: ['volcan'], AMETHYST: ['cristal', 'gris'], SNOW: ['nieve', 'gris'], PERMAFLOOR: ['hielo', 'nieve'],
+  GRASS: ['gris', 'musgo', 'arenisca'], MOSS: ['musgo', 'gris'], DARKGRASS: ['musgo', 'gris'], JUNGLEGRASS: ['musgo'], SWAMPGRASS: ['musgo', 'gris'] };
+const ROCK_KIND = { pebble: null, mossy: ['musgo'], icePeb: ['hielo'], snowLump: ['nieve'] };
+let _rockSets = null;
+function rockSets() { if (_rockSets) return _rockSets; if (typeof CSPR === 'undefined' || !CSPR.ready) return null; const o = {}; for (const [k, s] of CSPR.sets) { const m = /^suelo\/rocam_([a-z]+)_\d+$/.exec(k); if (m) (o[m[1]] = o[m[1]] || []).push(s.raw); } return (_rockSets = Object.keys(o).length ? o : null); }
+{ const d0 = drawDecor; drawDecor = (c, x, y, t, px, py) => {
+  const g = GI[t], list = DECOR_BY[g.key], R = list && !g.solid && !g.liquid && hash2(x, y, 333) <= DECOR_DENS && rockSets();
+  if (R) {
+    const kind = list[(hash2(x, y, 334) * list.length) | 0];
+    if (kind in ROCK_KIND) {
+      if (S && S.picked && S.picked[x + ',' + y]) return;
+      const groups = (ROCK_KIND[kind] || ROCK_BY_GROUND[g.key] || ['gris']).filter(n => R[n]); if (!groups.length) return d0(c, x, y, t, px, py);
+      const L = R[groups[(hash2(x, y, 338) * groups.length) | 0]], im = L[(hash2(x, y, 339) * L.length) | 0];
+      const ox = (hash2(x, y, 335) - 0.5) * 14, oy = (hash2(x, y, 336) - 0.5) * 12, X = Math.round(px + 16 + ox - im.width / 2), Y = Math.round(py + 22 + oy - im.height);
+      const sm = c.imageSmoothingEnabled; c.imageSmoothingEnabled = false;
+      c.fillStyle = 'rgba(0,0,0,.2)'; c.fillRect(X + 1, Y + im.height, im.width - 1, 1); // sombrita
+      if (hash2(x, y, 340) < 0.5) { c.save(); c.translate(X + im.width, Y); c.scale(-1, 1); c.drawImage(im, 0, 0); c.restore(); } else c.drawImage(im, X, Y);
+      c.imageSmoothingEnabled = sm; return;
+    }
+  }
+  return d0(c, x, y, t, px, py);
+}; }
 // La hierba va por debajo de todo lo demás de la casilla (flores, piedrecitas…)
 { const d0 = drawDecor; drawDecor = (c, x, y, t, px, py) => {
   if (OPT.grass !== false) {

@@ -37,8 +37,16 @@ function gdSets() {
   if (_gd || typeof CSPR === 'undefined' || !CSPR.ready) return _gd;
   const out = {};
   for (const [key, set] of CSPR.sets) { if (!key.startsWith('suelo/')) continue; const cat = key.slice(6).replace(/_?\d+$/, ''); (out[cat] = out[cat] || []).push(set.raw); }
+  // Las piedras y rocas usan las rocas nuevas (rocam_*), a 1 píxel = 1 unidad como las del mundo
+  const R = g => out['rocam_' + g] || [];
+  if (R('gris').length) {
+    out.piedra = [...R('gris'), ...R('musgo')]; out.roca = [...R('gris'), ...R('musgo'), ...R('arenisca')];
+    out.desierto = R('arenisca'); if (R('volcan').length) out.volcan = R('volcan');
+    for (const c of ['piedra', 'roca', 'desierto', 'volcan']) GD_PX1.add(c);
+  }
   return (_gd = out);
 }
+const GD_PX1 = new Set(); // categorías que van a 1 píxel = 1 unidad (las rocas nuevas)
 function gdFor(t) {
   if (_gdPick.has(t)) return _gdPick.get(t);
   let r = null; const D = _gd;
@@ -86,7 +94,7 @@ function gdAt0(tx, ty) {
   const r = hash2(tx, ty, 72) * d.tot; let cat = d.L[d.L.length - 1][1]; for (const [lim, c] of d.L) if (r < lim) { cat = c; break; }
   const L = _gd[cat], base = L[(hash2(tx, ty, 73) * L.length) | 0];
   const si = (hash2(tx, ty, 77) * 3) | 0, hi = (hash2(tx, ty, 78) * 8) | 0, rot = GD_FLAT.has(cat) && hash2(tx, ty, 79) < 0.4;
-  const im = gdVariant(base, cat, si, hi, rot), w = im.width * GD_PX, h = im.height * GD_PX;
+  const im = gdVariant(base, cat, si, hi, rot), px1 = GD_PX1.has(cat) ? 1 : GD_PX, w = im.width * px1, h = im.height * px1;
   const tall = GD_TALL.has(cat);
   const px = tall ? tx * T + 16 - w / 2 + (hash2(tx, ty, 74) - 0.5) * 6 : tx * T + 3 + hash2(tx, ty, 74) * Math.max(0, T - 6 - w);
   const py = tall ? ty * T + 27 : ty * T + 4 + h + hash2(tx, ty, 75) * Math.max(0, T - 8 - h);
