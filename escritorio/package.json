@@ -8,7 +8,8 @@
   "private": true,
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win nsis portable"
+    "dist": "electron-builder --win nsis portable",
+    "store": "electron-builder --win appx"
   },
   "devDependencies": {
     "electron": "33.2.1",
@@ -27,6 +28,16 @@
     ],
     "win": { "icon": "build/icon.png", "target": ["nsis", "portable"] },
     "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "shortcutName": "Taller Cinético", "artifactName": "TallerCinetico-Instalador.exe" },
-    "portable": { "artifactName": "TallerCinetico-Portable.exe" }
+    "portable": { "artifactName": "TallerCinetico-Portable.exe" },
+    "appx": {
+      "identityName": "PON.AQUI.EL.NOMBRE.DE.PAQUETE",
+      "publisher": "CN=00000000-0000-0000-0000-000000000000",
+      "publisherDisplayName": "MarcoD3V3",
+      "displayName": "Taller Cinético",
+      "applicationId": "TallerCinetico",
+      "backgroundColor": "#121315",
+      "languages": ["es-ES", "en-US"],
+      "artifactName": "TallerCinetico-Store.appx"
+    }
   }
 }
