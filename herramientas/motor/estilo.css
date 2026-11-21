@@ -71,3 +71,10 @@ code { color: var(--brass); }
 #toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: #1c1d1f; border: 1px solid var(--brass2); padding: 8px 14px; z-index: 20; }
 #toast.mal { border-color: var(--bad); color: #ffb3a8; }
 #juego { position: absolute; left: -10000px; top: 0; width: 900px; height: 600px; border: 0; }
+.k.verde { background: #5fe07a; }
+
+#rLista { max-height: 50vh; overflow: auto; }
+.prob { padding: 6px 8px; border-left: 3px solid var(--brass2); background: #18191b; margin: 4px 0; cursor: pointer; font-size: 14px; }
+.prob.error { border-color: var(--bad); } .prob.error b { color: #ff8a7a; } .prob.aviso b { color: var(--brass); }
+.prob:hover { background: #222326; }
+.ok-txt { color: #9be0a3; }

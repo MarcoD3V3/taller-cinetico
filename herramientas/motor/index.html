@@ -11,6 +11,7 @@
   <div class="marca"><b>MOTOR DE SPRITES</b><span>Taller Cinético</span></div>
   <div class="barra">
     <button id="bSubir" title="Añadir tus imágenes PNG o WEBP">＋ Subir sprites</button>
+    <button id="bDeshacer" disabled title="Deshacer (Ctrl+Z)">↶</button><button id="bRehacer" disabled title="Rehacer (Ctrl+Y)">↷</button><button id="bRevisar" title="Buscar errores y sprites que no saldrían">Revisar</button>
     <span class="sep"></span>
     <button id="bGuardar" class="pri" disabled title="Escribe los cambios en el código del juego (sprites/ajustes.js)">Guardar en el juego</button>
     <button id="bExportar" title="Descargar los ajustes (ajustes.js)">Exportar</button>
@@ -33,7 +34,8 @@
       <span><i class="k rojo"></i>Choque: centro y bordes</span>
       <span><i class="k azul"></i>Línea de orden</span>
       <span><i class="k amar"></i>Personaje de prueba (arrástralo)</span>
-      <span class="mut">Rueda: zoom · Mayús: pasos finos</span>
+      <span><i class="k verde"></i>Choque del personaje</span>
+      <span class="mut">Rueda: zoom · Flechas: mover (Alt: el choque) · Mayús: fino · Ctrl+Z/Y: deshacer/rehacer</span>
     </div>
   </section>
   <aside id="der"><p class="mut pad">Elige un sprite de la lista.</p></aside>
@@ -64,6 +66,11 @@
   <p class="mut small">Escala: 1 píxel de la imagen = 1,6 unidades del juego (como el personaje y los árboles). Se guardan como <code>nombre_N.png</code> en <code>sprites/</code>. Luego puedes ajustar todo y repartirlas por biomas.</p>
   <div id="sPrev" class="prev"></div>
   <div class="fila"><span class="esp"></span><button data-cerrar>Cancelar</button><button class="pri" id="bSubirOk">Subir</button></div>
+</div></div>
+<div class="modal" id="mRevisar" hidden><div class="caja">
+  <h3>Revisar</h3>
+  <div id="rLista"></div>
+  <div class="fila"><button id="rHuerfanos">Quitar ajustes de imágenes que ya no existen</button><span class="esp"></span><button data-cerrar>Cerrar</button></div>
 </div></div>
 <div id="toast" hidden></div>
 <iframe id="juego" title="juego" aria-hidden="true"></iframe>

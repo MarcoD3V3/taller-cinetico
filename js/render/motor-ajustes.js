@@ -17,28 +17,46 @@ if (!window.AJUSTES) window.AJUSTES = { v: 1, sprites: {}, suelo: { cats: {}, gr
 const MOTOR_DEF = { suelo: JSON.parse(JSON.stringify(GD_BIOME)), biomas: {}, cats: null };
 for (const b of BIOMES) { if (!b || !b.key) continue; const m = {}; for (const [t, d] of b.treeI || []) if (GI[t]) m[GI[t].key] = d; MOTOR_DEF.biomas[b.key] = m; }
 
-// ---------- Suelos y biomas ----------
-(function motorApply() {
-  const A = window.AJUSTES, gs = (A.suelo && A.suelo.grounds) || {};
-  for (const k in gs) { const v = gs[k]; if (!v || !G[k] && G[k] !== 0) continue; GD_BIOME[k] = [+v.dens || 0, { ...(v.w || {}) }]; }
+// ---------- Suelos y biomas (se pueden volver a aplicar: el motor manda cambios en vivo al juego de prueba) ----------
+function motorApply() {
+  const A = window.AJUSTES || {}, gs = (A.suelo && A.suelo.grounds) || {};
+  for (const k in GD_BIOME) delete GD_BIOME[k];
+  Object.assign(GD_BIOME, JSON.parse(JSON.stringify(MOTOR_DEF.suelo)));
+  for (const k in gs) { const v = gs[k]; if (!v || G[k] === undefined) continue; GD_BIOME[k] = [Math.max(0, Math.min(1, +v.dens || 0)), { ...(v.w || {}) }]; }
   const bs = A.biomas || {};
-  for (const b of BIOMES) { if (!b || !bs[b.key] || !bs[b.key].arboles) continue; b.treeI = Object.entries(bs[b.key].arboles).filter(([k, d]) => G[k] !== undefined && +d > 0).map(([k, d]) => [G[k], +d]); }
-})();
+  for (const b of BIOMES) { if (!b || !b.key) continue; const src = bs[b.key] && bs[b.key].arboles ? bs[b.key].arboles : MOTOR_DEF.biomas[b.key];
+    if (src) b.treeI = Object.entries(src).filter(([k, d]) => G[k] !== undefined && +d > 0).map(([k, d]) => [G[k], +d]); }
+}
+motorApply();
 // Categorías del suelo: al tener los sprites (gdSets), se guardan los valores de serie y se aplican los del motor
 const GD_UPF = new Set(); // categorías que el motor obliga a «levantarse» aunque sean bajitas
-{ const g0 = gdSets; gdSets = () => {
-  const r = g0(); if (!r || MOTOR_DEF.cats) return r;
-  MOTOR_DEF.cats = { px1: [...GD_PX1], flat: [...GD_FLAT], sway: JSON.parse(JSON.stringify(GD_SWAY)), give: JSON.parse(JSON.stringify(GD_GIVE)), tall: [...GD_TALL] };
+function motorCats() {
+  const D = MOTOR_DEF.cats; if (!D) return;
+  GD_PX1.clear(); D.px1.forEach(c => GD_PX1.add(c)); GD_FLAT.clear(); D.flat.forEach(c => GD_FLAT.add(c)); GD_TALL.clear(); D.tall.forEach(c => GD_TALL.add(c)); GD_UPF.clear();
+  for (const k in GD_SWAY) delete GD_SWAY[k]; Object.assign(GD_SWAY, JSON.parse(JSON.stringify(D.sway)));
+  for (const k in GD_GIVE) delete GD_GIVE[k]; Object.assign(GD_GIVE, JSON.parse(JSON.stringify(D.give)));
   const cs = (window.AJUSTES.suelo && window.AJUSTES.suelo.cats) || {};
   for (const c in cs) { const v = cs[c]; if (!v) continue;
     if (v.px === 1) GD_PX1.add(c); else if (v.px === 1.6) GD_PX1.delete(c);
     if (v.up === true) { GD_FLAT.delete(c); GD_UPF.add(c); } else if (v.up === false) GD_FLAT.add(c);
     if (v.centro === true) GD_TALL.add(c); else if (v.centro === false) GD_TALL.delete(c);
-    if (v.viento != null) GD_SWAY[c] = [+v.viento, 1];
-    if (Array.isArray(v.dar) && v.dar[0]) GD_GIVE[c] = [v.dar[0], v.dar[1] || v.dar[0], +v.dar[2] || 1]; }
-  return r;
+    if (v.viento != null) GD_SWAY[c] = [Math.max(0, +v.viento || 0), 1];
+    if (Array.isArray(v.dar) && v.dar[0] && ITEMS[v.dar[0]]) GD_GIVE[c] = [v.dar[0], v.dar[1] || v.dar[0], Math.max(1, +v.dar[2] || 1)]; }
+}
+let _motorGd = null;
+{ const g0 = gdSets; gdSets = () => {
+  const r = g0(); if (!r || r === _motorGd) return r; _motorGd = r;
+  if (!MOTOR_DEF.cats) MOTOR_DEF.cats = { px1: [...GD_PX1], flat: [...GD_FLAT], sway: JSON.parse(JSON.stringify(GD_SWAY)), give: JSON.parse(JSON.stringify(GD_GIVE)), tall: [...GD_TALL] };
+  motorCats(); return r;
 }; }
 { const a0 = gdAdj; gdAdj = o => { if (o) for (const q of o.group || [o]) if (GD_UPF.has(q.cat)) q.up = true; return a0(o); }; }
+// Vuelve a aplicar todo (cambios en vivo): se vacían las memorias de árboles y objetos del suelo
+function motorRefresh() {
+  try {
+    motorApply(); _csTreeSpr.clear(); _csTreeImgs.clear(); _gd = null; _motorGd = null; _gdPick.clear(); _gdCache.clear();
+    if (typeof _gdPatchT !== 'undefined') _gdPatchT.clear();
+  } catch (e) { console.warn('motor: no se pudieron aplicar los cambios', e); }
+}
 
 // ---------- Ver choques y líneas de orden (modo prueba, tecla C) ----------
 let MOTOR_DBG = false;
@@ -68,6 +86,8 @@ if (MOTOR_PRUEBA) {
   if (solo && sprite) window.MOTOR_SOLO = sprite;
   // nunca se guarda nada: ni el mundo de prueba ni cambios en un mundo existente
   saveGame = () => true; saveIndex = () => true;
+  // el motor manda cada cambio al momento: se aplica sin recargar
+  addEventListener('storage', e => { if (e.key !== 'motor-ajustes' || !e.newValue) return; try { window.AJUSTES = JSON.parse(e.newValue); motorRefresh(); if (window.MOTOR_SOLO !== undefined) { } toast('Cambios del motor aplicados'); } catch (er) { console.warn(er); } });
   addEventListener('keydown', e => { if ((e.key === 'c' || e.key === 'C') && !e.ctrlKey && !(document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName))) { MOTOR_DBG = !MOTOR_DBG; toast(MOTOR_DBG ? 'Choques (rojo) y líneas de orden (azul) visibles' : 'Choques ocultos'); } });
   const arena = { cx: 0, cy: 0, r: 0, cat: null };
   function motorArena() {
