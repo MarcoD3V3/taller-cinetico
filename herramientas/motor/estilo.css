@@ -116,3 +116,6 @@ button.pri.aviso { box-shadow: 0 0 0 1px var(--brass), 0 0 10px #e0b54c55; }
 .ctab tr { cursor: pointer; } .ctab tr.sel td { background: #2a2416; } .ctab td { padding: 4px; }
 .trg { color: #3bffd0; } .colprops { border: 1px solid #2c2d30; padding: 6px 8px; margin-top: 6px; background: #18191b; }
 .capas { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+.jcampo.mod > span:first-child { color: var(--brass); }
+.jgrupo h3 { margin-bottom: 4px; }

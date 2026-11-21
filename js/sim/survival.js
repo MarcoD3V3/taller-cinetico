@@ -220,15 +220,15 @@ function survTick(dt, moving, sprinting) {
   const amb = ambient(), cold = amb < 5, hot = _hot && !_warm;
   // Necesidades
   const cm = CM();
-  pc.food = Math.max(0, pc.food - 0.055 * dt * sv * d * cm.hunger * (sprinting ? 1.6 : 1) * (cold ? 1.3 : 1));
-  pc.water = Math.max(0, pc.water - 0.083 * dt * sv * d * cm.thirst * (sprinting ? 1.5 : 1) * (hot ? 1.7 : 1));
-  pc.energy = Math.max(0, pc.energy - 0.07 * dt * d * cm.energy * (sprinting ? 1.4 : 1));
+  pc.food = Math.max(0, pc.food - 0.055 * JUG('hambre', 1) * dt * sv * d * cm.hunger * (sprinting ? 1.6 : 1) * (cold ? 1.3 : 1));
+  pc.water = Math.max(0, pc.water - 0.083 * JUG('sed', 1) * dt * sv * d * cm.thirst * (sprinting ? 1.5 : 1) * (hot ? 1.7 : 1));
+  pc.energy = Math.max(0, pc.energy - 0.07 * JUG('cansancio', 1) * dt * d * cm.energy * (sprinting ? 1.4 : 1));
   // Aguante: correr lo gasta; si llega a 0 no puedes correr hasta recuperar 25
-  if (sprinting) { pc.stam -= 9 * dt * (1 - 0.03 * fit) * cm.sprintCost; pc.rest = 0; _sprintXP += dt; if (_sprintXP > 2) { _sprintXP = 0; gainXP('fit', 1); } }
-  else { pc.rest += dt; if (pc.rest > 0.8) pc.stam += 14 * dt * (pc.energy < 10 ? 0.5 : 1) * (pc.food < 10 ? 0.5 : 1); }
+  if (sprinting) { pc.stam -= 9 * JUG('gastoCorrer', 1) * dt * (1 - 0.03 * fit) * cm.sprintCost; pc.rest = 0; _sprintXP += dt; if (_sprintXP > 2) { _sprintXP = 0; gainXP('fit', 1); } }
+  else { pc.rest += dt; if (pc.rest > 0.8) pc.stam += JUG('recupAguante', 14) * dt * (pc.energy < 10 ? 0.5 : 1) * (pc.food < 10 ? 0.5 : 1); }
   pc.stam = clamp(pc.stam, 0, maxStam());
   if (pc.stam <= 0) pc.lock = 1; else if (pc.stam > 25) pc.lock = 0;
-  pc.mana = Math.min(maxMana(), pc.mana + (0.8 + 0.15 * lvOf('magic')) * cm.manaRegen * dt);
+  pc.mana = Math.min(maxMana(), pc.mana + (JUG('regenMana', 0.8) + 0.15 * lvOf('magic')) * cm.manaRegen * dt);
   if (pc.pk > 0) pc.pk -= dt;
   // Temperatura del cuerpo
   if (cold) pc.temp -= (5 - amb) * 0.0012 * dt; else pc.temp += (37 - pc.temp) * 0.05 * dt;
@@ -248,7 +248,7 @@ function survTick(dt, moving, sprinting) {
   if (inf) dh -= 0.05 * inf * cm.sick;
   if (pc.temp < 35) { dh -= 0.12; pc.cause = 'Hipotermia'; }
   if (pc.energy <= 0) dh -= 0.05;
-  pc.hp = Math.min(maxHp(), pc.hp + dh * dt);
+  pc.hp = Math.min(maxHp(), pc.hp + dh * JUG('regenVida', 1) * dt);
   if (pc.hp <= 0) { pc.hp = 0; die(); }
 }
 // ---------- Fauna hostil (llamado desde faunaTick) ----------

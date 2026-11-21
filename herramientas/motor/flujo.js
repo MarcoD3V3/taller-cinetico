@@ -91,10 +91,13 @@ addEventListener('storage', e => {
   try {
     if (e.key === 'motor-cambio') { const m = JSON.parse(e.newValue);
       if (m.tipo === 'sprite' && m.key) { ajSet(m.key, a => { for (const q in m.patch) a[q] = m.patch[q] === null ? undefined : m.patch[q]; }); if (st.sel === m.key) { panel(); dibujar(); } lista(); }
+      if (m.tipo === 'suelo' && m.suelo && m.cat) { hist(); const v = groundVal(m.suelo); v.w[m.cat] = Math.max(0, Math.round(((v.w[m.cat] || 0) + m.delta) * 10) / 10); if (!v.w[m.cat]) delete v.w[m.cat]; AJ().suelo.grounds[m.suelo] = { dens: +v.dens, w: v.w }; sucio(); if (st.sel) panel(); }
+      if (m.tipo === 'bioma' && m.bioma && m.arbol) { hist(); const mm = biomeTrees(m.bioma); const nv = Math.max(0, Math.round(((mm[m.arbol] || 0) + m.delta) * 1000) / 1000); if (nv > 0) mm[m.arbol] = nv; else delete mm[m.arbol]; (AJ().biomas[m.bioma] = AJ().biomas[m.bioma] || {}).arboles = mm; sucio(); if (st.sel) panel(); }
+      if (m.tipo === 'todas' && m.key) { const prev = st.sel; st.sel = m.key; const c0 = window.confirm; window.confirm = () => true; try { aTodas(); } finally { window.confirm = c0; st.sel = prev; } panel(); }
       if (m.tipo === 'jugador') { for (const q in m.patch) jugSet(q, m.patch[q]); if (st.modo === 'jugador') { panel(); dibujar(); } }
       if (m.tipo === 'cat' && m.cat) { catSet(m.cat, o => { for (const q in m.patch) o[q] = m.patch[q] === null ? undefined : m.patch[q]; }); if (st.sel) panel(); }
     }
-    if (e.key === 'motor-ir') { const m = JSON.parse(e.newValue); window.focus(); if (m.key && J('CSPR').sets.has(m.key)) { if (st.modo !== 'sprites') modo('sprites'); elegir(m.key); const c = document.querySelector(`.cel[data-k="${CSS.escape(m.key)}"]`); if (c) c.scrollIntoView({ block: 'center' }); toast('Abierto desde el juego de prueba: ' + m.key); } if (m.jugador) modo('jugador'); }
+    if (e.key === 'motor-ir') { const m = JSON.parse(e.newValue); window.focus(); if (m.key && J('CSPR').sets.has(m.key)) { if (st.modo !== 'sprites') modo('sprites'); elegir(m.key); const c = document.querySelector(`.cel[data-k="${CSS.escape(m.key)}"]`); if (c) c.scrollIntoView({ block: 'center' }); toast('Abierto desde el juego de prueba: ' + m.key); } if (m.jugador) modo('jugador'); if (m.pintar && m.key && typeof pxAbrir === 'function' && J('CSPR').sets.has(m.key)) pxAbrir(m.key); }
   } catch (er) { console.warn(er); }
 });
 

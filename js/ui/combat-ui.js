@@ -19,7 +19,7 @@ function drawPlayer(ctx) {
   const by = m ? -8 : 0, x = p.x, y = p.y + by;
   drawRipples(ctx);
   for (const f of FX) if (f.ghost) { ctx.globalAlpha = f.t * 1.5; circ(ctx, f.x, f.y + by, 8, '#7ab0ff'); } ctx.globalAlpha = 1;
-  if (!swm) { const k = 1 / (1 + z / 22); ctx.fillStyle = `rgba(0,0,0,${0.3 * k})`; ctx.beginPath(); ctx.ellipse(x, p.y + 8, 10 * k, 4 * k, 0, 0, 7); ctx.fill(); }
+  if (!swm) { const k = 1 / (1 + z / 22); ctx.fillStyle = `rgba(0,0,0,${JUG('sombraOpac', 0.3) * k})`; ctx.beginPath(); ctx.ellipse(x, p.y + 8, JUG('sombraAncho', 10) * k, JUG('sombraAlto', 4) * k, 0, 0, 7); ctx.fill(); }
   // Sprite por capas (pelo, ropa y armadura incluidos); el objeto de la mano gira al atacar
   const ch = charData(), sw2 = P.swing > 0 ? (1 - P.swing / 0.2) * 2.2 - 1.1 : 0;
   if (P.hurtT > 0 && ((P.hurtT * 30) | 0) % 2) ctx.globalAlpha = 0.55;

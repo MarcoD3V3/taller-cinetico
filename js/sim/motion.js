@@ -84,7 +84,7 @@ function dust(x, y, n = 6) { for (let i = 0; i < n; i++) BURSTS.push({ x: x + (M
 const JUMP_V = 175, GRAV = 900;
 function tryJump() {
   if (ui.open || (P.z || 0) > 0.5 || P.swim === 2) { if (P.swim === 2) toastErr('En agua profunda no puedes saltar'); return; }
-  if (survOn()) { const pc = S.pc; if (pc.stam < 5) { toastErr('Sin aguante'); return; } pc.stam -= 5; pc.rest = 0; }
+  if (survOn()) { const pc = S.pc; if (pc.stam < JUG('costeSalto', 5)) { toastErr('Sin aguante'); return; } pc.stam -= JUG('costeSalto', 5); pc.rest = 0; }
   P.vz = JUG('salto', JUMP_V) * (P.swim === 1 ? 0.8 : 1); P.z = 0.01; P.air = 0;
   if (P.swim === 1) splash(S.player.x, S.player.y + 6, 5);
   tone(260, 0.1, 'sine', 0.03, 1.8);
@@ -112,7 +112,7 @@ function land(v) {
   const p = S.player, s = swimState();
   if (s) splash(p.x, p.y + 6, 10); else if (v > 120) { dust(p.x, p.y + 8, v > 260 ? 10 : 5); tone(110, 0.08, 'triangle', 0.04, 0.6); }
   // Caída de dos niveles o más: contusión (con supervivencia)
-  if (!s && v > 300 && survOn()) hurt('bruise', ['legL', 'legR', 'footL', 'footR'][(Math.random() * 4) | 0], 0.8, 'Caída');
+  if (!s && v > JUG('caidaDano', 300) && survOn()) hurt('bruise', ['legL', 'legR', 'footL', 'footR'][(Math.random() * 4) | 0], 0.8, 'Caída');
 }
 // Después de mover: si has bajado de nivel, caes desde la altura de la pared
 function motionPost(fromLv) {
@@ -122,7 +122,7 @@ function motionPost(fromLv) {
 // Velocidad objetivo según el terreno y el agua; agarre (cuánto tarda en acelerar o frenar)
 function moveFactors() {
   const gi = groundInfo(), sw = P.swim || 0, air = (P.z || 0) > 0.5;
-  const mul = sw === 2 ? 0.5 : sw === 1 ? 0.72 : gi.mul, grip = air ? 2.5 : sw ? 4 : gi.slip ? 1.6 : 13;
+  const mul = sw === 2 ? 0.5 * JUG('nado', 1) : sw === 1 ? 0.72 * JUG('nado', 1) : gi.mul, grip = air ? 2.5 : sw ? 4 : gi.slip ? 1.6 : 13;
   return { mul, grip, slip: gi.slip };
 }
 // ---------- Dibujo: ondas ----------

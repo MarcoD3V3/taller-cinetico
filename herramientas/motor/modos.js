@@ -4,16 +4,24 @@
 //  Se enganchan a lista(), panel() y dibujar() del editor según st.modo.
 // =====================================================================================
 st.modo = 'sprites'; st.cmdSel = 0;
-// Propiedades del jugador: [clave, nombre, valor de serie, paso, mín, máx, unidad, explicación]
+// Propiedades del jugador: [clave, nombre, valor de serie, paso, mín, máx, unidad, explicación, grupo]
 const JUG_P = [
-  ['andar', 'Velocidad al andar', 3.3, 0.1, 0.5, 20, 'casillas/s', ''], ['correr', 'Velocidad al correr', 5.6, 0.1, 0.5, 30, 'casillas/s', 'Con Mayús.'],
-  ['vida', 'Vida base', 100, 5, 1, 5000, '', '+2 por nivel de forma física y lo que dé el equipo.'], ['aguante', 'Aguante base', 100, 5, 1, 5000, '', '+5 por nivel de forma física.'],
-  ['mana', 'Maná base', 50, 5, 0, 5000, '', '+10 por nivel de magia.'], ['alcance', 'Alcance', 5.5, 0.5, 1, 30, 'casillas', 'Hasta dónde picas, colocas y recoges.'],
-  ['salto', 'Fuerza del salto', 175, 5, 0, 1000, '', ''], ['gravedad', 'Gravedad', 900, 10, 100, 5000, '', 'Más = cae antes.'],
-  ['choqueAncho', 'Choque: medio ancho', 5, 0.5, 0.5, 30, 'unidades', 'Puntos de los pies a cada lado.'], ['choquePie', 'Choque: pies (abajo)', 5, 0.5, -20, 30, 'unidades', ''],
-  ['choqueCentro', 'Choque: punto central', 1, 0.5, -20, 30, 'unidades', ''], ['escala', 'Tamaño del dibujo', 1.6, 0.1, 0.5, 6, '', 'Solo se ve más grande o pequeño; el choque va aparte.'],
-  ['orden', 'Línea de orden (pies)', 8, 0.5, -20, 40, 'unidades', 'Con esta línea se decide si un árbol o una mata te tapa.']];
-// (en la vista: arrastra los puntos verdes de choque, la línea amarilla y el punto dorado del alcance)
+  ['andar', 'Velocidad al andar', 3.3, 0.1, 0.5, 20, 'casillas/s', '', 'Movimiento'], ['correr', 'Velocidad al correr', 5.6, 0.1, 0.5, 30, 'casillas/s', 'Con Mayús.', 'Movimiento'],
+  ['agarre', 'Agarre (arrancar y frenar)', 1, 0.1, 0.1, 5, '×', 'Menos = resbala más, como en hielo.', 'Movimiento'], ['nado', 'Velocidad nadando', 1, 0.1, 0.1, 5, '×', '', 'Movimiento'],
+  ['salto', 'Fuerza del salto', 175, 5, 0, 1000, '', '', 'Salto y caída'], ['gravedad', 'Gravedad', 900, 10, 100, 5000, '', 'Más = cae antes.', 'Salto y caída'],
+  ['costeSalto', 'Aguante por salto', 5, 1, 0, 100, '', '', 'Salto y caída'], ['caidaDano', 'Caída que hace daño desde', 300, 10, 50, 2000, 'velocidad', 'Más = aguanta caídas más altas.', 'Salto y caída'],
+  ['vida', 'Vida base', 100, 5, 1, 5000, '', '+2 por nivel de forma física y lo que dé el equipo.', 'Vida y energía'], ['regenVida', 'Regeneración de vida', 1, 0.1, 0, 20, '×', '', 'Vida y energía'],
+  ['aguante', 'Aguante base', 100, 5, 1, 5000, '', '+5 por nivel de forma física.', 'Vida y energía'], ['gastoCorrer', 'Gasto de aguante al correr', 1, 0.1, 0, 10, '×', '', 'Vida y energía'],
+  ['recupAguante', 'Recuperación de aguante', 14, 1, 0, 200, 'por s', '', 'Vida y energía'], ['mana', 'Maná base', 50, 5, 0, 5000, '', '+10 por nivel de magia.', 'Vida y energía'],
+  ['regenMana', 'Regeneración de maná', 0.8, 0.1, 0, 50, 'por s', '', 'Vida y energía'],
+  ['hambre', 'Hambre', 1, 0.1, 0, 10, '×', '0 = nunca tiene hambre.', 'Hambre y sed'], ['sed', 'Sed', 1, 0.1, 0, 10, '×', '', 'Hambre y sed'], ['cansancio', 'Cansancio (sueño)', 1, 0.1, 0, 10, '×', '', 'Hambre y sed'],
+  ['alcance', 'Alcance', 5.5, 0.5, 1, 30, 'casillas', 'Hasta dónde picas, colocas y recoges.', 'Interacción'],
+  ['choqueAncho', 'Medio ancho', 5, 0.5, 0.5, 30, 'unidades', 'Puntos de los pies a cada lado.', 'Choque'], ['choquePie', 'Pies (abajo)', 5, 0.5, -20, 30, 'unidades', '', 'Choque'],
+  ['choqueCentro', 'Punto central', 1, 0.5, -20, 30, 'unidades', '', 'Choque'], ['orden', 'Línea de orden (pies)', 8, 0.5, -20, 40, 'unidades', 'Con esta línea se decide si un árbol o una mata te tapa.', 'Choque'],
+  ['escala', 'Tamaño del dibujo', 1.6, 0.1, 0.5, 6, '', 'Solo se ve más grande o pequeño; el choque va aparte.', 'Dibujo'],
+  ['sombraAncho', 'Sombra: ancho', 10, 0.5, 0, 60, 'unidades', '', 'Dibujo'], ['sombraAlto', 'Sombra: alto', 4, 0.5, 0, 30, 'unidades', '', 'Dibujo'], ['sombraOpac', 'Sombra: opacidad', 0.3, 0.05, 0, 1, '', '', 'Dibujo']];
+const JUG_G = ['Movimiento', 'Salto y caída', 'Vida y energía', 'Hambre y sed', 'Interacción', 'Choque', 'Dibujo'];
+st.jugCerr = new Set();
 const jugV = k => { const j = AJ().jugador || {}, p = JUG_P.find(x => x[0] === k); return typeof j[k] === 'number' ? j[k] : p[2]; };
 function jugSet(k, v) { hist(); const p = JUG_P.find(x => x[0] === k); AJ().jugador = AJ().jugador || {}; if (v === null || v === p[2]) delete AJ().jugador[k]; else AJ().jugador[k] = Math.max(p[4], Math.min(p[5], v)); if (!Object.keys(AJ().jugador).length) delete AJ().jugador; sucio(); }
 
@@ -32,13 +40,18 @@ function modo(m) {
 
 // ---------- Jugador ----------
 function panelJugador() {
-  const D = $('#der');
-  D.innerHTML = `<div class="sec"><h3>Jugador <small>propiedades base</small></h3>${JUG_P.map(([k, n, def, stp, mn, mx, u, ex]) => `<div class="campo" title="${esc(ex)}"><span>${esc(n)}${u ? ` <small class="mut">(${u})</small>` : ''}</span><span><input type="number" data-j="${k}" value="${jugV(k)}" step="${stp}" min="${mn}" max="${mx}"> <button class="x" data-r="${k}" title="Valor de serie: ${def}">↺</button></span></div>${ex ? `<p class="nota" style="margin:-2px 0 6px">${esc(ex)}</p>` : ''}`).join('')}
-  <div class="fila"><button id="jProbar" class="ok">▶ Probar en el juego</button><button id="jTodo">Todo de serie</button></div></div>`;
-  $$('#der [data-j]').forEach(i => i.onchange = () => { const v = +i.value; if (!isFinite(v)) return; jugSet(i.dataset.j, v); i.value = jugV(i.dataset.j); dibujar(); });
-  $$('#der [data-r]').forEach(b => b.onclick = () => { jugSet(b.dataset.r, null); panel(); dibujar(); });
-  $('#jTodo').onclick = () => { hist(); delete AJ().jugador; sucio(); panel(); dibujar(); };
-  $('#jProbar').onclick = () => probarSimple();
+  const D = $('#der'), cambiados = Object.keys(AJ().jugador || {}).length, Q = s => [...document.querySelectorAll(s)];
+  D.innerHTML = `<div class="sec"><h3>Jugador <small>${cambiados ? cambiados + ' cambiada(s)' : 'todo de serie'}</small></h3><input id="jBuscar" type="search" placeholder="Buscar propiedad…" style="width:100%"></div>` + JUG_G.map(g => {
+    const L = JUG_P.filter(p => p[8] === g), n = L.filter(p => (AJ().jugador || {})[p[0]] !== undefined).length, cerr = st.jugCerr.has(g);
+    return `<div class="sec jgrupo" data-g="${g}"><h3 class="jtit" style="cursor:pointer">${cerr ? '▸' : '▾'} ${g} <small>${n ? n + ' cambiada(s)' : ''}</small></h3><div ${cerr ? 'hidden' : ''}>${L.map(([k, nm, def, stp, mn, mx, u, ex]) => `<div class="campo jcampo ${(AJ().jugador || {})[k] !== undefined ? 'mod' : ''}" data-txt="${esc((nm + ' ' + ex).toLowerCase())}" title="${esc(ex)}"><span>${esc(nm)}${u ? ` <small class="mut">(${u})</small>` : ''}</span><span><input type="number" data-j="${k}" value="${jugV(k)}" step="${stp}" min="${mn}" max="${mx}"> <button class="x" data-r="${k}" title="Valor de serie: ${def}">↺</button></span></div>${ex ? `<p class="nota" style="margin:-2px 0 6px">${esc(ex)}</p>` : ''}`).join('')}</div></div>`;
+  }).join('') + `<div class="sec"><div class="fila"><button id="jProbar" class="ok">▶ Probar en el juego</button><button id="jTodo">Todo de serie</button></div>
+    <p class="nota">Son la base: habilidades, nivel, equipo, pociones, clima, heridas y monturas siguen multiplicando encima. En la vista arrastra los puntos verdes (choque), la línea amarilla (orden) y el punto dorado (alcance).</p></div>`;
+  Q('#der [data-j]').forEach(i => i.onchange = () => { const v = +i.value; if (!isFinite(v)) return; jugSet(i.dataset.j, v); i.value = jugV(i.dataset.j); i.closest('.jcampo').classList.toggle('mod', (AJ().jugador || {})[i.dataset.j] !== undefined); dibujar(); });
+  Q('#der [data-r]').forEach(b => b.onclick = () => { jugSet(b.dataset.r, null); panel(); dibujar(); });
+  Q('#der .jtit').forEach(h => h.onclick = () => { const g = h.parentNode.dataset.g; st.jugCerr.has(g) ? st.jugCerr.delete(g) : st.jugCerr.add(g); panel(); });
+  document.getElementById('jBuscar').oninput = e => { const q = e.target.value.trim().toLowerCase(); Q('#der .jcampo').forEach(c => { const ok = !q || c.dataset.txt.includes(q); c.style.display = ok ? '' : 'none'; const nt = c.nextElementSibling; if (nt && nt.classList.contains('nota')) nt.style.display = ok ? '' : 'none'; }); if (q) Q('#der .jgrupo > div').forEach(d => d.hidden = false); };
+  document.getElementById('jTodo').onclick = () => { if (!confirm('¿Volver todas las propiedades del jugador a las de serie?')) return; hist(); delete AJ().jugador; sucio(); panel(); dibujar(); };
+  document.getElementById('jProbar').onclick = () => probarSimple();
 }
 function dibujarJugador() {
   const dpr = devicePixelRatio || 1, W2 = vista.clientWidth * dpr, H2 = vista.clientHeight * dpr; if (vista.width !== W2 || vista.height !== H2) { vista.width = W2; vista.height = H2; }

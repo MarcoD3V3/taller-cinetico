@@ -46,7 +46,7 @@ function updatePlayer(fdt) {
     const l = Math.hypot(mx, my), sp = (pmove.sprint ? JUG('correr', 5.6) : JUG('andar', 3.3)) * boost * mf.mul * T;
     tvx = mx / l * sp; tvy = my / l * sp;
   }
-  const a = Math.min(1, mf.grip * fdt);
+  const a = Math.min(1, mf.grip * JUG('agarre', 1) * fdt); // agarre: lo rápido que arranca y frena (motor)
   P.mvx = (P.mvx || 0) + (tvx - (P.mvx || 0)) * a; P.mvy = (P.mvy || 0) + (tvy - (P.mvy || 0)) * a;
   if (!want && Math.hypot(P.mvx, P.mvy) < 4) P.mvx = P.mvy = 0;
   const ox = p.x, oy = p.y, fromLv = lvPoint(p.x, p.y + 5), dx = P.mvx * fdt, dy = P.mvy * fdt;

@@ -90,6 +90,26 @@ function motorRefresh() {
     motorCmds();
   } catch (e) { console.warn('motor: no se pudieron aplicar los cambios', e); }
 }
+// Cambios en vivo SIN tirones: solo se rehace lo que cambió (no todos los árboles y matas del mundo)
+let _motorUlt = JSON.stringify(window.AJUSTES || {});
+function motorAplicar(nuevo) {
+  const txt = JSON.stringify(nuevo); if (txt === _motorUlt) return; // el eco del mismo cambio: nada que hacer
+  const viejo = JSON.parse(_motorUlt); _motorUlt = txt; window.AJUSTES = nuevo;
+  try {
+    const S0 = viejo.sprites || {}, S1 = nuevo.sprites || {}, cambio = new Set();
+    for (const k of new Set([...Object.keys(S0), ...Object.keys(S1)])) if (JSON.stringify(S0[k]) !== JSON.stringify(S1[k])) cambio.add(k);
+    const ocultos = [...cambio].some(k => !!(S0[k] || {}).oculto !== !!(S1[k] || {}).oculto);
+    if (ocultos) { _csTreeImgs.clear(); _csTreeSpr.clear(); _gd = null; _motorGd = null; _gdPick.clear(); _gdCache.clear(); } // mostrar/ocultar cambia las listas
+    else if (cambio.size) {
+      for (const [id, s] of _csTreeSpr) if (cambio.has(s.key)) _csTreeSpr.delete(id); // solo los árboles de esa imagen
+      if ([...cambio].some(k => k.startsWith('suelo/'))) for (const [id, o] of _gdCache) if (o && (o.group || [o]).some(q => q.im && cambio.has(q.im.__key))) _gdCache.delete(id); // solo las matas de esa imagen
+    }
+    const j = o => JSON.stringify(o || {});
+    if (j(viejo.suelo) !== j(nuevo.suelo)) { motorApply(); motorCats(); _gdPick.clear(); _gdCache.clear(); }
+    if (j(viejo.biomas) !== j(nuevo.biomas)) motorApply();
+    if (j(viejo.comandos) !== j(nuevo.comandos)) motorCmds();
+  } catch (e) { console.warn('motor: cambio en vivo', e); motorRefresh(); }
+}
 
 // ---------- Ver choques y líneas de orden (modo prueba, tecla C) ----------
 let MOTOR_DBG = false;
@@ -108,7 +128,11 @@ function motorDebugDraw() {
       ctx.strokeStyle = '#3bc8ff'; ctx.beginPath(); ctx.moveTo(cx - o.w / 2, o.py + (o.sortDy || 0)); ctx.lineTo(cx + o.w / 2, o.py + (o.sortDy || 0)); ctx.stroke();
       for (const c of colsSuelo(o)) { ctx.strokeStyle = c.activo === false ? '#888' : c.trigger ? '#3bffd0' : '#ff3b3b'; colTrazar(ctx, c, cx, o.py); ctx.stroke(); } }
   }
-  const p = S.player; ctx.strokeStyle = '#ffe14a'; ctx.beginPath(); ctx.moveTo(p.x - 10, p.y + 8); ctx.lineTo(p.x + 10, p.y + 8); ctx.stroke(); // tus pies (lo que se compara con las líneas)
+  // el jugador: su línea de orden (amarilla) y sus puntos de choque (verdes), con los valores del motor
+  const p = S.player, fy = p.y + JUG('orden', 8); ctx.strokeStyle = '#ffe14a'; ctx.beginPath(); ctx.moveTo(p.x - 10, fy); ctx.lineTo(p.x + 10, fy); ctx.stroke();
+  const A = JUG('choqueAncho', 5), pie = JUG('choquePie', 5), cen = JUG('choqueCentro', 1), pts = [[p.x - A, p.y + pie], [p.x + A, p.y + pie], [p.x, p.y + cen]];
+  ctx.strokeStyle = '#5fe07a'; ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]); ctx.lineTo(pts[2][0], pts[2][1]); ctx.lineTo(pts[1][0], pts[1][1]); ctx.stroke();
+  ctx.fillStyle = '#5fe07a'; const d = 1.6 / z * 2; for (const [x, y] of pts) ctx.fillRect(x - d / 2, y - d / 2, d, d);
   ctx.restore();
 }
 
@@ -138,20 +162,25 @@ function motorRects(px, py) { // qué hay dibujado bajo un punto del mundo (lo d
   const out = [], tx0 = Math.floor(px / T), ty0 = Math.floor(py / T);
   for (let ty = ty0 - 1; ty <= ty0 + 5; ty++) for (let tx = tx0 - 3; tx <= tx0 + 3; tx++) {
     const t = gnd(tx, ty), g = GI[t];
-    if (g.tree && csTreeImgs(t)) { const sz = g.hp ? clamp(Math.round((treeHp(tx, ty) || g.hp) / g.hp * 3), 0, 3) : 3, s = treeSprite(t, (hash2(tx, ty, 61) * 64) | 0, sz);
-      const X = tx * T + 16 - s.ax, Y = ty * T + 26 - s.ay; if (px >= X && px <= X + s.dw && py >= Y && py <= Y + s.dh) out.push({ tipo: 'sprite', key: s.key, x: X, y: Y, w: s.dw, h: s.dh, z: ty * T + 26 + (s.sortDy || 0) }); }
+    if (g.tree && csTreeImgs(t)) { const sz = g.hp ? clamp(Math.round((treeHp(tx, ty) || g.hp) / g.hp * 3), 0, 3) : 3, v = (hash2(tx, ty, 61) * 64) | 0, s = treeSprite(t, v, sz);
+      const X = tx * T + 16 - s.ax, Y = ty * T + 26 - s.ay; if (px >= X && px <= X + s.dw && py >= Y && py <= Y + s.dh) out.push({ tipo: 'sprite', key: s.key, tx, ty, t, flip: v & 1, k: s.k, bx: tx * T + 16, by: ty * T + 26, x: X, y: Y, w: s.dw, h: s.dh, z: ty * T + 26 + (s.sortDy || 0) }); }
     const o0 = typeof gdAt === 'function' && gdAt(tx, ty);
-    if (o0) for (const o of o0.group || [o0]) { const X = o.px, Y = o.py - o.h + (o.oy || 0); if (px >= X && px <= X + o.w && py >= Y && py <= Y + o.h && o.im && o.im.__key) out.push({ tipo: 'sprite', key: o.im.__key, cat: o.cat, x: X, y: Y, w: o.w, h: o.h, z: o.py + (o.sortDy || 0) }); }
+    if (o0) for (const o of o0.group || [o0]) { const X = o.px, Y = o.py - o.h + (o.oy || 0); if (px >= X && px <= X + o.w && py >= Y && py <= Y + o.h && o.im && o.im.__key) out.push({ tipo: 'sprite', key: o.im.__key, cat: o.cat, tx, ty, flip: o.flip ? 1 : 0, k: 1, bx: o.px + o.w / 2, by: o.py, x: X, y: Y, w: o.w, h: o.h, z: o.py + (o.sortDy || 0) }); }
   }
   const p = S.player, sc = JUG('escala', 1.6) / 1.6; if (Math.abs(px - p.x) < 10 * sc && py > p.y + 8 - 40 * sc && py < p.y + 10) out.push({ tipo: 'jugador', x: p.x - 10 * sc, y: p.y + 8 - 40 * sc, w: 20 * sc, h: 42 * sc, z: p.y + 8 + 0.5 });
   return out.sort((a, b) => b.z - a.z);
 }
+// los colisores (sin escala ni espejo) de lo seleccionado: los del motor, o el automático del árbol
+function motorColsSel(s) { const a = ((window.AJUSTES.sprites || {})[s.key]) || {}; if (Array.isArray(a.cols)) return a.cols; if (a.col === false) return []; if (a.col) return [{ forma: 'elipse', x: a.col.cx, y: a.col.cy, w: a.col.rx * 2, h: a.col.ry * 2 }]; const au = s.cat ? null : motorAutoCol(s.key); return au ? [{ forma: 'elipse', x: au.cx, y: au.cy, w: au.rx * 2, h: au.ry * 2 }] : []; }
 function motorDibujarSel() {
   const s = MOTOR_SEL.o; if (!s || !S) return;
   if (s.tipo === 'jugador') { const p = S.player, sc = JUG('escala', 1.6) / 1.6; s.x = p.x - 10 * sc; s.y = p.y + 8 - 40 * sc; s.w = 20 * sc; s.h = 42 * sc; }
   const z = view.z, k = z * dpr, ox = Math.round(cw / 2 * dpr - view.x * k), oy = Math.round(ch / 2 * dpr - view.y * k);
   ctx.save(); ctx.setTransform(k, 0, 0, k, ox, oy); ctx.lineWidth = 1.5 / z; ctx.strokeStyle = '#e0b54c'; ctx.setLineDash([4 / z, 3 / z]); ctx.strokeRect(s.x, s.y, s.w, s.h); ctx.setLineDash([]);
-  ctx.fillStyle = '#e0b54c'; ctx.font = `${11 / z}px sans-serif`; ctx.restore();
+  if (s.tipo === 'sprite' && document.getElementById('motorMenu')) { // con el menú abierto se ven sus colisores (el elegido, más grueso)
+    motorColsSel(s).forEach((c0, i) => { let c = colEscala(c0, s.k || 1, 1); if (s.flip) c = colEspejo(c); ctx.lineWidth = (i === (MOTOR_SEL.ci || 0) ? 2.5 : 1) / z; ctx.strokeStyle = c.activo === false ? '#888' : c.trigger ? '#3bffd0' : '#ff3b3b'; colTrazar(ctx, c, s.bx, s.by); ctx.stroke(); });
+  }
+  ctx.restore();
 }
 { const r0 = render; render = fdt => { if (MOTOR_VUELO.on) motorVolar(); r0(fdt); motorDebugDraw(); motorDibujarSel(); }; }
 function motorVolar() {
@@ -167,55 +196,93 @@ function motorVueloSet(on) {
 }
 // ---------- Menú flotante (clic derecho) ----------
 function motorMandar(tipo, key, patch) { // al motor (lo guarda en su borrador) y aquí al momento
-  const A = window.AJUSTES;
+  const A = JSON.parse(JSON.stringify(window.AJUSTES || {}));
   if (tipo === 'sprite') { A.sprites = A.sprites || {}; const a = A.sprites[key] = A.sprites[key] || {}; for (const q in patch) { if (patch[q] === null) delete a[q]; else a[q] = patch[q]; } if (!Object.keys(a).length) delete A.sprites[key]; }
   if (tipo === 'cat') { A.suelo = A.suelo || { cats: {}, grounds: {} }; A.suelo.cats = A.suelo.cats || {}; const o = A.suelo.cats[key] = A.suelo.cats[key] || {}; for (const q in patch) { if (patch[q] === null) delete o[q]; else o[q] = patch[q]; } }
   if (tipo === 'jugador') { A.jugador = A.jugador || {}; for (const q in patch) { if (patch[q] === null) delete A.jugador[q]; else A.jugador[q] = patch[q]; } }
-  motorRefresh();
+  motorAplicar(A);
   try { localStorage.setItem('motor-cambio', JSON.stringify({ tipo, key, cat: key, patch, n: Date.now() })); } catch (e) { }
 }
+const MOTOR_ARR = { on: false, drag: null }; let MOTOR_CLIP = null;
+const MM_FORMAS = { caja: 'Caja', circulo: 'Círculo', capsula: 'Cápsula', elipse: 'Elipse', poligono: 'Polígono' };
+const MM_NUEVO = { caja: { forma: 'caja', x: 0, y: -1, w: 16, h: 6 }, circulo: { forma: 'circulo', x: 0, y: -1, r: 6 }, capsula: { forma: 'capsula', x: 0, y: -4, w: 8, h: 14, dir: 'v' }, elipse: { forma: 'elipse', x: 0, y: -1, w: 14, h: 6 } };
+function motorColsMandar(s, f) { const L = JSON.parse(JSON.stringify(motorColsSel(s))); f(L); motorMandar('sprite', s.key, { cols: L, col: null }); }
 function motorMenu(s, cx, cy) {
+  const abiertas = new Set([...(document.querySelectorAll('#motorMenu details[open]'))].map(d => d.dataset.s));
   motorMenuCerrar(); MOTOR_SEL.o = s; const m = document.createElement('div'); m.id = 'motorMenu';
-  m.style.cssText = `position:fixed;left:${Math.min(cx, innerWidth - 270)}px;top:${Math.min(cy, innerHeight - 420)}px;z-index:9999;width:260px;max-height:80vh;overflow:auto;background:#1c1d1f;border:1px solid #b8892e;box-shadow:0 8px 30px #000;font:14px "Taller Pixel",sans-serif;color:#ece6d8;padding:8px`;
+  m.style.cssText = `position:fixed;left:${Math.max(4, Math.min(cx, innerWidth - 290))}px;top:${Math.max(4, Math.min(cy, innerHeight - 120))}px;z-index:9999;width:280px;max-height:${innerHeight - 16}px;overflow:auto;background:#1c1d1f;border:1px solid #b8892e;box-shadow:0 8px 30px #000;font:14px "Taller Pixel",sans-serif;color:#ece6d8;padding:8px`;
   const A = window.AJUSTES, r1 = v => Math.round(v * 100) / 100;
-  const fila = (txt, val, botones) => `<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin:4px 0"><span style="color:#a39d8f">${txt}</span><span style="display:flex;gap:3px;align-items:center"><b style="font-weight:normal;min-width:34px;text-align:right">${val}</b>${botones}</span></div>`;
-  const bt = (act, t, tit = '') => `<button data-a="${act}" title="${tit}" style="background:#232427;border:1px solid #3a3a37;color:#ece6d8;font:inherit;padding:1px 7px;cursor:pointer">${t}</button>`;
+  const fila = (txt, val, botones) => `<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin:3px 0"><span style="color:#a39d8f">${txt}</span><span style="display:flex;gap:3px;align-items:center"><b style="font-weight:normal;min-width:30px;text-align:right">${val}</b>${botones}</span></div>`;
+  const bt = (act, t, tit = '', on) => `<button data-a="${act}" title="${tit}" style="background:${on ? '#3b2f12' : '#232427'};border:1px solid ${on ? '#b8892e' : '#3a3a37'};color:${on ? '#e0b54c' : '#ece6d8'};font:inherit;padding:1px 7px;cursor:pointer">${t}</button>`;
+  const sec = (id, tit, html, abierto) => `<details data-s="${id}" ${abiertas.has(id) || (abierto && !abiertas.size) ? 'open' : ''} style="border-top:1px solid #2c2d30;margin-top:4px;padding-top:3px"><summary style="cursor:pointer;color:#e0b54c">${tit}</summary>${html}</details>`;
   let h = '';
   if (s.tipo === 'jugador') {
     const j = A.jugador || {}, v = (k, d) => j[k] ?? d;
-    h = `<div style="color:#e0b54c;margin-bottom:6px">Jugador</div>` + fila('Andar', v('andar', 3.3), bt('j:andar:-0.2', '−') + bt('j:andar:0.2', '+')) + fila('Correr', v('correr', 5.6), bt('j:correr:-0.2', '−') + bt('j:correr:0.2', '+'))
-      + fila('Alcance', v('alcance', 5.5), bt('j:alcance:-0.5', '−') + bt('j:alcance:0.5', '+')) + fila('Tamaño', v('escala', 1.6), bt('j:escala:-0.1', '−') + bt('j:escala:0.1', '+')) + fila('Salto', v('salto', 175), bt('j:salto:-15', '−') + bt('j:salto:15', '+'))
-      + `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">${bt('jreset', 'De serie')}${bt('irj', 'Abrir en el motor ↗')}</div>`;
+    h = `<div style="color:#e0b54c;margin-bottom:4px">Jugador</div>`
+      + sec('mov', 'Movimiento', fila('Andar', v('andar', 3.3), bt('j:andar:-0.2', '−') + bt('j:andar:0.2', '+')) + fila('Correr', v('correr', 5.6), bt('j:correr:-0.2', '−') + bt('j:correr:0.2', '+')) + fila('Agarre', v('agarre', 1), bt('j:agarre:-0.1', '−') + bt('j:agarre:0.1', '+')) + fila('Nado', v('nado', 1), bt('j:nado:-0.1', '−') + bt('j:nado:0.1', '+')), true)
+      + sec('sal', 'Salto y caída', fila('Salto', v('salto', 175), bt('j:salto:-15', '−') + bt('j:salto:15', '+')) + fila('Gravedad', v('gravedad', 900), bt('j:gravedad:-50', '−') + bt('j:gravedad:50', '+')))
+      + sec('cho', 'Choque y orden', fila('Medio ancho', v('choqueAncho', 5), bt('j:choqueAncho:-0.5', '−') + bt('j:choqueAncho:0.5', '+')) + fila('Pies', v('choquePie', 5), bt('j:choquePie:-0.5', '↑') + bt('j:choquePie:0.5', '↓')) + fila('Centro', v('choqueCentro', 1), bt('j:choqueCentro:-0.5', '↑') + bt('j:choqueCentro:0.5', '↓')) + fila('Línea de orden', v('orden', 8), bt('j:orden:-0.5', '↑') + bt('j:orden:0.5', '↓')))
+      + sec('dib', 'Dibujo y alcance', fila('Tamaño', v('escala', 1.6), bt('j:escala:-0.1', '−') + bt('j:escala:0.1', '+')) + fila('Alcance', v('alcance', 5.5), bt('j:alcance:-0.5', '−') + bt('j:alcance:0.5', '+')))
+      + `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">${bt('jreset', 'Todo de serie')}${bt('dbg', MOTOR_DBG ? 'Ocultar choques' : 'Ver choques', '', MOTOR_DBG)}${bt('irj', 'Abrir en el motor ↗')}</div>`;
   } else {
-    const a = (A.sprites || {})[s.key] || {}, cat = s.cat, cv = cat ? ((A.suelo || {}).cats || {})[cat] || {} : null;
-    h = `<div style="color:#e0b54c;margin-bottom:2px">${s.key}</div><div style="color:#a39d8f;font-size:12px;margin-bottom:6px">${cat ? 'Suelo · ' + cat : 'Árbol'}</div>`
-      + fila('Escala', r1(a.esc || 1), bt('s:esc:-0.05', '−') + bt('s:esc:0.05', '+')) + fila('Mover X', r1(a.dx || 0), bt('s:dx:-0.5', '←') + bt('s:dx:0.5', '→')) + fila('Mover Y', r1(a.dy || 0), bt('s:dy:-0.5', '↑') + bt('s:dy:0.5', '↓'))
-      + fila('Línea de orden', r1(a.orden || 0), bt('s:orden:-1', '↑') + bt('s:orden:1', '↓')) + fila('Viento', r1(a.viento ?? 1), bt('s:viento:-0.1', '−') + bt('s:viento:0.1', '+'))
-      + fila('Choque', a.col === false ? 'no' : a.col ? 'propio' : cat ? 'no' : 'auto', bt('col', 'cambiar', 'auto → sin choque → propio'))
-      + (a.col ? fila('Choque ancho', r1(a.col.rx), bt('c:rx:-0.5', '−') + bt('c:rx:0.5', '+')) + fila('Choque alto', r1(a.col.ry), bt('c:ry:-0.5', '−') + bt('c:ry:0.5', '+')) + fila('Choque X / Y', `${r1(a.col.cx)}, ${r1(a.col.cy)}`, bt('c:cx:-0.5', '←') + bt('c:cx:0.5', '→') + bt('c:cy:-0.5', '↑') + bt('c:cy:0.5', '↓')) : '')
-      + (cat ? fila('Se levanta', cv.up === false ? 'no' : cv.up === true ? 'sí' : 'de serie', bt('up', 'cambiar')) + fila('Píxel', cv.px || 'de serie', bt('px', '1 / 1,6')) : '')
-      + `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">${bt('oculto', a.oculto ? 'Mostrar' : 'Ocultar')}${bt('reset', 'De serie')}${bt('dbg', MOTOR_DBG ? 'Ocultar choques' : 'Ver choques')}${bt('ir', 'Abrir en el motor ↗', 'Colisión, píxeles, biomas… en el motor')}</div>`;
+    const a = (A.sprites || {})[s.key] || {}, cat = s.cat, cv = cat ? ((A.suelo || {}).cats || {})[cat] || {} : null, L = motorColsSel(s), modo = Array.isArray(a.cols) || a.col ? 'propios' : a.col === false ? 'ninguno' : cat ? 'ninguno' : 'auto';
+    const ci = MOTOR_SEL.ci = Math.min(MOTOR_SEL.ci || 0, Math.max(0, L.length - 1)), c = L[ci];
+    h = `<div style="color:#e0b54c">${s.key}</div><div style="color:#a39d8f;font-size:12px;margin-bottom:4px">${cat ? 'Suelo · ' + cat : 'Árbol'} · casilla ${s.tx}, ${s.ty}</div>`
+      + sec('dib', 'Dibujo', fila('Escala', r1(a.esc || 1), bt('s:esc:-0.05', '−') + bt('s:esc:0.05', '+')) + fila('Mover X', r1(a.dx || 0), bt('s:dx:-0.5', '←') + bt('s:dx:0.5', '→')) + fila('Mover Y', r1(a.dy || 0), bt('s:dy:-0.5', '↑') + bt('s:dy:0.5', '↓'))
+        + fila('Línea de orden', r1(a.orden || 0), bt('s:orden:-1', '↑') + bt('s:orden:1', '↓')) + fila('Viento', r1(a.viento ?? 1), bt('s:viento:-0.1', '−') + bt('s:viento:0.1', '+')), true)
+      + sec('col', `Colisores <span style="color:#a39d8f;font-size:12px">(${modo === 'auto' ? 'automático' : modo === 'ninguno' ? 'ninguno' : L.length})</span>`,
+        `<div style="display:flex;gap:3px;flex-wrap:wrap;margin:4px 0">${Object.keys(MM_NUEVO).map(f => bt('add:' + f, '+ ' + MM_FORMAS[f])).join('')}</div>`
+        + (L.length ? `<div style="display:flex;gap:3px;flex-wrap:wrap;margin:4px 0">${L.map((x, i) => bt('ci:' + i, `${i + 1}. ${MM_FORMAS[x.forma] || x.forma}${x.trigger ? ' ⚡' : ''}`, '', i === ci)).join('')}</div>` : '')
+        + (c ? fila('Mover', `${r1(c.x || 0)}, ${r1(c.y || 0)}`, bt('c:x:-0.5', '←') + bt('c:x:0.5', '→') + bt('c:y:-0.5', '↑') + bt('c:y:0.5', '↓'))
+          + (c.forma === 'circulo' ? fila('Radio', r1(c.r), bt('c:r:-0.5', '−') + bt('c:r:0.5', '+')) : c.forma === 'poligono' ? '' : fila('Ancho', r1(c.w), bt('c:w:-1', '−') + bt('c:w:1', '+')) + fila('Alto', r1(c.h), bt('c:h:-0.5', '−') + bt('c:h:0.5', '+')))
+          + (c.forma === 'circulo' || c.forma === 'poligono' ? '' : fila('Rotación', (c.rot || 0) + '°', bt('c:rot:-15', '⟲') + bt('c:rot:15', '⟳')))
+          + `<div style="display:flex;gap:3px;flex-wrap:wrap;margin:4px 0">${bt('arr', '✥ Arrastrar con el ratón', 'Arrastra en el mundo para moverlo; con Mayús cambia el tamaño', MOTOR_ARR.on)}${bt('trig', c.trigger ? 'Trigger: sí' : 'Trigger: no', '', !!c.trigger)}${bt('act', c.activo === false ? 'Desactivado' : 'Activo', '', c.activo !== false)}${bt('cdel', 'Quitar')}</div>` : '')
+        + `<div style="display:flex;gap:3px;flex-wrap:wrap;margin:4px 0">${cat ? '' : bt('cauto', 'Automático', '', modo === 'auto')}${bt('cnone', 'Sin colisores', '', modo === 'ninguno' && !cat)}</div>`, MOTOR_ARR.on)
+      + (cat ? sec('cat', `Categoría «${cat}»`, fila('Se levanta', cv.up === false ? 'no' : cv.up === true ? 'sí' : 'de serie', bt('up', 'cambiar')) + fila('Píxel', cv.px || 'de serie', bt('px', '1 / 1,6')) + fila('Peso en este suelo', '', bt('peso:-0.5', '−') + bt('peso:0.5', '+'))) : sec('bio', 'Dónde sale', fila('Densidad en este bioma', '', bt('dens:-0.01', '−') + bt('dens:0.01', '+'))))
+      + sec('mas', 'Más', `<div style="display:flex;gap:3px;flex-wrap:wrap;margin:4px 0">${bt('copiar', 'Copiar ajustes')}${bt('pegar', 'Pegar ajustes', MOTOR_CLIP ? '' : 'Primero copia los de otro')}${bt('todas', 'Aplicar a todo el tipo')}${bt('pintar', '✎ Editar píxeles ↗')}${cat ? '' : bt('otro', 'Poner otro al lado')}${bt('quitar', 'Quitar del mundo')}${bt('oculto', a.oculto ? 'Mostrar en el juego' : 'Ocultar en el juego')}${bt('reset', 'Todo de serie')}</div>`)
+      + `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">${bt('dbg', MOTOR_DBG ? 'Ocultar choques' : 'Ver choques', '', MOTOR_DBG)}${bt('ir', 'Abrir en el motor ↗', 'Todo lo demás: colisores con asas, biomas, píxeles…')}</div>`;
   }
-  h += `<div style="color:#6e6a62;font-size:11px;margin-top:6px">Se guarda en el borrador del motor. Publica desde el motor.</div>`;
+  h += `<div style="color:#6e6a62;font-size:11px;margin-top:6px">Se guarda solo en el borrador del motor · se publica desde el motor.</div>`;
   m.innerHTML = h; document.body.appendChild(m);
   m.addEventListener('mousedown', e => e.stopPropagation()); m.addEventListener('contextmenu', e => e.preventDefault());
+  m.querySelectorAll('details').forEach(d => d.addEventListener('toggle', () => {}));
   m.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
-    const act = b.dataset.a, a = ((window.AJUSTES.sprites || {})[s.key]) || {};
-    if (act.startsWith('s:')) { const [, q, d] = act.split(':'), def = q === 'esc' || q === 'viento' ? 1 : 0, nv = Math.round(((a[q] ?? def) + +d) * 100) / 100; motorMandar('sprite', s.key, { [q]: q === 'esc' ? Math.max(0.1, nv) : q === 'viento' ? Math.max(0, nv) : nv }); }
-    else if (act.startsWith('c:')) { const [, q, d] = act.split(':'), c = { ...a.col }; c[q] = Math.round((c[q] + +d) * 100) / 100; if (q === 'rx' || q === 'ry') c[q] = Math.max(1, c[q]); motorMandar('sprite', s.key, { col: c }); }
-    else if (act === 'col') { let nv; if (a.col === undefined || a.col === null) nv = s.cat ? { cx: 0, cy: -1, rx: Math.max(3, Math.round(s.w * 0.3)), ry: 3 } : false; else if (a.col === false) { const g = s.cat ? null : motorAutoCol(s.key); nv = g || { cx: 0, cy: -1, rx: 6, ry: 3 }; } else nv = null; motorMandar('sprite', s.key, { col: nv }); }
-    else if (act.startsWith('j:')) { const [, q, d] = act.split(':'), j = window.AJUSTES.jugador || {}, defs = { andar: 3.3, correr: 5.6, alcance: 5.5, escala: 1.6, salto: 175 }; motorMandar('jugador', null, { [q]: Math.max(0.1, Math.round(((j[q] ?? defs[q]) + +d) * 100) / 100) }); }
-    else if (act === 'jreset') motorMandar('jugador', null, { andar: null, correr: null, alcance: null, escala: null, salto: null });
+    const act = b.dataset.a, a = ((window.AJUSTES.sprites || {})[s.key]) || {}, num = v => Math.round(v * 100) / 100;
+    if (act.startsWith('s:')) { const [, q, d] = act.split(':'), def = q === 'esc' || q === 'viento' ? 1 : 0, nv = num((a[q] ?? def) + +d); motorMandar('sprite', s.key, { [q]: q === 'esc' ? Math.max(0.1, nv) : q === 'viento' ? Math.max(0, nv) : nv }); }
+    else if (act.startsWith('add:')) motorColsMandar(s, L => { L.push(JSON.parse(JSON.stringify(MM_NUEVO[act.slice(4)]))); MOTOR_SEL.ci = L.length - 1; });
+    else if (act.startsWith('ci:')) MOTOR_SEL.ci = +act.slice(3);
+    else if (act.startsWith('c:')) { const [, q, d] = act.split(':'); motorColsMandar(s, L => { const c = L[MOTOR_SEL.ci || 0]; if (!c) return; if (q === 'rot') { let r = (c.rot || 0) + +d; r = ((r + 180) % 360 + 360) % 360 - 180; c.rot = r || undefined; } else { c[q] = num((c[q] || 0) + +d); if (q === 'w' || q === 'h' || q === 'r') c[q] = Math.max(1, c[q]); } }); }
+    else if (act === 'trig') motorColsMandar(s, L => { const c = L[MOTOR_SEL.ci || 0]; if (c) c.trigger = c.trigger ? undefined : true; });
+    else if (act === 'act') motorColsMandar(s, L => { const c = L[MOTOR_SEL.ci || 0]; if (c) c.activo = c.activo === false ? undefined : false; });
+    else if (act === 'cdel') motorColsMandar(s, L => { L.splice(MOTOR_SEL.ci || 0, 1); MOTOR_SEL.ci = 0; });
+    else if (act === 'cauto') motorMandar('sprite', s.key, { cols: null, col: null });
+    else if (act === 'cnone') motorMandar('sprite', s.key, { cols: [], col: null });
+    else if (act === 'arr') { MOTOR_ARR.on = !MOTOR_ARR.on; if (MOTOR_ARR.on && !motorColsSel(s).length) motorColsMandar(s, L => L.push(JSON.parse(JSON.stringify(MM_NUEVO.elipse)))); toast(MOTOR_ARR.on ? 'Arrastra en el mundo para mover el colisor (Mayús: tamaño)' : 'Arrastrar: desactivado'); }
+    else if (act.startsWith('j:')) { const [, q, d] = act.split(':'), j = window.AJUSTES.jugador || {}, defs = { andar: 3.3, correr: 5.6, agarre: 1, nado: 1, salto: 175, gravedad: 900, choqueAncho: 5, choquePie: 5, choqueCentro: 1, orden: 8, escala: 1.6, alcance: 5.5 }; const nv = num((j[q] ?? defs[q]) + +d); motorMandar('jugador', null, { [q]: ['choquePie', 'choqueCentro', 'orden'].includes(q) ? nv : Math.max(0.1, nv) }); }
+    else if (act === 'jreset') { const z = {}; for (const k in (window.AJUSTES.jugador || {})) z[k] = null; motorMandar('jugador', null, z); }
     else if (act === 'oculto') motorMandar('sprite', s.key, { oculto: a.oculto ? null : true });
-    else if (act === 'reset') motorMandar('sprite', s.key, { esc: null, dx: null, dy: null, orden: null, viento: null, col: null, oculto: null });
+    else if (act === 'reset') motorMandar('sprite', s.key, { esc: null, dx: null, dy: null, orden: null, viento: null, col: null, cols: null, oculto: null });
     else if (act === 'up') { const c = ((window.AJUSTES.suelo || {}).cats || {})[s.cat] || {}; motorMandar('cat', s.cat, { up: c.up === undefined ? true : c.up === true ? false : null }); }
     else if (act === 'px') { const c = ((window.AJUSTES.suelo || {}).cats || {})[s.cat] || {}; motorMandar('cat', s.cat, { px: c.px === 1 ? 1.6 : c.px === 1.6 ? null : 1 }); }
+    else if (act.startsWith('peso:')) { motorAviso('suelo', { suelo: GI[gnd(s.tx, s.ty)].key, cat: s.cat, delta: +act.slice(5) }); toast('Peso cambiado en el motor (se nota en el terreno nuevo y al recargar)'); }
+    else if (act.startsWith('dens:')) { const b = BIOMES[biomeOf(s.tx, s.ty)]; motorAviso('bioma', { bioma: b && b.key, arbol: GI[s.t].key, delta: +act.slice(5) }); toast(`Densidad en ${b ? b.n : 'el bioma'} cambiada en el motor (terreno nuevo)`); }
+    else if (act === 'copiar') { MOTOR_CLIP = JSON.parse(JSON.stringify(a)); delete MOTOR_CLIP.oculto; toast('Ajustes copiados'); }
+    else if (act === 'pegar') { if (!MOTOR_CLIP) return toast('Primero copia los de otro sprite'); const pt = { esc: null, dx: null, dy: null, orden: null, viento: null, col: null, cols: null }; for (const q in MOTOR_CLIP) pt[q] = MOTOR_CLIP[q]; motorMandar('sprite', s.key, pt); }
+    else if (act === 'todas') { if (!confirm(`¿Copiar los ajustes de ${s.key} a todas las imágenes de su tipo? (se puede deshacer en el motor)`)) return; motorAviso('todas', { key: s.key }); }
+    else if (act === 'pintar') { try { localStorage.setItem('motor-ir', JSON.stringify({ key: s.key, pintar: 1, n: Date.now() })); } catch (e) { } toast('Abierto en el editor de píxeles del motor'); }
+    else if (act === 'otro') { for (const [dx, dy] of [[2, 0], [-2, 0], [0, 2], [0, -2], [2, 2], [-2, 2]]) { const x = s.tx + dx, y = s.ty + dy, g2 = GI[gnd(x, y)]; if (!g2.solid && !g2.liquid && !g2.tree && !at(x, y)) { setGround(x, y, s.t, GI[s.t].hp || 0); toast('Otro igual al lado'); break; } } }
+    else if (act === 'quitar') { if (s.cat) { S.picked = S.picked || {}; S.picked['g' + s.tx + ',' + s.ty] = 1; if (typeof _gdCache !== 'undefined') _gdCache.clear(); } else { const g = GI[s.t]; setGround(s.tx, s.ty, g.u >= 0 ? g.u : G.GRASS, 0); } motorMenuCerrar(); MOTOR_SEL.o = null; return; }
     else if (act === 'dbg') MOTOR_DBG = !MOTOR_DBG;
     else if (act === 'ir' || act === 'irj') { try { localStorage.setItem('motor-ir', JSON.stringify(act === 'irj' ? { jugador: 1, n: Date.now() } : { key: s.key, n: Date.now() })); } catch (e) { } toast('Abierto en el motor (en su pestaña)'); }
     const r = m.getBoundingClientRect(); motorMenu(s, r.left, r.top); // se rehace con los valores nuevos
   });
 }
-function motorAutoCol(key) { // choque automático (de serie) de un árbol, para pasar a «propio» y retocarlo
+function motorAviso(tipo, datos) { try { localStorage.setItem('motor-cambio', JSON.stringify({ tipo, ...datos, n: Date.now() })); } catch (e) { } }
+const _motorAuto = new Map();
+function motorAutoCol(key) { // choque automático (de serie) de un árbol, para pasar a «propio» y retocarlo (se guarda: no se recalcula en cada fotograma)
+  if (_motorAuto.has(key)) return _motorAuto.get(key); const r = motorAutoCol0(key); _motorAuto.set(key, r); return r;
+}
+function motorAutoCol0(key) {
   const set = CSPR.sets.get(key); if (!set) return null; const im = csShadowFix(set.raw); im.__key = key; const s = csTreeMake(im, 0, 1, {}); return s.col ? { cx: Math.round(s.col.cx * 10) / 10, cy: Math.round(s.col.cy * 10) / 10, rx: Math.round(s.col.rx * 10) / 10, ry: Math.round(s.col.ry * 10) / 10 } : null;
 }
 function motorMenuCerrar() { const m = document.getElementById('motorMenu'); if (m) m.remove(); }
@@ -229,7 +296,7 @@ if (MOTOR_PRUEBA) {
   // un mundo tuyo que trajiste al motor no se toca; el de prueba sí se guarda (solo existe en el motor)
   if (!propio) { saveGame = () => true; saveIndex = () => true; }
   // el motor manda cada cambio al momento: se aplica sin recargar
-  addEventListener('storage', e => { if (e.key !== 'motor-ajustes' || !e.newValue) return; try { window.AJUSTES = JSON.parse(e.newValue); motorRefresh(); } catch (er) { console.warn(er); } });
+  addEventListener('storage', e => { if (e.key !== 'motor-ajustes' || !e.newValue) return; try { motorAplicar(JSON.parse(e.newValue)); } catch (er) { console.warn(er); } });
   const escribiendo = () => { const a = document.activeElement; return (a && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) || (typeof CHAT !== 'undefined' && CHAT.open); };
   addEventListener('keydown', e => {
     if (!S || escribiendo()) return; const k = e.key.toLowerCase();
@@ -243,11 +310,19 @@ if (MOTOR_PRUEBA) {
   // doble clic: seleccionar · clic derecho: menú de ajustes
   addEventListener('dblclick', e => { if (!S || e.target.id !== 'c') return; const w = mouseWorld(), L = motorRects(w.x, w.y); MOTOR_SEL.o = L[0] || null; if (L[0]) toast(L[0].tipo === 'jugador' ? 'Jugador seleccionado (clic derecho: ajustes)' : `${L[0].key} seleccionado (clic derecho: ajustes)`); }, true);
   addEventListener('mousedown', e => {
-    if (!S) return; if (!e.target.closest || !e.target.closest('#motorMenu')) { if (e.button !== 2) motorMenuCerrar(); }
+    if (!S) return;
+    if (MOTOR_ARR.on && e.button === 0 && e.target.id === 'c' && MOTOR_SEL.o && MOTOR_SEL.o.tipo === 'sprite') { const w = mouseWorld(), L = motorColsSel(MOTOR_SEL.o), c = L[MOTOR_SEL.ci || 0]; if (c) { MOTOR_ARR.drag = { x: w.x, y: w.y, base: JSON.parse(JSON.stringify(c)), shift: e.shiftKey }; e.preventDefault(); e.stopImmediatePropagation(); return; } }
+    if (!e.target.closest || !e.target.closest('#motorMenu')) { if (e.button !== 2) motorMenuCerrar(); }
     if (e.button !== 2 || e.target.id !== 'c') return; const w = mouseWorld(), L = motorRects(w.x, w.y), s = L[0] || (MOTOR_SEL.o && L.find(x => x.key === MOTOR_SEL.o.key));
     if (!s) return; e.preventDefault(); e.stopImmediatePropagation(); motorMenu(s, e.clientX + 6, e.clientY + 6);
   }, true);
   addEventListener('contextmenu', e => { if (e.target.id === 'c' && document.getElementById('motorMenu')) e.preventDefault(); }, true);
+  addEventListener('mousemove', e => { const d = MOTOR_ARR.drag, s0 = MOTOR_SEL.o; if (!d || !s0) return; const w = mouseWorld(), m = s0.flip ? -1 : 1, k = s0.k || 1, dx = (w.x - d.x) / k * m, dy = (w.y - d.y) / k, q = v => Math.round(v * 2) / 2;
+    const L = JSON.parse(JSON.stringify(motorColsSel(s0))), c = L[MOTOR_SEL.ci || 0]; if (!c) return; const B = d.base;
+    if (d.shift) { if (c.forma === 'circulo') c.r = Math.max(1, q(B.r + dx)); else if (c.forma !== 'poligono') { c.w = Math.max(1, q(B.w + dx * 2)); c.h = Math.max(1, q(B.h + dy * 2)); } }
+    else { c.x = q((B.x || 0) + dx); c.y = q((B.y || 0) + dy); }
+    const A = JSON.parse(JSON.stringify(window.AJUSTES || {})); A.sprites = A.sprites || {}; const a = A.sprites[s0.key] = A.sprites[s0.key] || {}; a.cols = L; delete a.col; motorAplicar(A); }, true);
+  addEventListener('mouseup', () => { const d = MOTOR_ARR.drag, s0 = MOTOR_SEL.o; if (!d) return; MOTOR_ARR.drag = null; if (s0) { motorMandar('sprite', s0.key, { cols: motorColsSel(s0), col: null }); const mm = document.getElementById('motorMenu'); if (mm) { const r = mm.getBoundingClientRect(); motorMenu(s0, r.left, r.top); } } }, true);
   // el cuadrado de prueba: suelo elegido y el sprite en el centro (o varias copias repartidas)
   const arena = { cx: 0, cy: 0, r: 0, cat: null, sitios: new Set() };
   function motorArena() {
