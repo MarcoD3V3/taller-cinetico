@@ -33,8 +33,9 @@ function passable(x, y, who) {
   if (gi.liquid && !gi.walk && !ghost && !flier && !(o && o.proj) && !(who === 'player' && (hasFlag('phoenixWings') || mountFly() || (gi.liquid === 'water' && !mountPet())))) return false; // el jugador nada
   // Árboles, roca y menas no se atraviesan (los voladores pasan por encima)
   // Los árboles solo bloquean con el tronco: se puede pasar entre ellos y por detrás de la copa
-  if (gi.tree && !ghost && !flier) { const dx = x - (tx * T + 16), dy = (y - (ty * T + 25)) * 1.6, r = gi.tree.big || gi.tree.s === 'jungle' || gi.tree.s === 'baobab' ? 9 : 6.5; if (dx * dx + dy * dy < r * r) return false; }
-  else if (gi.solid && !ghost && !flier) return false;
+  // (con la forma de la base de cada dibujo: render/customsprites.js · treeBlocks)
+  if (!ghost && !flier && typeof treeBlocks === 'function' && treeBlocks(x, y)) return false;
+  if (!gi.tree && gi.solid && !ghost && !flier) return false;
   const b = c.b && c.b[i]; if (!b) return true;
   const d = BD[b.type];
   if (d.door) return who === 'player' || who === 'pet' || !!ghost || !!(o && o.proj);

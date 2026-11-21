@@ -189,6 +189,35 @@ function csTreeImgs(t) {
   // Lienzo del tamaño del árbol (+1 px de margen): nunca se corta, por ancho que sea
   const S2 = CS_TREE_PX * k, cw = b.w + 2, ch = b.h + 2, cv = csCanvas(cw, ch), c = cv.getContext('2d');
   if (flip) { c.translate(cw, 0); c.scale(-1, 1); } c.drawImage(im, b.x, b.y, b.w, b.h, 1, 1, b.w, b.h);
-  s = { cv, k, dw: cw * S2, dh: ch * S2, ax: (1 + b.w / 2) * S2, ay: (1 + b.h) * S2 - 6 }; _csTreeSpr.set(key, s); return s;
+  s = { cv, k, dw: cw * S2, dh: ch * S2, ax: (1 + b.w / 2) * S2, ay: (1 + b.h) * S2 - 6 };
+  s.col = csTrunkBase(c, cw, ch, S2, s.ax, s.ay); _csTreeSpr.set(key, s); return s;
 }; }
+// Choque del árbol: la base del tronco (y raíces) tal como está dibujada, no un punto en el centro de la casilla.
+// Se mira la fila opaca más baja del dibujo (la sombra es translúcida y no cuenta) y el ancho del tronco ahí.
+// Devuelve una elipse relativa al punto de anclaje del árbol (centro de la casilla, y = base).
+function csTrunkBase(c, w, h, S2, ax, ay) {
+  const d = c.getImageData(0, 0, w, h).data, op = (x, y) => d[(y * w + x) * 4 + 3] >= 200;
+  let yb = -1; for (let y = h - 1; y >= 0 && yb < 0; y--) for (let x = 0; x < w; x++) if (op(x, y)) { yb = y; break; }
+  if (yb < 0) return null;
+  // el ancho de la base: unas filas por encima del suelo (raíces incluidas), sin contar hojas sueltas a los lados
+  let xl = w, xr = -1; const cxs = [];
+  for (let y = Math.max(0, yb - 3); y <= yb; y++) for (let x = 0; x < w; x++) if (op(x, y)) cxs.push(x);
+  cxs.sort((a, b) => a - b); const mid = cxs[cxs.length >> 1];
+  for (const x of cxs) if (Math.abs(x - mid) <= 9) { xl = Math.min(xl, x); xr = Math.max(xr, x); }
+  const cx = (xl + xr + 1) / 2 * S2 - ax, cy = (yb - 0.5) * S2 - ay;
+  return { cx, cy, rx: Math.max(4, (xr - xl + 1) / 2 * S2 + 1), ry: Math.max(3, 2.4 * S2) };
+}
+// ¿Choca (x, y) con el tronco de algún árbol cercano? Mira la casilla y sus vecinas: un árbol inclinado tiene el tronco fuera de su casilla.
+function treeBlocks(x, y) {
+  const tx0 = Math.floor(x / T), ty0 = Math.floor(y / T);
+  for (let ty = ty0 - 1; ty <= ty0 + 1; ty++) for (let tx = tx0 - 1; tx <= tx0 + 1; tx++) {
+    const ch = peekChunk(tx >> CSH, ty >> CSH); if (!ch) continue;
+    const i = ((ty & CMASK) << CSH) | (tx & CMASK), t = ch.g[i], g = GI[t]; if (!g.tree) continue;
+    let col = null;
+    if (csTreeImgs(t)) { const sz = g.hp ? clamp(Math.round((ch.t[i] || g.hp) / g.hp * 3), 0, 3) : 3; col = treeSprite(t, (hash2(tx, ty, 61) * 64) | 0, sz).col; }
+    if (col) { const dx = (x - (tx * T + 16) - col.cx) / col.rx, dy = (y - (ty * T + 26) - col.cy) / col.ry; if (dx * dx + dy * dy < 1) return true; }
+    else if (tx === tx0 && ty === ty0) { const dx = x - (tx * T + 16), dy = (y - (ty * T + 25)) * 1.6, r = g.tree.big || g.tree.s === 'jungle' || g.tree.s === 'baobab' ? 9 : 6.5; if (dx * dx + dy * dy < r * r) return true; }
+  }
+  return false;
+}
 csLoad();

@@ -9,20 +9,20 @@
 const GD_PX = 1.6;
 // Qué categorías salen en cada suelo (peso relativo) y cuántas casillas llevan algo
 const GD_BIOME = {
-  GRASS: [0.2, { matojo: 4, planta: 3, arbusto_p: 2.5, arbusto_m: 0.8, arbusto_g: 0.25, flor: 5, hierba: 3, rama: 1.5, hoja: 1.5, piedra: 1.5, roca: 0.6, pina: 0.4, pluma: 0.3, seta: 0.3, tierra: 0.3 }],
-  DARKGRASS: [0.2, { planta: 3, arbusto_p: 2.5, arbusto_m: 1, arbusto_g: 0.35, matojo: 1, rama: 3, hoja: 2, hojaseca: 2, pina: 2, seta: 2, raiz: 1, tocon: 0.5, piedra: 1, roca: 1, flor: 0.4 }],
-  JUNGLEGRASS: [0.24, { planta: 4, matojo: 3, arbusto_p: 3, arbusto_m: 1.2, arbusto_g: 0.4, hoja: 3, flor: 3, hierba: 2, seta: 1.5, raiz: 1, rama: 1 }],
-  DRYGRASS: [0.09, { planta: 1.5, arbusto_p: 1, arbusto_m: 0.3, rama: 1.5, piedra: 2, hueso: 1, cactus: 0.6, hojaseca: 1, hierba: 1, tierra: 0.6 }],
-  SWAMPGRASS: [0.13, { planta: 3, arbusto_p: 2, arbusto_m: 0.6, seta: 3, rama: 2, hoja: 2, raiz: 1, hierba: 1, roca: 0.5 }],
+  GRASS: [0.5, { matojo: 4, planta: 3, arbusto_p: 2.5, arbusto_m: 0.8, arbusto_g: 0.25, flor: 5, hierba: 3, rama: 1.5, hoja: 1.5, piedra: 1.5, roca: 0.6, pina: 0.4, pluma: 0.3, seta: 0.3, tierra: 0.3 }],
+  DARKGRASS: [0.42, { planta: 3, arbusto_p: 2.5, arbusto_m: 1, arbusto_g: 0.35, matojo: 1, rama: 3, hoja: 2, hojaseca: 2, pina: 2, seta: 2, raiz: 1, tocon: 0.5, piedra: 1, roca: 1, flor: 0.4 }],
+  JUNGLEGRASS: [0.52, { planta: 4, matojo: 3, arbusto_p: 3, arbusto_m: 1.2, arbusto_g: 0.4, hoja: 3, flor: 3, hierba: 2, seta: 1.5, raiz: 1, rama: 1 }],
+  DRYGRASS: [0.18, { planta: 1.5, arbusto_p: 1, arbusto_m: 0.3, rama: 1.5, piedra: 2, hueso: 1, cactus: 0.6, hojaseca: 1, hierba: 1, tierra: 0.6 }],
+  SWAMPGRASS: [0.28, { planta: 3, arbusto_p: 2, arbusto_m: 0.6, seta: 3, rama: 2, hoja: 2, raiz: 1, hierba: 1, roca: 0.5 }],
   MUD: [0.07, { planta: 1.5, rama: 2, piedra: 2, tierra: 2, seta: 1, raiz: 1 }], PEAT: [0.07, { planta: 1.5, rama: 2, seta: 2, raiz: 1.5, tierra: 1, piedra: 1 }],
-  MOSS: [0.2, { matojo: 5, planta: 2, arbusto_p: 2, arbusto_m: 0.6, flor: 4, piedra: 1.5, seta: 1, roca: 1, hierba: 1 }],
+  MOSS: [0.45, { matojo: 5, planta: 2, arbusto_p: 2, arbusto_m: 0.6, flor: 4, piedra: 1.5, seta: 1, roca: 1, hierba: 1 }],
   SAND: [0.05, { concha: 4, playa: 2.5, piedra: 1.5, pluma: 0.4 }], BLACKSAND: [0.04, { concha: 2, piedra: 2, cascajo: 2, playa: 1 }],
   REDSAND: [0.05, { cactus: 2, desierto: 2, hueso: 2, piedra: 1 }], TERRACOTTA: [0.04, { desierto: 2, piedra: 2, mena: 0.5, hueso: 0.6 }],
   SALT: [0.025, { piedra: 2, cristal: 0.6, hueso: 1 }], GRAVEL: [0.05, { piedra: 3, cascajo: 3, roca: 1.5 }], CLAY: [0.03, { piedra: 2, tierra: 2 }],
   SNOW: [0.05, { arbusto_nieve: 0.8, nieve: 3, hielo: 2, piedra: 0.6, rama: 0.4 }], ICE: [0.025, { hielo: 3 }],
   ASH: [0.05, { volcan: 2, brasa: 2, hueso: 1.5, cascajo: 1, carbon: 1 }], MYCELIUM: [0.1, { seta: 4, setacueva: 3, piedra: 0.6 }],
   AMETHYST: [0.07, { cristal: 4, hielo: 1, piedra: 1 }], TOXIC: [0.05, { hueso: 2, chatarra: 2, seta: 1, setacueva: 1 }],
-  DIRT: [0.08, { planta: 1.5, tierra: 3, piedra: 2, raiz: 1.5, rama: 1, pina: 0.5 }],
+  DIRT: [0.14, { planta: 1.5, tierra: 3, piedra: 2, raiz: 1.5, rama: 1, pina: 0.5 }],
   ROCKFLOOR: [0.06, { cascajo: 3, piedra: 2, roca: 1, mena: 0.4 }], STONEFLOOR: [0.05, { cascajo: 3, piedra: 2, roca: 1 }],
   BASALTFLOOR: [0.05, { cascajo: 3, carbon: 1, volcan: 1, brasa: 0.5 }], PERMAFLOOR: [0.05, { hielo: 3, cascajo: 2, nieve: 1 }],
   CAVEFLOOR: [0.08, { cascajo: 3, setacueva: 2, mena: 1, carbon: 1, cristal: 0.6, hueso: 0.6, raiz: 0.5 }],
@@ -88,7 +88,9 @@ function gdAt(tx, ty) {
 }
 function gdAt0(tx, ty) {
   if (OPT.decor === false || !gdSets() || !Object.keys(_gd).length) return null;
-  const t = gnd(tx, ty), d = gdFor(t); if (!d || hash2(tx, ty, 71) >= d.dens) return null;
+  const t = gnd(tx, ty), d = gdFor(t), hv = hash2(tx, ty, 71); if (!d || hv >= d.dens) return null;
+  // repartido, sin montones: si una vecina (arriba, abajo, a los lados) también lleva algo y le toca antes, esta se queda vacía
+  for (let k = 0; k < 4; k++) { const nx = tx + DX[k], ny = ty + DY[k], hn = hash2(nx, ny, 71); if (hn < hv && hn < d.dens && gnd(nx, ny) === t) return null; }
   if (gnd(tx + 1, ty) !== t || gnd(tx - 1, ty) !== t || gnd(tx, ty + 1) !== t || gnd(tx, ty - 1) !== t) return null;
   if (at(tx, ty) || (S && S.picked && S.picked['g' + tx + ',' + ty])) return null;
   const r = hash2(tx, ty, 72) * d.tot; let cat = d.L[d.L.length - 1][1]; for (const [lim, c] of d.L) if (r < lim) { cat = c; break; }
