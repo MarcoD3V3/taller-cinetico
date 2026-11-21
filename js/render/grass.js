@@ -22,15 +22,28 @@ function grassFor(t) {
   let r = null; for (const k in GRASS_BY) if (G[k] === t) { const [n, h, cs] = GRASS_BY[k]; r = { n, h, cs }; }
   _grassCol.set(t, r); return r;
 }
-// Una mata de hierba alta: 5 a 9 briznas de hasta 12 píxeles (un tercio del personaje: no lo tapa),
-// curvadas hacia un lado, más gruesas abajo, oscuras en la raíz y claras en la punta, con sombrita en el suelo.
-function grassTuft(c, x, y, seed, cs, tall) {
-  const n = 5 + ((hash2(x, y, seed) * 5) | 0), wind = hash2(x, y, seed + 9) < 0.5 ? -1 : 1;
-  c.fillStyle = cs[0]; c.fillRect(x - (n >> 1) - 1, y + 1, n + 1, 1); // sombra en el suelo
+// Ruido suave por zonas (para que no se vea repetido): 0..1, cambia despacio de una casilla a otra
+function grassNoise(x, y, seed, sc) {
+  const fx = x / sc, fy = y / sc, ix = Math.floor(fx), iy = Math.floor(fy), u = fx - ix, v = fy - iy, su = u * u * (3 - 2 * u), sv = v * v * (3 - 2 * v);
+  const a = hash2(ix, iy, seed), b = hash2(ix + 1, iy, seed), c = hash2(ix, iy + 1, seed), d = hash2(ix + 1, iy + 1, seed);
+  return a + (b - a) * su + (c - a) * sv + (a - b - c + d) * su * sv;
+}
+const _mixHex = (h1, h2, t) => { const a = parseInt(h1.slice(1), 16), b = parseInt(h2.slice(1), 16), m = (s2) => Math.round(((a >> s2) & 255) * (1 - t) + ((b >> s2) & 255) * t); return '#' + ((1 << 24) | (m(16) << 16) | (m(8) << 8) | m(0)).toString(16).slice(1); };
+const _grassTone = new Map();
+function grassTone(cs, k) { // paleta algo más clara o más oscura según la zona
+  const key = cs[2] + (k * 8 | 0); let r = _grassTone.get(key); if (r) return r;
+  const t = (k * 8 | 0) / 8 - 0.5; r = cs.map(c => t > 0 ? _mixHex(c, '#d8d890', t * 0.35) : _mixHex(c, '#0c1810', -t * 0.4)); _grassTone.set(key, r); return r;
+}
+// Una mata: de 1 brizna suelta a 9 briznas de hasta 12 píxeles (un tercio del personaje: no lo tapa),
+// curvadas, más gruesas abajo, oscuras en la raíz y claras en la punta, con sombrita en el suelo.
+function grassTuft(c, x, y, seed, cs, tall, n) {
+  const wind = hash2(x, y, seed + 9) < 0.5 ? -1 : 1;
+  if (n > 2) { c.fillStyle = cs[0]; c.fillRect(x - (n >> 1) - 1, y + 1, n + 1, 1); } // sombra en el suelo
   for (let i = 0; i < n; i++) {
-    const mid = Math.abs(i - (n - 1) / 2) / ((n - 1) / 2 || 1); // las del centro, más altas
-    const h = Math.max(3, Math.round((5 + hash2(x + i, y, seed + 1) * 6) * tall * (1 - mid * 0.45)));
-    const bend = (hash2(x + i, y, seed + 2) * 1.6 + 0.4) * (i < n / 2 ? -1 : 1) * 0.6 + wind * 0.5, bx = x + i - (n >> 1);
+    const mid = n > 1 ? Math.abs(i - (n - 1) / 2) / ((n - 1) / 2) : 0; // las del centro, más altas
+    const h = Math.max(2, Math.round((4 + hash2(x + i, y, seed + 1) * 7) * tall * (1 - mid * 0.5)));
+    const bend = (hash2(x + i, y, seed + 2) * 1.6 + 0.4) * (i < n / 2 ? -1 : 1) * 0.6 + wind * (0.3 + hash2(x, y, seed + 3) * 0.6);
+    const bx = x + i - (n >> 1) + (hash2(x + i, y, seed + 4) < 0.25 ? 1 : 0); // no todas pegadas
     for (let j = 0; j < h; j++) {
       const k = j / h, dx = Math.round(bend * k * k * (h / 6)), col = k < 0.2 ? cs[1] : k < 0.55 ? cs[2] : k < 0.85 ? cs[3] : cs[4];
       c.fillStyle = col; c.fillRect(bx + dx, y - j, j < 2 && (i & 1) ? 2 : 1, 1);
@@ -56,10 +69,19 @@ function worldFlowers() { if (typeof CSPR === 'undefined' || !CSPR.ready) return
   if (OPT.grass !== false) {
     const g = GI[t], gr = !g.solid && !g.liquid && grassFor(t);
     if (gr) {
-      const m = Math.floor(gr.n) + (hash2(x, y, 501) < gr.n % 1 ? 1 : 0), tufts = [];
-      for (let i = 0; i < m; i++) tufts.push([5 + hash2(x, y, 510 + i) * 22, 14 + hash2(x, y, 520 + i) * 16, i]); // dentro de la casilla
-      tufts.sort((a, b2) => a[1] - b2[1]); // las de atrás primero: las de delante las tapan (profundidad)
-      for (const [ox, oy, i] of tufts) grassTuft(c, Math.round(px + ox), Math.round(py + oy), 530 + i * 7 + x * 3 + y, gr.cs, gr.h * (0.75 + hash2(x, y, 540 + i) * 0.5));
+      // Zonas: manchas de hierba alta y tupida, zonas ralas y claros casi sin nada (ruido a dos escalas)
+      const z = grassNoise(x, y, 601, 7) * 0.7 + grassNoise(x, y, 602, 2.5) * 0.3, dens = Math.max(0, (z - 0.15) / 0.85);
+      const want = gr.n * (0.3 + dens * dens * 2.2), m = Math.floor(want) + (hash2(x, y, 501) < want % 1 ? 1 : 0);
+      const tall = gr.h * (0.55 + z * 0.75), cs = grassTone(gr.cs, grassNoise(x, y, 603, 5)), tufts = [];
+      for (let i = 0; i < m; i++) tufts.push([4 + hash2(x, y, 510 + i) * 24, 13 + hash2(x, y, 520 + i) * 17, i]); // dentro de la casilla
+      // y unas cuantas briznas sueltas por todas partes (también en los claros)
+      const loose = hash2(x, y, 550) < 0.6 ? 1 + ((hash2(x, y, 551) * 3) | 0) : 0;
+      for (let i = 0; i < loose; i++) tufts.push([3 + hash2(x, y, 560 + i) * 26, 12 + hash2(x, y, 570 + i) * 18, 20 + i]);
+      tufts.sort((p1, p2) => p1[1] - p2[1]); // las de atrás primero: las de delante las tapan (profundidad)
+      for (const [ox, oy, i] of tufts) {
+        const n = i >= 20 ? 1 + ((hash2(x, y, 580 + i) * 2) | 0) : 2 + ((hash2(x, y, 590 + i) * 8) | 0);
+        grassTuft(c, Math.round(px + ox), Math.round(py + oy), 530 + i * 7 + x * 3 + y, cs, tall * (0.7 + hash2(x, y, 540 + i) * 0.6), n);
+      }
     }
   }
   return d0(c, x, y, t, px, py);

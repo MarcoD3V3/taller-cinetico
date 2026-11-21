@@ -9,13 +9,13 @@
 const GD_PX = 1.6;
 // Qué categorías salen en cada suelo (peso relativo) y cuántas casillas llevan algo
 const GD_BIOME = {
-  GRASS: [0.16, { matojo: 4, planta: 3, arbusto_p: 2.5, arbusto_m: 0.8, arbusto_g: 0.25, flor: 5, hierba: 3, rama: 1.5, hoja: 1.5, piedra: 1.5, roca: 0.6, pina: 0.4, pluma: 0.3, seta: 0.3, tierra: 0.3 }],
-  DARKGRASS: [0.16, { planta: 3, arbusto_p: 2.5, arbusto_m: 1, arbusto_g: 0.35, matojo: 1, rama: 3, hoja: 2, hojaseca: 2, pina: 2, seta: 2, raiz: 1, tocon: 0.5, piedra: 1, roca: 1, flor: 0.4 }],
-  JUNGLEGRASS: [0.18, { planta: 4, matojo: 3, arbusto_p: 3, arbusto_m: 1.2, arbusto_g: 0.4, hoja: 3, flor: 3, hierba: 2, seta: 1.5, raiz: 1, rama: 1 }],
+  GRASS: [0.2, { matojo: 4, planta: 3, arbusto_p: 2.5, arbusto_m: 0.8, arbusto_g: 0.25, flor: 5, hierba: 3, rama: 1.5, hoja: 1.5, piedra: 1.5, roca: 0.6, pina: 0.4, pluma: 0.3, seta: 0.3, tierra: 0.3 }],
+  DARKGRASS: [0.2, { planta: 3, arbusto_p: 2.5, arbusto_m: 1, arbusto_g: 0.35, matojo: 1, rama: 3, hoja: 2, hojaseca: 2, pina: 2, seta: 2, raiz: 1, tocon: 0.5, piedra: 1, roca: 1, flor: 0.4 }],
+  JUNGLEGRASS: [0.24, { planta: 4, matojo: 3, arbusto_p: 3, arbusto_m: 1.2, arbusto_g: 0.4, hoja: 3, flor: 3, hierba: 2, seta: 1.5, raiz: 1, rama: 1 }],
   DRYGRASS: [0.09, { planta: 1.5, arbusto_p: 1, arbusto_m: 0.3, rama: 1.5, piedra: 2, hueso: 1, cactus: 0.6, hojaseca: 1, hierba: 1, tierra: 0.6 }],
   SWAMPGRASS: [0.13, { planta: 3, arbusto_p: 2, arbusto_m: 0.6, seta: 3, rama: 2, hoja: 2, raiz: 1, hierba: 1, roca: 0.5 }],
   MUD: [0.07, { planta: 1.5, rama: 2, piedra: 2, tierra: 2, seta: 1, raiz: 1 }], PEAT: [0.07, { planta: 1.5, rama: 2, seta: 2, raiz: 1.5, tierra: 1, piedra: 1 }],
-  MOSS: [0.17, { matojo: 5, planta: 2, arbusto_p: 2, arbusto_m: 0.6, flor: 4, piedra: 1.5, seta: 1, roca: 1, hierba: 1 }],
+  MOSS: [0.2, { matojo: 5, planta: 2, arbusto_p: 2, arbusto_m: 0.6, flor: 4, piedra: 1.5, seta: 1, roca: 1, hierba: 1 }],
   SAND: [0.05, { concha: 4, playa: 2.5, piedra: 1.5, pluma: 0.4 }], BLACKSAND: [0.04, { concha: 2, piedra: 2, cascajo: 2, playa: 1 }],
   REDSAND: [0.05, { cactus: 2, desierto: 2, hueso: 2, piedra: 1 }], TERRACOTTA: [0.04, { desierto: 2, piedra: 2, mena: 0.5, hueso: 0.6 }],
   SALT: [0.025, { piedra: 2, cristal: 0.6, hueso: 1 }], GRAVEL: [0.05, { piedra: 3, cascajo: 3, roca: 1.5 }], CLAY: [0.03, { piedra: 2, tierra: 2 }],
@@ -130,14 +130,12 @@ function gdPick(x, y) {
 }; }
 const o_need = cat => cat === 'roca' || cat === 'tocon' || cat === 'chatarra' || cat === 'mena' || cat === 'arbusto_m' ? 0.6 : cat === 'arbusto_g' ? 0.9 : 0.25; // lo grande tarda un poco más
 { const t0 = tileCard; tileCard = (tx, ty) => { const h = t0(tx, ty), o = !(typeof decorAt === 'function' && decorAt(tx, ty)) && gdAt(tx, ty); if (!o) return h; const [id, name] = gdGive(o.cat); return h + `<div class="small good">🌼 ${esc(name)}: mantén clic para recoger (${esc(ITEMS[id].n)})</div>`; }; }
-// Arbustos con altura: los de detrás del jugador antes de dibujarlo y los de delante después (como los árboles)
-function drawTallDecor(ctx, k, ox, oy, x0, y0, x1, y1, front) {
-  if (OPT.decor === false || !gdSets() || !S) return;
-  const pty = S.player.y + 8, sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false; ctx.setTransform(k, 0, 0, k, ox, oy);
-  for (let ty = y0; ty <= y1 + 3; ty++) for (let tx = x0 - 1; tx <= x1 + 1; tx++) {
+// Arbustos con altura: entran en la lista de los árboles (render/trees.js) y se ordenan con ellos por la base,
+// así un arbusto detrás de un árbol queda tapado por el árbol, y al revés. Se pasa por detrás como con los árboles.
+function treeExtras(items, dc, x0, y0, x1, y1, front, pty) {
+  if (OPT.decor === false || !gdSets()) return;
+  for (let ty = y0 - 1; ty <= y1 + 3; ty++) for (let tx = x0 - 2; tx <= x1 + 2; tx++) {
     const o = gdAt(tx, ty); if (!o || !o.tall || (o.py > pty) !== front || (typeof fogHidden === 'function' && fogHidden(tx, ty))) continue;
-    gdPut(ctx, o);
+    items.push([o.py, () => gdPut(dc, o)]);
   }
-  ctx.imageSmoothingEnabled = sm;
 }
-{ const t0 = drawTrees; drawTrees = (ctx, k, ox, oy, x0, y0, x1, y1, front) => { const r = t0(ctx, k, ox, oy, x0, y0, x1, y1, front); ctx.setTransform(k, 0, 0, k, ox, oy); drawTallDecor(ctx, k, ox, oy, x0, y0, x1, y1, front); return r; }; }

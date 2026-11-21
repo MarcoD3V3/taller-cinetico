@@ -136,15 +136,19 @@ function drawTrees(ctx, k, ox, oy, x0, y0, x1, y1, front) {
     dc = _treeLayerCv.getContext('2d'); dc.setTransform(1, 0, 0, 1, 0, 0); dc.clearRect(0, 0, _treeLayerCv.width, _treeLayerCv.height); dc.setTransform(ctx.getTransform());
   }
   dc.imageSmoothingEnabled = false;
+  // Todo lo que tiene altura (árboles y, con treeExtras, arbustos…) se ordena por la base: lo de atrás primero
+  const items = [];
   for (let cy = Math.floor(y0 / CH); cy <= Math.floor((y1 + 5) / CH); cy++) for (let cx = Math.floor((x0 - 2) / CH); cx <= Math.floor((x1 + 2) / CH); cx++) {
     const list = tileTrees.get(chunkKey(cx, cy)); if (!list) continue;
     for (let i = 0; i < list.length; i += 4) {
       const tx = list[i], ty = list[i + 1]; if (tx < x0 - 2 || tx > x1 + 2 || ty < y0 - 1 || ty > y1 + 5) continue;
       const baseY = ty * T + 26; if ((baseY > pty) !== front) continue;
       const s = treeSprite(list[i + 2], list[i + 3] & 3, list[i + 3] >> 2);
-      dc.drawImage(s.cv, tx * T + 16 - (s.ax ?? TREE_AX), baseY - (s.ay ?? TREE_AY), s.dw || TREE_W, s.dh || TREE_H); // los árboles propios traen su tamaño
+      items.push([baseY, () => dc.drawImage(s.cv, tx * T + 16 - (s.ax ?? TREE_AX), baseY - (s.ay ?? TREE_AY), s.dw || TREE_W, s.dh || TREE_H)]); // los árboles propios traen su tamaño
     }
   }
+  if (typeof treeExtras === 'function') treeExtras(items, dc, x0, y0, x1, y1, front, pty);
+  items.sort((a, b) => a[0] - b[0]); for (const it of items) it[1]();
   if (layer) {
     // aparece y se desvanece con suavidad (≈0,2 s), con una curva sin tirones
     {
