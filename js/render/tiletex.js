@@ -43,12 +43,13 @@ function paintTexDetail(c, g, t, v) {
       for (let k = 0; k < 4; k++) { c.fillStyle = 'rgba(60,10,4,.45)'; c.beginPath(); c.ellipse(4 + h(k) * 24, 4 + h(k + 5) * 24, 4 + h(k + 9) * 5, 3 + h(k + 2) * 3, h(k + 3) * 3, 0, 7); c.fill(); }
       c.strokeStyle = 'rgba(255,220,90,.85)'; c.lineWidth = 1.2; c.beginPath(); for (let k = 0; k < 3; k++) { c.moveTo(h(k + 20) * 32, h(k + 21) * 32); c.lineTo(h(k + 22) * 32, h(k + 23) * 32); } c.stroke();
     } else if (g.bubble) { c.strokeStyle = g.bubble; c.lineWidth = 1; for (let k = 0; k < 4; k++) { c.beginPath(); c.arc(5 + h(k) * 22, 5 + h(k + 5) * 22, 1.2 + h(k + 3) * 2, 0, 7); c.stroke(); c.fillStyle = 'rgba(255,255,255,.5)'; c.fillRect(4 + h(k) * 22, 4 + h(k + 5) * 22, 1, 1); } }
-    else { // olas y destellos
-      c.strokeStyle = (g.wave || '#ffffff') + '40'; c.lineWidth = 1.2; for (let k = 0; k < 2; k++) { const wx = 3 + h(k + 30) * 18, wy = 6 + k * 13 + h(k + 31) * 6; c.beginPath(); c.moveTo(wx, wy); c.quadraticCurveTo(wx + 5, wy - 3, wx + 10, wy); c.stroke(); }
-      c.fillStyle = 'rgba(255,255,255,.35)'; for (let k = 0; k < 3; k++) c.fillRect(h(k + 40) * 30, h(k + 41) * 30, 2, 1);
+    else { // agua: rayitas de luz y sombra de píxeles (el movimiento lo pone render/water.js)
+      for (let k = 0; k < 3; k++) { const wx = (h(k + 30) * 27) | 0, wy = (h(k + 31) * 30) | 0, l = 2 + ((h(k + 32) * 4) | 0); c.fillStyle = 'rgba(255,255,255,.10)'; c.fillRect(wx, wy, l, 1); c.fillStyle = 'rgba(0,10,30,.08)'; c.fillRect(wx + 1, wy + 1, l, 1); }
+      c.fillStyle = 'rgba(255,255,255,.3)'; for (let k = 0; k < 2; k++) c.fillRect((h(k + 40) * 31) | 0, (h(k + 41) * 31) | 0, 1, 1);
     }
-    if (g.coral) for (let k = 0; k < 5; k++) { const cc = ['#ff7a7a', '#ffb05a', '#e86ad0', '#7ae0d0'][(h(k + 40) * 4) | 0]; circ(c, 5 + h(k + 20) * 22, 5 + h(k + 30) * 22, 1.6 + h(k) * 2.5, cc); c.fillStyle = 'rgba(255,255,255,.4)'; c.fillRect(4 + h(k + 20) * 22, 4 + h(k + 30) * 22, 1, 1); }
-    if (g.kelp) { c.strokeStyle = '#2e6a3a'; c.lineWidth = 2; for (let k = 0; k < 3; k++) { const kx = 6 + h(k) * 20; c.beginPath(); c.moveTo(kx, 30); c.quadraticCurveTo(kx + 5, 18, kx - 2, 5); c.stroke(); } }
+    if (g.coral) for (let k = 0; k < 6; k++) { const cc = ['#ff7a7a', '#ffb05a', '#e86ad0', '#7ae0d0'][(h(k + 40) * 4) | 0], bx = (3 + h(k + 20) * 24) | 0, by = (3 + h(k + 30) * 24) | 0; c.fillStyle = cc; // corales de píxeles
+      for (let j = 0; j < 7; j++) c.fillRect(bx + (((h(k * 9 + j + 100) * 5) | 0) - 2), by + (((h(k * 9 + j + 200) * 5) | 0) - 2), 1, 1); c.fillStyle = 'rgba(255,255,255,.45)'; c.fillRect(bx, by - 1, 1, 1); }
+    if (g.kelp) for (let k = 0; k < 5; k++) { c.fillStyle = 'rgba(20,56,40,.32)'; const kx = (3 + h(k) * 24) & ~1, ky = (3 + h(k + 10) * 24) & ~1; c.fillRect(kx, ky, 4, 2); c.fillRect(kx + 2, ky + 2, 4, 2); c.fillRect(kx - 2, ky + 4, 4, 2); } // sombra del bosque de algas (las algas ondulan en render/water.js)
     return;
   }
   if (g.dot) { // mena: roca con cristales que brillan

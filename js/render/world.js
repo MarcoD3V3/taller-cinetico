@@ -42,7 +42,7 @@ function buildChunk(cx, cy, s = 1) {
     for (let y = 0; y < CH; y++) for (let x = 0; x < CH; x++) { const t0 = wc.g[(((y0 + y) & CMASK) << CSH) | ((x0 + x) & CMASK)], g0 = GI[t0]; if (g0.ruin || g0.abyss) continue;
       const tv = (hash2(x0 + x, y0 + y, 51) * TEX_VARS) | 0, src = g0.kelp ? kelpTexPx(kelpUnder(x0 + x, y0 + y), tv) : tileTexPx(g0.flora ? (g0.u >= 0 ? g0.u : G.GRASS) : t0, tv); for (let r = 0; r < T; r++) u.set(src.subarray(r * T, r * T + T), (y * T + r) * W + x * T); }
     blendEdges(u, W, x0, y0); paintCliffs(u, W, x0, y0);
-    c.putImageData(img, 0, 0); _baseDone = true; }
+    c.putImageData(img, 0, 0); if (typeof wfxPaint === 'function') wfxPaint(c, x0, y0); _baseDone = true; }
   c.scale(s, s); _treeLayer = s === 1; _treeList = [];
   const lights = [];
   for (let y = y0; y < y0 + CH; y++) for (let x = x0; x < x0 + CH; x++) {
@@ -126,6 +126,7 @@ function render(fdt) {
     const wcn = peekChunk((cx * CH) >> CSH, (cy * CH) >> CSH);
     if (!detail && wcn && wcn.nb) ctx.drawImage(blockChunk(cx, cy, now), cx * CH * T, cy * CH * T, CH * T, CH * T);
   }
+  if (detail && typeof drawWater === 'function') drawWater(ctx, k, ox, oy, x0, y0, x1, y1, now); // olas, espuma, peces y plantas del agua (render/water.js)
   if (detail && typeof drawGroundDecor === 'function') drawGroundDecor(ctx, k, ox, oy, x0, y0, x1, y1); // flores, ramas, piedras… (render/decor.js)
   drawFog(ctx, x0, y0, x1, y1); // roca sin descubrir (render/fog.js)
   if (selectedBlock()) {

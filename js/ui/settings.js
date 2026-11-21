@@ -6,7 +6,7 @@
 //  Reutiliza lo de opts.js / menu.js (OPT, optSet, data-opt, data-key, PZ.bind) y solo cambia
 //  cómo se ve y añade ajustes nuevos.
 // =====================================================================================
-Object.assign(OPT_DEF, { sat: 1, shakeAmt: 1, flyZoom: true, flyClouds: true, altHud: true, accent: 'brass', reduceMotion: false, cb: 'none', hiContrast: false, muteBlur: false, pixFont: true, pixUi: true, decor: true, grass: true, wind: true });
+Object.assign(OPT_DEF, { sat: 1, shakeAmt: 1, flyZoom: true, flyClouds: true, altHud: true, accent: 'brass', reduceMotion: false, cb: 'none', hiContrast: false, muteBlur: false, pixFont: true, pixUi: true, decor: true, grass: true, wind: true, water: true });
 for (const k in OPT_DEF) if (!(k in OPT)) OPT[k] = OPT_DEF[k];
 
 // ---------- Ajustes nuevos: efectos ----------
@@ -46,6 +46,7 @@ const ST_CATS = {
     ['wxScreen', 'Clima en pantalla', 'check', 0, 0, 0, 0, 'Lluvia, nieve, niebla y la oscuridad de las cuevas sobre la imagen.'],
     ['illFx', 'Visión borrosa al enfermar', 'check', 0, 0, 0, 0, 'La pantalla se emborrona cuando tu personaje está enfermo.'],
     ['wind', 'Viento en la vegetación', 'check', 0, 0, 0, 0, 'Árboles, arbustos y algunas flores se mecen despacio con el viento.'],
+    ['water', 'Agua animada', 'check', 0, 0, 0, 0, 'Oleaje y espuma en las playas, peces, algas, corales y nenúfares. Los lagos y pantanos apenas se mueven.'],
     ['grass', 'Hierba en el suelo', 'check', 0, 0, 0, 0, 'Matas de hierba que salen del suelo según el bioma. Se nota al recargar el mundo.'],
     ['decor', 'Decoración del suelo', 'check', 0, 0, 0, 0, 'Flores, ramas, hojas, piedras, setas, huesos y conchas por el suelo según el bioma. Solo se ven.'],
     ['flyClouds', 'Nubes al volar alto', 'check', 0, 0, 0, 0, 'Al subir con alas o cohetes pasan nubes por delante.']]],
