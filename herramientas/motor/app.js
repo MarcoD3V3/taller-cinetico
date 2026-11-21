@@ -101,7 +101,7 @@ function dibujar() {
   c.strokeStyle = '#ffffff14'; c.lineWidth = 1; c.beginPath(); for (let tx = t0x; tx <= t1x; tx++) { c.moveTo(sx(tx * 32) + .5, 0); c.lineTo(sx(tx * 32) + .5, H2); } for (let ty = t0y; ty <= t1y; ty++) { c.moveTo(0, sy(ty * 32) + .5); c.lineTo(W2, sy(ty * 32) + .5); } c.stroke();
   c.setLineDash([4 * dpr, 4 * dpr]); c.strokeStyle = '#e0b54c88'; c.strokeRect(sx(0) + .5, sy(0) + .5, 32 * Z, 32 * Z); c.setLineDash([]);
   if (!st.sel || !W()) return;
-  const g = geom(st.sel), p = st.player, behind = p.y < g.sortY || g.up === false && false;
+  const g = geom(st.sel), p = st.player, behind = (p.y - 8 + jugV('orden')) < g.sortY; // los pies del jugador (su línea de orden) frente a la del sprite
   const sw = st.viento ? vientoAhora(g) : 0;
   const pintaSprite = () => { c.save(); if (sw) { const by = sy(g.Y + g.h); c.translate(0, by); c.transform(1, 0, -sw / g.h, 1, 0, 0); c.translate(0, -by); } if (!g.tree && g.flip) { c.translate(sx(g.X + g.w / 2), 0); c.scale(-1, 1); c.drawImage(g.cv, -g.w / 2 * Z, sy(g.Y), g.w * Z, g.h * Z); } else c.drawImage(g.cv, sx(g.X), sy(g.Y), g.w * Z, g.h * Z); c.restore(); };
   const plano = !g.tree && g.up === false; // lo plano siempre queda debajo
@@ -119,16 +119,17 @@ function dibujar() {
     hnd(c, sx(cx), sy(cy), '#ff3b3b'); hnd(c, sx(cx + g.col.rx), sy(cy), '#ff3b3b'); hnd(c, sx(cx), sy(cy + g.col.ry), '#ff3b3b'); }
   // choque del personaje: el juego mira 3 puntos de sus pies (como playerFree: x±5 a 5 bajo su centro y uno en el centro);
   // su centro va 8 unidades por encima de la línea de los pies
-  { const py = p.y - 8, pts = [[p.x - 5, py + 5], [p.x + 5, py + 5], [p.x, py + 1]];
-    const dentro = (x, y) => { if (!g.col) return false; const dx = (x - 16 - g.col.cx) / g.col.rx, dy = (y - 26 - g.col.cy) / g.col.ry; return dx * dx + dy * dy < 1; };
+  // (con las propiedades del jugador de la sección «Jugador»: se actualiza al cambiarlas)
+  { const py = p.y - 8, A = jugV('choqueAncho'), pie = jugV('choquePie'), cen = jugV('choqueCentro'), pts = [[p.x - A, py + pie], [p.x + A, py + pie], [p.x, py + cen]];
+    const L = typeof colsDe === 'function' ? colsDe(st.sel) : [], m = st.espejo ? -1 : 1, w = W();
+    const dentro = (x, y) => L.some(col => { const cc = m < 0 ? w.colEspejo(col) : col; return J('colBloquea')(cc, 'player') && w.colDentro(cc, x - 16, y - 26); });
     const choca = pts.some(([x, y]) => dentro(x, y));
-    c.fillStyle = choca ? '#ff3b3b40' : '#5fe07a30'; c.strokeStyle = choca ? '#ff3b3b' : '#5fe07a'; c.lineWidth = 2;
-    c.fillRect(sx(p.x - 5), sy(py + 1), 10 * Z, 4 * Z); c.strokeRect(sx(p.x - 5), sy(py + 1), 10 * Z, 4 * Z);
+    c.strokeStyle = choca ? '#ff3b3b' : '#5fe07a'; c.lineWidth = 2; c.beginPath(); c.moveTo(sx(pts[0][0]), sy(pts[0][1])); c.lineTo(sx(pts[2][0]), sy(pts[2][1])); c.lineTo(sx(pts[1][0]), sy(pts[1][1])); c.stroke();
     for (const [x, y] of pts) { c.fillStyle = dentro(x, y) ? '#ff3b3b' : '#5fe07a'; c.fillRect(sx(x) - 3 * dpr, sy(y) - 3 * dpr, 6 * dpr, 6 * dpr); }
-    c.fillStyle = choca ? '#ff6b6b' : '#5fe07a'; c.font = `${12 * dpr}px "Taller Pixel"`; c.fillText(choca ? 'choque del personaje: ¡choca!' : 'choque del personaje', sx(p.x + 11), sy(py + 3) + 4 * dpr); }
+    c.fillStyle = choca ? '#ff6b6b' : '#5fe07a'; c.font = `${12 * dpr}px "Taller Pixel"`; c.fillText(choca ? 'choque del personaje: ¡choca!' : 'choque del personaje', sx(p.x + A + 3), sy(py + Math.min(pie, cen)) - 4 * dpr); }
   // pies del personaje
-  c.strokeStyle = '#ffe14a'; c.lineWidth = 2; c.beginPath(); c.moveTo(sx(p.x - 9), sy(p.y)); c.lineTo(sx(p.x + 9), sy(p.y)); c.stroke();
-  c.fillStyle = '#ffe14a'; c.font = `${12 * dpr}px "Taller Pixel"`; c.fillText(plano ? 'plano: siempre debajo' : behind ? 'detrás (el sprite te tapa)' : 'delante (tú lo tapas)', sx(p.x + 11), sy(p.y) + 4 * dpr);
+  c.strokeStyle = '#ffe14a'; c.lineWidth = 2; c.beginPath(); const fy = p.y - 8 + jugV('orden'); c.moveTo(sx(p.x - 9), sy(fy)); c.lineTo(sx(p.x + 9), sy(fy)); c.stroke();
+  c.fillStyle = '#ffe14a'; c.font = `${12 * dpr}px "Taller Pixel"`; c.fillText(plano ? 'plano: siempre debajo' : behind ? 'detrás (el sprite te tapa)' : 'delante (tú lo tapas)', sx(p.x + 11), sy(fy) + 4 * dpr);
 }
 // el vaivén del viento como en el juego (punta que se inclina, base quieta), según el viento de esa imagen
 function vientoAhora(g) { const a = ajGet(st.sel), t = performance.now() / 1000, mult = a.viento ?? 1;
@@ -138,7 +139,7 @@ function hnd(c, x, y, col) { c.fillStyle = '#000'; c.fillRect(x - 5, y - 5, 10, 
 function pintaJugador(c, p) {
   // el personaje de verdad, dibujado por el juego, a la misma escala
   const w = W(); c.save(); c.setTransform(Z, 0, 0, Z, O.x - 16 * Z, O.y - 26 * Z);
-  try { w.drawAvatar(c, { ...J('DEFAULT_LOOK') }, {}, p.x, p.y, Math.PI / 2, 0, false, 1.6, null, 0); }
+  try { w.drawAvatar(c, { ...J('DEFAULT_LOOK') }, {}, p.x, p.y, Math.PI / 2, 0, false, jugV('escala'), null, 0); }
   catch (e) { c.fillStyle = '#d9c9a0'; c.fillRect(p.x - 7, p.y - 30, 14, 30); }
   c.restore();
 }

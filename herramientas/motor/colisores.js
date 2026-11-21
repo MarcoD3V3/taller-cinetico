@@ -42,7 +42,7 @@ function colCapa() {
       if (a.t === 'rot') { c.strokeStyle = '#e0b54c88'; c.lineWidth = 1; c.beginPath(); c.moveTo(sx(16 + (col.x || 0) * m), sy(26 + (col.y || 0))); c.lineTo(sx(16 + x), sy(26 + y)); c.stroke(); } }
   });
   // choque del personaje con estos colisores (verde = libre, rojo = choca)
-  const p = st.player, py = p.y - 8, pts = [[p.x - 5, py + 5], [p.x + 5, py + 5], [p.x, py + 1]];
+  const p = st.player, py = p.y - 8, A = jugV('choqueAncho'), pie = jugV('choquePie'), cen = jugV('choqueCentro'), pts = [[p.x - A, py + pie], [p.x + A, py + pie], [p.x, py + cen]];
   const dentro = (x, y) => L.some(col => J('colBloquea')(m < 0 ? w.colEspejo(col) : col, 'player') && w.colDentro(m < 0 ? w.colEspejo(col) : col, x - 16, y - 26));
   for (const [x, y] of pts) { c.fillStyle = dentro(x, y) ? '#ff3b3b' : '#5fe07a'; c.fillRect(sx(x) - 3 * dpr, sy(y) - 3 * dpr, 6 * dpr, 6 * dpr); }
   if (modoA && L.length) { c.fillStyle = '#ff9b9b'; c.font = `${12 * dpr}px "Taller Pixel"`; const b = L[0]; c.fillText('automático (arrástralo para personalizar)', sx(16 + (b.x || 0) * m + b.w / 2 + 4), sy(26 + (b.y || 0)) - 8 * dpr); }
