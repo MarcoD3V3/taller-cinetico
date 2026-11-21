@@ -126,6 +126,7 @@ function render(fdt) {
     const wcn = peekChunk((cx * CH) >> CSH, (cy * CH) >> CSH);
     if (!detail && wcn && wcn.nb) ctx.drawImage(blockChunk(cx, cy, now), cx * CH * T, cy * CH * T, CH * T, CH * T);
   }
+  if (detail && typeof drawGroundDecor === 'function') drawGroundDecor(ctx, k, ox, oy, x0, y0, x1, y1); // flores, ramas, piedras… (render/decor.js)
   drawFog(ctx, x0, y0, x1, y1); // roca sin descubrir (render/fog.js)
   if (selectedBlock()) {
     ctx.strokeStyle = 'rgba(255,255,255,.05)'; ctx.lineWidth = 1; ctx.beginPath();

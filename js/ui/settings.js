@@ -6,7 +6,7 @@
 //  Reutiliza lo de opts.js / menu.js (OPT, optSet, data-opt, data-key, PZ.bind) y solo cambia
 //  cómo se ve y añade ajustes nuevos.
 // =====================================================================================
-Object.assign(OPT_DEF, { sat: 1, shakeAmt: 1, flyZoom: true, flyClouds: true, altHud: true, accent: 'brass', reduceMotion: false, cb: 'none', hiContrast: false, muteBlur: false, pixFont: true, pixUi: true });
+Object.assign(OPT_DEF, { sat: 1, shakeAmt: 1, flyZoom: true, flyClouds: true, altHud: true, accent: 'brass', reduceMotion: false, cb: 'none', hiContrast: false, muteBlur: false, pixFont: true, pixUi: true, decor: true });
 for (const k in OPT_DEF) if (!(k in OPT)) OPT[k] = OPT_DEF[k];
 
 // ---------- Ajustes nuevos: efectos ----------
@@ -45,6 +45,7 @@ const ST_CATS = {
     ['shakeAmt', 'Fuerza de las sacudidas', 'range', 0.2, 1.5, 0.05, PCT, 'Cuánto tiembla. Por debajo de 100 % es más suave.'],
     ['wxScreen', 'Clima en pantalla', 'check', 0, 0, 0, 0, 'Lluvia, nieve, niebla y la oscuridad de las cuevas sobre la imagen.'],
     ['illFx', 'Visión borrosa al enfermar', 'check', 0, 0, 0, 0, 'La pantalla se emborrona cuando tu personaje está enfermo.'],
+    ['decor', 'Decoración del suelo', 'check', 0, 0, 0, 0, 'Flores, ramas, hojas, piedras, setas, huesos y conchas por el suelo según el bioma. Solo se ven.'],
     ['flyClouds', 'Nubes al volar alto', 'check', 0, 0, 0, 0, 'Al subir con alas o cohetes pasan nubes por delante.']]],
   perf: ['Rendimiento', 'M13 2L4 14h7l-1 8 9-12h-7z', 'Elige un perfil y el juego ajusta varios efectos de golpe. Luego puedes retocar cada uno.', [
     ['fps', 'Mostrar FPS', 'check', 0, 0, 0, 0, 'Muestra en una esquina las imágenes por segundo (también con F3).']]],
