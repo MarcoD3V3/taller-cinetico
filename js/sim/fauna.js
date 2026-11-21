@@ -58,14 +58,14 @@ const SPECIES = {
   jellyfish: { n: 'Medusa', c: '#e8a0f0', c2: '#fff0ff', s: 5, v: 0.7, drops: [['venom', 1]], aq: 1, glow: 1 },
 };
 let ANIMALS = [];
-const MAX_ANIMALS = 160;
+const MAX_ANIMALS = 320; // más fauna: el doble que antes
 function canStand(sp, x, y) { const t = gnd(x, y), g = GI[t]; if (sp.aq) return !!g.liquid && g.liquid === 'water' && !g.walk; if (sp.fly) return true; if (sp.swim && g.liquid === 'water') return true; return walkable(t) && !GI[t].solid && !((b => b && !BD[b.type].walk)(at(x, y))); }
 // Nacen al cargar un chunk cerca del jugador (determinista por chunk)
 function spawnFauna(c) {
   if (c.faunaDone || ANIMALS.length >= MAX_ANIMALS) return; c.faunaDone = true;
   const s = S.gen.seed, k = ckey(c.cx, c.cy);
   const bio = c.bio[(16 << CSH) | 16], B = BIOMES[bio]; if (!B.fauna || !B.faunaSum) return;
-  const n = Math.round(B.fd * (0.5 + hash2(c.cx, c.cy, s + 1001)) * (S.gen.fauna ?? 1));
+  const n = Math.round(B.fd * 2.2 * (0.5 + hash2(c.cx, c.cy, s + 1001)) * (S.gen.fauna ?? 1)); // ×2,2: el mundo se nota vivo
   for (let i = 0; i < n * 3 && c._fn !== n; i++) {
     const lx = Math.floor(hash2(c.cx * 7 + i, c.cy, s + 1010) * CS), ly = Math.floor(hash2(c.cx, c.cy * 7 + i, s + 1020) * CS);
     const b = BIOMES[c.bio[(ly << CSH) | lx]]; if (!b.fauna) continue;

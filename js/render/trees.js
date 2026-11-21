@@ -137,14 +137,15 @@ function drawTrees(ctx, k, ox, oy, x0, y0, x1, y1, front) {
   }
   dc.imageSmoothingEnabled = false;
   // Todo lo que tiene altura (árboles y, con treeExtras, arbustos…) se ordena por la base: lo de atrás primero
-  const items = [];
+  const items = []; if (typeof windTick === 'function') windTick();
   for (let cy = Math.floor(y0 / CH); cy <= Math.floor((y1 + 5) / CH); cy++) for (let cx = Math.floor((x0 - 2) / CH); cx <= Math.floor((x1 + 2) / CH); cx++) {
     const list = tileTrees.get(chunkKey(cx, cy)); if (!list) continue;
     for (let i = 0; i < list.length; i += 4) {
       const tx = list[i], ty = list[i + 1]; if (tx < x0 - 2 || tx > x1 + 2 || ty < y0 - 1 || ty > y1 + 5) continue;
       const baseY = ty * T + 26; if ((baseY > pty) !== front) continue;
       const s = treeSprite(list[i + 2], list[i + 3] & 3, list[i + 3] >> 2);
-      items.push([baseY, () => dc.drawImage(s.cv, tx * T + 16 - (s.ax ?? TREE_AX), baseY - (s.ay ?? TREE_AY), s.dw || TREE_W, s.dh || TREE_H)]); // los árboles propios traen su tamaño
+      const dw = s.dw || TREE_W, dh = s.dh || TREE_H, X = tx * T + 16 - (s.ax ?? TREE_AX), Y = baseY - (s.ay ?? TREE_AY), sd = hash2(tx, ty, 91);
+      items.push([baseY, typeof windDraw === 'function' ? () => windDraw(dc, s.cv, X, Y, dw, dh, sd, 2.4) : () => dc.drawImage(s.cv, X, Y, dw, dh)]); // los árboles propios traen su tamaño
     }
   }
   if (typeof treeExtras === 'function') treeExtras(items, dc, x0, y0, x1, y1, front, pty);

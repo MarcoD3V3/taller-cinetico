@@ -54,6 +54,8 @@ function gdFor(t) {
 const GD_HUE = { matojo: [0, 30, -30, 60, -60, 150], flor: [0, 25, -25, 50, -50, 90, 180], concha: [0, 15, -15, 330], hoja: [0, 20, -15], hojaseca: [0, 15, -20], seta: [0, 20, -20], setacueva: [0, 40, -40, 120], cristal: [0, 60, -60, 150, 210], vacio: [0, 25, -25] };
 const GD_FLAT = new Set(['rama', 'hueso', 'concha', 'hoja', 'hojaseca', 'pluma', 'playa', 'pina', 'raiz', 'cascajo']);
 const GD_TALL = new Set(['arbusto_m', 'arbusto_g']);
+// Lo que se mece con el viento: [cuánto se mueve la punta, qué parte de ellos]
+const GD_SWAY = { arbusto_g: [1.8, 1], arbusto_m: [1.5, 1], arbusto_p: [1.1, 0.8], flor: [1.2, 0.6], matojo: [1.3, 0.7], planta: [1, 0.6], hierba: [1, 0.7], arbusto_nieve: [0.6, 1] };
 const GD_SIZES = [1, 1, 1], _gdVar = new Map();
 function gdVariant(im, cat, si, hi, rot) {
   const key = im.__id || (im.__id = Math.random().toString(36).slice(2)); const k2 = key + '|' + si + '|' + hi + '|' + rot;
@@ -67,7 +69,16 @@ function gdVariant(im, cat, si, hi, rot) {
 }
 // Qué hay en una casilla: { cat, im, px, py, w, h, flip } o null. Nunca en el borde entre dos suelos
 // (así no tapa las transiciones), ni donde hay un bloque, ni lo ya recogido.
+// Memoria por casilla: se calcula una vez (no en cada fotograma). Se vacía si cambian los bloques o se recoge algo.
+const _gdCache = new Map(); let _gdVer = -1;
 function gdAt(tx, ty) {
+  if (OPT.decor === false || !gdSets()) return null; // sin sprites aún: no se guarda nada
+  if (typeof topoVer !== 'undefined' && topoVer !== _gdVer) { _gdCache.clear(); _gdVer = topoVer; }
+  const key = tx * 65536 + ty; let o = _gdCache.get(key);
+  if (o === undefined) { o = gdAt0(tx, ty); if (_gdCache.size > 30000) _gdCache.clear(); _gdCache.set(key, o); }
+  return o;
+}
+function gdAt0(tx, ty) {
   if (OPT.decor === false || !gdSets() || !Object.keys(_gd).length) return null;
   const t = gnd(tx, ty), d = gdFor(t); if (!d || hash2(tx, ty, 71) >= d.dens) return null;
   if (gnd(tx + 1, ty) !== t || gnd(tx - 1, ty) !== t || gnd(tx, ty + 1) !== t || gnd(tx, ty - 1) !== t) return null;
@@ -79,11 +90,12 @@ function gdAt(tx, ty) {
   const tall = GD_TALL.has(cat);
   const px = tall ? tx * T + 16 - w / 2 + (hash2(tx, ty, 74) - 0.5) * 6 : tx * T + 3 + hash2(tx, ty, 74) * Math.max(0, T - 6 - w);
   const py = tall ? ty * T + 27 : ty * T + 4 + h + hash2(tx, ty, 75) * Math.max(0, T - 8 - h);
-  return { cat, im, px, py, w, h, tall, flip: hash2(tx, ty, 76) < 0.5 && cat !== 'chatarra' };
+  const swayAmp = GD_SWAY[cat] && hash2(tx, ty, 92) < GD_SWAY[cat][1] ? GD_SWAY[cat][0] : 0;
+  return { cat, im, px, py, w, h, tall, sw: swayAmp, seed: hash2(tx, ty, 93), flip: hash2(tx, ty, 76) < 0.5 && cat !== 'chatarra' };
 }
 function drawGroundDecor(ctx, k, ox, oy, x0, y0, x1, y1) {
   if (OPT.decor === false || !gdSets()) return;
-  const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false; ctx.setTransform(k, 0, 0, k, ox, oy);
+  const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false; ctx.setTransform(k, 0, 0, k, ox, oy); if (typeof windTick === 'function') windTick();
   for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
     const o = gdAt(tx, ty); if (!o || o.tall || (typeof fogHidden === 'function' && fogHidden(tx, ty))) continue;
     gdPut(ctx, o);
@@ -95,7 +107,8 @@ function gdPut(ctx, o) {
     const x = Math.round(o.px), y = Math.round(o.py - o.h);
     // perspectiva: sombra pequeña en el suelo, bajo el objeto (vista 3/4 como el resto del juego)
     ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(x + o.w / 2 + 1, o.py - 0.5, o.w * 0.42, Math.max(1.2, o.h * 0.14), 0, 0, 7); ctx.fill();
-    if (o.flip) { ctx.save(); ctx.translate(x + o.w / 2, 0); ctx.scale(-1, 1); ctx.drawImage(o.im, -o.w / 2, y, o.w, o.h); ctx.restore(); }
+    const sw = o.sw && typeof windSway === 'function' ? windSway(o.seed, o.sw) : 0;
+    if (o.flip || Math.abs(sw) > 0.05) { ctx.save(); ctx.translate(x + o.w / 2, y + o.h); if (sw) ctx.transform(1, 0, -sw / o.h, 1, 0, 0); if (o.flip) ctx.scale(-1, 1); ctx.drawImage(o.im, -o.w / 2, -o.h, o.w, o.h); ctx.restore(); }
     else ctx.drawImage(o.im, x, y, o.w, o.h);
   }
 }
@@ -109,7 +122,7 @@ const GD_GIVE = { matojo: ['petals', 'Flores'], planta: ['herbs', 'Plantas'], ar
 const gdGive = cat => { const g = GD_GIVE[cat]; return g && ITEMS[g[0]] ? g : ['stone', 'Piedra']; };
 function gdPick(x, y) {
   const o = gdAt(x, y); if (!o) return false; const [id, name, n = 1] = gdGive(o.cat);
-  (S.picked || (S.picked = {}))['g' + x + ',' + y] = 1;
+  (S.picked || (S.picked = {}))['g' + x + ',' + y] = 1; _gdCache.delete(x * 65536 + y);
   invGive(id, n, (x + 0.5) * T, (y + 0.5) * T);
   fxText(x * T + 16, y * T, '+' + n + ' ' + ITEMS[id].n, '#c8e08a'); burst(x, y, GI[gnd(x, y)].c); tone(640, 0.04, 'sine', 0.025, 1.3);
   if (typeof gainXP === 'function') gainXP('gather', 1); return true;
