@@ -4,3 +4,4 @@ node_modules/
 escritorio/node_modules/
 escritorio/dist/
 herramientas/recortador/node_modules/
+__pycache__/
