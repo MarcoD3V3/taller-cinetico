@@ -81,7 +81,7 @@ async function csLoad() {
 }
 // Se rehacen los dibujos guardados en caché para que salgan las imágenes nuevas
 function csRefresh() {
-  try { _base.clear(); _items.clear(); _icons.clear(); bchunks.clear(); _csFit.clear(); } catch (e) { }
+  try { _base.clear(); _items.clear(); _icons.clear(); bchunks.clear(); _csFit.clear(); chunks.clear(); chunksH.clear(); chunksQ.clear(); } catch (e) { } // el suelo se repinta con las flores propias
   try { if (typeof blocks !== 'undefined') for (const b of blocks) if (b) b._spr = null; if (typeof markAll === 'function' && typeof S !== 'undefined' && S) markAll(); } catch (e) { }
   try { if (typeof buildAtlas === 'function') buildAtlas(); if (typeof invVersion !== 'undefined') invVersion++; } catch (e) { }
 }
