@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self' 'unsafe-inline'">
+<title>Taller Cinético</title>
+<style>
+  /* Barra de ventana con el estilo del juego: carbón, borde de latón, fuente «Taller Pixel» */
+  @font-face { font-family: "Taller Pixel"; src: url("build/taller-pixel.woff") format("woff"); }
+  :root { --bg: #121315; --panel: #1c1d1f; --line: #3a3a37; --brass: #e0b54c; --brass2: #b8892e; --text: #ece6d8; --muted: #a39d8f; --bad: #c8463a; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); user-select: none; -webkit-user-select: none; }
+  body { font: 16px "Taller Pixel", "Segoe UI", sans-serif; color: var(--text); -webkit-font-smoothing: none; }
+  .bar { position: fixed; inset: 0 0 auto 0; height: 32px; display: flex; align-items: center; background: linear-gradient(180deg, #1c1d1f, #151618);
+    border-bottom: 2px solid var(--line); box-shadow: inset 0 -1px 0 #00000080; -webkit-app-region: drag; }
+  .bar::after { content: ""; position: absolute; left: 0; right: 0; bottom: -2px; height: 2px; background: linear-gradient(90deg, transparent, var(--brass2) 18%, var(--brass) 50%, var(--brass2) 82%, transparent); opacity: .55; }
+  body.blur .bar::after { opacity: .18; }
+  .id { display: flex; align-items: center; gap: 9px; padding: 0 12px; height: 100%; }
+  .id img { width: 18px; height: 18px; image-rendering: pixelated; filter: drop-shadow(0 1px 0 #000); }
+  .id b { font-weight: normal; letter-spacing: 1px; color: var(--brass); text-shadow: 0 1px 0 #000; font-size: 16px; }
+  .id span { color: var(--muted); font-size: 13px; }
+  body.blur .id b { color: #b39a5a; }
+  .sp { flex: 1; }
+  .btns { display: flex; height: 100%; -webkit-app-region: no-drag; }
+  .btns button { width: 46px; height: 100%; border: 0; border-left: 1px solid #ffffff08; background: transparent; color: var(--muted); display: grid; place-items: center; cursor: default; padding: 0; outline: none; }
+  .btns button:hover { background: #2a2b2e; color: var(--text); }
+  .btns button:active { background: #34363a; }
+  .btns button.x:hover { background: var(--bad); color: #fff; }
+  .btns button.fs:hover { color: var(--brass); }
+  /* Iconos dibujados con píxeles (cajitas de 2 px), como la interfaz del juego */
+  .btns svg { width: 12px; height: 12px; shape-rendering: crispEdges; }
+</style>
+</head>
+<body>
+  <div class="bar">
+    <div class="id"><img src="build/icon.png" alt=""><b>TALLER CINÉTICO</b><span id="mode"></span></div>
+    <div class="sp"></div>
+    <div class="btns">
+      <button class="fs" id="bFull" title="Pantalla completa (F11)"><svg viewBox="0 0 12 12" fill="currentColor"><path d="M0 0h4v2H2v2H0zM8 0h4v4h-2V2H8zM0 8h2v2h2v2H0zM10 8h2v4H8v-2h2z"/></svg></button>
+      <button id="bMin" title="Minimizar"><svg viewBox="0 0 12 12" fill="currentColor"><path d="M1 9h10v2H1z"/></svg></button>
+      <button id="bMax" title="Maximizar"><svg viewBox="0 0 12 12" fill="currentColor" id="iMax"><path d="M1 1h10v10H1zM3 4v5h6V4z"/></svg></button>
+      <button class="x" id="bClose" title="Cerrar"><svg viewBox="0 0 12 12" fill="currentColor"><path d="M1 1h2v2H1zM3 3h2v2H3zM5 5h2v2H5zM7 3h2v2H7zM9 1h2v2H9zM3 7h2v2H3zM1 9h2v2H1zM7 7h2v2H7zM9 9h2v2H9z"/></svg></button>
+    </div>
+  </div>
+<script>
+  const W = window.TC_WIN, $ = id => document.getElementById(id);
+  const MAX = '<path d="M1 1h10v10H1zM3 4v5h6V4z"/>', RESTORE = '<path d="M3 1h8v8H9V3H3z"/><path d="M1 4h7v7H1zM3 6v3h3V6z"/>';
+  const show = s => { $('iMax').innerHTML = s.max ? RESTORE : MAX; $('bMax').title = s.max ? 'Restaurar' : 'Maximizar'; document.body.classList.toggle('blur', s.focus === false); };
+  if (W) {
+    $('bMin').onclick = () => W.act('min'); $('bMax').onclick = () => W.act('max'); $('bClose').onclick = () => W.act('close'); $('bFull').onclick = () => W.act('full');
+    W.onState(show); W.state().then(show);
+    // tras pulsar un botón el teclado vuelve al juego
+    addEventListener('mouseup', () => setTimeout(() => W.act('focus'), 0));
+  }
+  if (window.TC_DESKTOP) TC_DESKTOP.info().then(i => { $('mode').textContent = 'v' + i.version; });
+</script>
+</body>
+</html>

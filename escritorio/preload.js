@@ -8,3 +8,9 @@ contextBridge.exposeInMainWorld('TC_DESKTOP', {
   info: () => ipcRenderer.invoke('tc-info'),
   onStatus: fn => ipcRenderer.on('tc-status', (e, s) => fn(s)),
 });
+// La barra de ventana propia (titlebar.html): minimizar, maximizar, cerrar y su estado
+contextBridge.exposeInMainWorld('TC_WIN', {
+  act: a => ipcRenderer.send('tc-win', a),
+  state: () => ipcRenderer.invoke('tc-win-state'),
+  onState: fn => ipcRenderer.on('tc-win-state', (e, s) => fn(s)),
+});

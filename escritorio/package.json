@@ -19,7 +19,7 @@
     "appId": "com.marcod3v3.tallercinetico",
     "productName": "Taller Cinético",
     "directories": { "output": "dist", "buildResources": "build" },
-    "files": ["main.js", "preload.js", "splash.html", "build/icon.png"],
+    "files": ["main.js", "preload.js", "splash.html", "titlebar.html", "build/icon.png", "build/taller-pixel.woff"],
     "extraResources": [
       { "from": "../index.html", "to": "game/index.html" },
       { "from": "../css", "to": "game/css" },

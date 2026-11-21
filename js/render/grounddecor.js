@@ -50,11 +50,10 @@ function gdFor(t) {
   _gdPick.set(t, r); return r;
 }
 // ---------- Variedad sin más sprites ----------
-// Cada sprite sale en 3 tamaños (reducido píxel a píxel, sin mezclar colores: el píxel sigue igual de grande),
-// con tonos distintos (flores, conchas, hojas, setas), girado 90° si es algo plano y en espejo.
+// Nunca se reescala un sprite (cada tamaño es un dibujo propio, al píxel del juego); varía con tonos distintos (flores, conchas, hojas, setas), girado 90° si es algo plano y en espejo.
 const GD_HUE = { flor: [0, 25, -25, 50, -50, 90, 180], concha: [0, 15, -15, 330], hoja: [0, 20, -15], hojaseca: [0, 15, -20], seta: [0, 20, -20], setacueva: [0, 40, -40, 120], cristal: [0, 60, -60, 150, 210], vacio: [0, 25, -25] };
 const GD_FLAT = new Set(['rama', 'hueso', 'concha', 'hoja', 'hojaseca', 'pluma', 'playa', 'pina', 'raiz', 'cascajo']);
-const GD_SIZES = [1, 0.8, 0.65], _gdVar = new Map();
+const GD_SIZES = [1, 1, 1], _gdVar = new Map();
 function gdVariant(im, cat, si, hi, rot) {
   const key = im.__id || (im.__id = Math.random().toString(36).slice(2)); const k2 = key + '|' + si + '|' + hi + '|' + rot;
   let c = _gdVar.get(k2); if (c) return c;
