@@ -10,14 +10,14 @@
 <header>
   <div class="marca"><b>MOTOR DE SPRITES</b><span>Taller Cinético</span></div>
   <div class="barra">
-    <button id="bSubir" title="Añadir tus imágenes PNG o WEBP">＋ Subir sprites</button>
+    <button id="bSubir" title="Añadir tus imágenes PNG o WEBP">＋ Subir sprites</button><button id="bNuevo" title="Dibujar un sprite desde cero">✎ Nuevo sprite</button>
     <button id="bDeshacer" disabled title="Deshacer (Ctrl+Z)">↶</button><button id="bRehacer" disabled title="Rehacer (Ctrl+Y)">↷</button><button id="bRevisar" title="Buscar errores y sprites que no saldrían">Revisar</button>
     <span class="sep"></span>
-    <button id="bGuardar" class="pri" disabled title="Escribe los cambios en el código del juego (sprites/ajustes.js)">Guardar en el juego</button>
+    <button id="bGuardar" class="pri" disabled title="Publica TODO en el juego: escribe los ajustes y sube sprites/ (ajustes e imágenes) a GitHub">⬆ Publicar</button>
     <button id="bExportar" title="Descargar los ajustes (ajustes.js)">Exportar</button>
     <label class="btn" title="Cargar un ajustes.js exportado">Importar<input id="fImportar" type="file" accept=".js,.json" hidden></label>
     <span class="sep"></span>
-    <button id="bProbar" class="ok" title="Abre el juego con este sprite y tus cambios (sin guardar nada)">▶ Probar</button>
+    <button id="bProbar" class="ok" title="Entra al mundo de prueba con este sprite y tus cambios">▶ Probar</button><button id="bProbarOpc" class="ok" title="Opciones de la prueba">⚙</button>
     <span id="estado" class="mut"></span>
   </div>
 </header>
@@ -47,7 +47,11 @@
   <label>Mundo<select id="pMundo"></select></label>
   <label>Suelo del mundo pequeño<select id="pSuelo"></select></label>
   <label class="chk"><input type="checkbox" id="pSolo" checked> Solo esta imagen (en su tipo o categoría)</label>
-  <p class="mut small">Se abre el juego en otra pestaña con tus cambios, aunque no estén guardados. No se guarda nada de esa partida. Dentro, pulsa <b>C</b> para ver los choques (rojo) y las líneas de orden (azul).</p>
+  <div class="fila"><label>Tamaño del cuadrado <input type="number" id="pTam" min="3" max="31" value="7"></label><label>Copias del sprite <input type="number" id="pCopias" min="1" max="25" value="1"></label></div>
+  <div class="fila"><label>Hora <select id="pHora"><option value="dia">Día</option><option value="amanecer">Amanecer</option><option value="atardecer">Atardecer</option><option value="noche">Noche</option><option value="">Como venga</option></select></label><label>Clima <select id="pClima"></select></label></div>
+  <label class="chk"><input type="checkbox" id="pChoques" checked> Ver choques y líneas de orden al entrar</label>
+  <label class="chk"><input type="checkbox" id="pVuelo" checked> Empezar volando (doble espacio cambia)</label>
+  <p class="mut small">«▶ Probar» entra directamente con estas opciones. El mundo de prueba es aparte (no sale en el juego normal), se genera como el del juego y se guarda al salir. Dentro: <b>doble espacio</b> vuela rápido sin choques, <b>doble clic</b> selecciona un sprite, <b>clic derecho</b> abre sus ajustes, <b>C</b> muestra choques y líneas.</p>
   <div class="fila"><button id="pPegar">Pegar un mundo exportado…</button><span class="esp"></span><button data-cerrar>Cancelar</button><button class="ok" id="pIr">▶ Abrir</button></div>
 </div></div>
 <div class="modal" id="mPegar" hidden><div class="caja">
@@ -72,8 +76,51 @@
   <div id="rLista"></div>
   <div class="fila"><button id="rHuerfanos">Quitar ajustes de imágenes que ya no existen</button><span class="esp"></span><button data-cerrar>Cerrar</button></div>
 </div></div>
+<!-- Editor de píxeles -->
+<div class="modal" id="mPintar" hidden><div class="caja pintar">
+  <div class="fila top"><h3 id="pxTitulo">Editar</h3><span class="esp"></span><span id="pxInfo" class="mut small"></span></div>
+  <div class="pxgrid">
+    <div id="pxHerr" class="pxherr">
+      <button data-t="lapiz" title="Lápiz (B)">✎ Lápiz</button><button data-t="borrador" title="Borrador (E) · clic derecho también borra">⌫ Borrar</button>
+      <button data-t="cubo" title="Cubo de pintura (G)">▣ Cubo</button><button data-t="gotas" title="Cuentagotas (I)">◉ Color</button>
+      <button data-t="linea" title="Línea (L)">╱ Línea</button><button data-t="rect" title="Rectángulo (R)">▭ Rect.</button>
+      <button data-t="rectl" title="Rectángulo relleno (F)">■ Relleno</button><button data-t="mover" title="Mover todo el dibujo (M)">✥ Mover</button>
+      <label class="small mut">Pincel <b id="pxTamV">1</b><input type="range" id="pxTam" min="1" max="4" value="1"></label>
+      <label class="chk small"><input type="checkbox" id="pxSim"> Simetría</label>
+      <label class="chk small"><input type="checkbox" id="pxRej" checked> Rejilla</label>
+      <button id="pxEspH" title="Voltear en horizontal">⇋ Voltear</button><button id="pxEspV" title="Voltear en vertical">⇵ Voltear</button>
+    </div>
+    <div class="pxzona"><canvas id="pxLienzo"></canvas></div>
+    <div class="pxlado">
+      <div class="fila"><span id="pxActual" class="pxact"></span><input type="color" id="pxColor"><label class="small mut">Opacidad <input type="range" id="pxAlfa" min="0" max="255" value="255"></label></div>
+      <p class="small mut">De este sprite</p><div id="pxUsados" class="pxpal"></div>
+      <p class="small mut">Del juego</p><div id="pxJuego" class="pxpal"></div>
+      <p class="small mut">Recientes</p><div id="pxRecientes" class="pxpal"></div>
+      <p class="small mut">Lienzo (se amplía o recorta desde abajo al centro, sin estirar)</p>
+      <div class="fila"><input type="number" id="pxW" min="1" max="256"> × <input type="number" id="pxH" min="1" max="256"><button id="pxAplicarTam">Aplicar</button><button id="pxRecortar" title="Quitar los bordes vacíos">Recortar</button></div>
+      <p class="small mut">Vista previa (escala del juego)</p><canvas id="pxPrev" class="pxprev"></canvas>
+    </div>
+  </div>
+  <div class="fila"><button id="pxDeshacer" title="Ctrl+Z">↶ Deshacer</button><button id="pxRehacer" title="Ctrl+Y">↷ Rehacer</button><span class="esp"></span><button id="pxCerrar">Cerrar</button><button id="pxComo" class="ok">Guardar como nuevo…</button><button id="pxGuardar" class="pri">Guardar en el juego</button></div>
+</div></div>
+<div class="modal" id="mNuevo" hidden><div class="caja">
+  <h3>Nuevo sprite</h3>
+  <div class="fila"><label class="chk"><input type="radio" name="nDest" value="arboles" checked> Árbol</label><label class="chk"><input type="radio" name="nDest" value="suelo"> Suelo</label></div>
+  <label id="nTipoL">Tipo de árbol<select id="nTipo"></select></label>
+  <label id="nCatL" hidden>Categoría (existente o nueva)<input id="nCat" list="dlCats2" placeholder="flor, arbusto_p…"><datalist id="dlCats2"></datalist></label>
+  <div class="fila"><label>Ancho <input type="number" id="nW" value="32" min="1" max="256"></label><label>Alto <input type="number" id="nH" value="48" min="1" max="256"></label></div>
+  <p class="mut small">1 píxel = 1,6 unidades del juego. Un árbol suele medir unos 40×60 píxeles; una flor unos 10×12.</p>
+  <div class="fila"><span class="esp"></span><button data-cerrar>Cancelar</button><button class="pri" id="nOk">Empezar a dibujar</button></div>
+</div></div>
+<div class="modal" id="mPub" hidden><div class="caja">
+  <h3>Publicado</h3><div id="pubTexto" class="small"></div>
+  <div class="fila"><span class="esp"></span><button data-cerrar class="pri">Vale</button></div>
+</div></div>
 <div id="toast" hidden></div>
 <iframe id="juego" title="juego" aria-hidden="true"></iframe>
 <script src="app.js"></script>
+<script src="pixel.js"></script>
+<script src="modos.js"></script>
+<script src="flujo.js"></script>
 </body>
 </html>

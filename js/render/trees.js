@@ -115,7 +115,7 @@ function treeSprite(t, v, size) {
 let _xray = 0, _xrayT = 0, _treeLayerCv = null;
 const XRAY_R = 46; // radio en unidades del mundo
 function drawTrees(ctx, k, ox, oy, x0, y0, x1, y1, front) {
-  const p = S.player, pty = p.y + 8, sm = ctx.imageSmoothingEnabled;
+  const p = S.player, pty = p.y + JUG('orden', 8), sm = ctx.imageSmoothingEnabled;
   // Árboles de delante: van a una capa aparte para poder recortarles el círculo
   let dc = ctx, covered = false, layer = false;
   if (front) {

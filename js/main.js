@@ -43,7 +43,7 @@ function updatePlayer(fdt) {
   if (want) {
     pmove.ang = Math.atan2(my, mx);
     const boost = (hasBoots() ? 1.5 : 1) * (hasFlag('hasteStaff') ? 1.25 : 1) * (buff('swift') ? 1.4 : 1) * speedMul() * CM().speed * mountSpeed() * (P.chill > 0 ? 0.6 : 1) * (hasFlag('phoenixWings') ? 1.15 : 1);
-    const l = Math.hypot(mx, my), sp = (pmove.sprint ? 5.6 : 3.3) * boost * mf.mul * T;
+    const l = Math.hypot(mx, my), sp = (pmove.sprint ? JUG('correr', 5.6) : JUG('andar', 3.3)) * boost * mf.mul * T;
     tvx = mx / l * sp; tvy = my / l * sp;
   }
   const a = Math.min(1, mf.grip * fdt);
@@ -76,7 +76,7 @@ function smeltOf(id) {
 }
 // Alcance: se pica a 5,5 casillas; se caza a 2,5 casillas más lo que dé el arma
 const REACH = 5.5;
-const inReach = (tx, ty, r = REACH) => Math.hypot((tx + 0.5) * T - S.player.x, (ty + 0.5) * T - S.player.y) <= r * T;
+const inReach = (tx, ty, r = JUG('alcance', REACH)) => Math.hypot((tx + 0.5) * T - S.player.x, (ty + 0.5) * T - S.player.y) <= r * T;
 // Clase de casilla: roca/mena, madera, planta o suelo
 let tileClass = gi => gi.floorK ? gi.floorK : gi.rock || gi.dot || (gi.need && gi.need.k === 'pick' && !gi.tree && !gi.plant) ? 'rock' : gi.tree ? 'tree' : gi.plant ? 'plant' : 'ground';
 const CLASS_KINDS = { rock: ['pick', 'hammer', 'paxel', 'excav'], tree: ['axe', 'sickle', 'paxel'], plant: ['axe', 'sickle', 'paxel'], ground: ['shovel', 'paxel'] };

@@ -46,7 +46,7 @@ function pcInit() {
   return S.pc;
 }
 const lvOf = k => (S.pc && S.pc.lv[k]) || 0;
-const maxHp = () => 100 + 2 * lvOf('fit') + CM().hp, maxStam = () => 100 + 5 * lvOf('fit') + CM().stam, maxMana = () => 50 + 10 * lvOf('magic') + CM().mana;
+const maxHp = () => JUG('vida', 100) + 2 * lvOf('fit') + CM().hp, maxStam = () => JUG('aguante', 100) + 5 * lvOf('fit') + CM().stam, maxMana = () => JUG('mana', 50) + 10 * lvOf('magic') + CM().mana; // base del motor + nivel + equipo
 // ---------- Cuerpo ----------
 // Velocidad de curación de una herida (sim/medical.js la amplía con los pasos de cada cura)
 let woundRate = w => (w.b ? 2 : 1) * (w.inf ? 0.3 : 1);

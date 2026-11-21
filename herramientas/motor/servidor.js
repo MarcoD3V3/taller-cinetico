@@ -6,7 +6,9 @@
 // =====================================================================================
 const http = require('http'), fs = require('fs'), path = require('path');
 const ROOT = path.resolve(__dirname, '..', '..'), APP = __dirname, SPR = path.join(ROOT, 'sprites'), PAPELERA = path.join(APP, 'papelera');
-const PORT = +process.env.MOTOR_PORT || 8795, AJ_FILE = path.join(SPR, 'ajustes.js');
+const PORT = +process.env.MOTOR_PORT || 8795, AJ_FILE = path.join(SPR, 'ajustes.js'), BORRADOR = path.join(APP, 'borrador.json');
+const { execFile } = require('child_process');
+const git = args => new Promise((ok, ko) => execFile('git', args, { cwd: ROOT, timeout: 120000, windowsHide: true }, (e, so, se) => e ? ko(new Error((se || e.message).trim())) : ok(so)));
 const { writeList } = require(path.join(ROOT, 'sprites-lista.js'));
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8',
   '.png': 'image/png', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.woff': 'font/woff', '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.ico': 'image/x-icon', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg', '.wav': 'audio/wav' };
@@ -39,6 +41,25 @@ const server = http.createServer(async (req, res) => {
       fs.writeFileSync(AJ_FILE, CABECERA + 'window.AJUSTES = ' + JSON.stringify(a, null, 1) + ';\n');
       return send(res, 200, { ok: true, archivo: 'sprites/ajustes.js' });
     }
+    // Borrador: se guarda solo, a cada rato; el juego no lo ve hasta «Publicar»
+    if (p === '/api/borrador' && req.method === 'GET') { try { return send(res, 200, JSON.parse(fs.readFileSync(BORRADOR, 'utf8'))); } catch (e) { return send(res, 200, null); } }
+    if (p === '/api/borrador' && req.method === 'POST') { const b = await body(req); if (!b || typeof b.ajustes !== 'object') return send(res, 400, { error: 'borrador no válido' }); fs.writeFileSync(BORRADOR, JSON.stringify({ t: Date.now(), ajustes: b.ajustes })); return send(res, 200, { ok: true, t: Date.now() }); }
+    // Publicar: escribe sprites/ajustes.js y sube TODO lo de sprites/ (ajustes e imágenes) a GitHub → llega a la web y a la app
+    if (p === '/api/publicar' && req.method === 'POST') {
+      const a = limpiar(await body(req)); if (!a || typeof a !== 'object') return send(res, 400, { error: 'ajustes no válidos' });
+      a.v = 1; a.sprites = a.sprites || {}; a.suelo = a.suelo || { cats: {}, grounds: {} }; a.biomas = a.biomas || {};
+      fs.writeFileSync(AJ_FILE, CABECERA + 'window.AJUSTES = ' + JSON.stringify(a, null, 1) + ';\n'); writeList();
+      try { fs.unlinkSync(BORRADOR); } catch (e) { }
+      const out = []; let subido = false, nada = false;
+      try {
+        await git(['rev-parse', '--is-inside-work-tree']);
+        await git(['add', '--', 'sprites']); out.push('Preparado: sprites/');
+        const st2 = await git(['diff', '--cached', '--name-only']); const files = st2.trim().split('\n').filter(Boolean);
+        if (!files.length) { nada = true; out.push('No había cambios nuevos que subir.'); }
+        else { await git(['commit', '-m', `Motor de sprites: publicar ${files.length} archivo(s)`]); out.push(`Guardado en el historial: ${files.length} archivo(s).`); await git(['push']); subido = true; out.push('Subido a GitHub: la web se actualiza en unos minutos.'); }
+      } catch (e) { out.push('No se pudo subir a GitHub: ' + String(e.message || e).split('\n')[0]); }
+      return send(res, 200, { ok: true, archivo: 'sprites/ajustes.js', subido, nada, git: out });
+    }
     if (p === '/api/subir' && req.method === 'POST') {
       const b = await body(req); if (!['arboles', 'suelo'].includes(b.carpeta) || !okName(b.nombre)) return send(res, 400, { error: 'carpeta o nombre no válidos (solo a-z, 0-9 y _)' });
       const m = /^data:image\/(png|webp);base64,([A-Za-z0-9+/=]+)$/.exec(b.datos || ''); if (!m) return send(res, 400, { error: 'la imagen debe ser PNG o WEBP' });
@@ -46,6 +67,14 @@ const server = http.createServer(async (req, res) => {
       let n = 1; const re = new RegExp('^' + b.nombre + '_(\\d+)\\.(png|webp)$'); for (const f of fs.readdirSync(dir)) { const q = re.exec(f); if (q) n = Math.max(n, +q[1] + 1); }
       const file = `${b.nombre}_${n}.${m[1]}`; fs.writeFileSync(path.join(dir, file), Buffer.from(m[2], 'base64')); writeList();
       return send(res, 200, { ok: true, key: `${b.carpeta}/${b.nombre}_${n}` });
+    }
+    if (p === '/api/reemplazar' && req.method === 'POST') { // imagen editada en el motor: la anterior va a la papelera (se puede recuperar)
+      const b = await body(req), k = String(b.key || ''); if (!/^(arboles|suelo)\/[a-z0-9_]+$/.test(k)) return send(res, 400, { error: 'clave no válida' });
+      const m = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(b.datos || ''); if (!m) return send(res, 400, { error: 'la imagen debe ser PNG' });
+      const dst = path.join(SPR, k + '.png'), old = ['.png', '.webp'].map(e => path.join(SPR, k + e)).find(f => fs.existsSync(f));
+      if (old) { fs.mkdirSync(PAPELERA, { recursive: true }); fs.copyFileSync(old, path.join(PAPELERA, Date.now() + '_' + k.replace('/', '__') + path.extname(old))); if (old !== dst) fs.unlinkSync(old); }
+      fs.mkdirSync(path.dirname(dst), { recursive: true }); fs.writeFileSync(dst, Buffer.from(m[1], 'base64')); writeList();
+      return send(res, 200, { ok: true, key: k });
     }
     if (p === '/api/borrar' && req.method === 'POST') { // no se borra: va a la papelera del motor (se puede recuperar)
       const b = await body(req), k = String(b.key || ''); if (!/^(arboles|suelo)\/[a-z0-9_]+$/.test(k)) return send(res, 400, { error: 'clave no válida' });

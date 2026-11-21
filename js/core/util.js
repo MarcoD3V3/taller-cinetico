@@ -4,6 +4,9 @@ const DX = [1, 0, -1, 0], DY = [0, 1, 0, -1]; // 0 Este, 1 Sur, 2 Oeste, 3 Norte
 const OPP = d => (d + 2) & 3;
 const DIR_N = ['Este', 'Sur', 'Oeste', 'Norte'];
 const DIR_A = ['E', 'S', 'O', 'N'];
+// Propiedades base del jugador puestas en el Motor de sprites (sprites/ajustes.js → jugador). Son la BASE:
+// habilidades, equipo, efectos y heridas siguen multiplicando encima, como siempre.
+const JUG = (k, d) => { const j = typeof window !== 'undefined' && window.AJUSTES && window.AJUSTES.jugador, v = j && j[k]; return typeof v === 'number' && isFinite(v) ? v : d; };
 
 function hash2(x, y, s) {
   let h = Math.imul(x | 0, 374761393) ^ Math.imul(y | 0, 668265263) ^ Math.imul(s | 0, 982451653);

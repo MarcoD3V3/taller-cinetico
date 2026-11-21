@@ -153,12 +153,12 @@ function hit(px, py) {
   return null;
 }
 vista.addEventListener('mousedown', e => {
-  if (!st.sel) return; const dpr = devicePixelRatio || 1, px = e.offsetX * dpr, py = e.offsetY * dpr, h = hit(px, py); if (!h) return;
+  if (!st.sel || (st.modo && st.modo !== 'sprites')) return; const dpr = devicePixelRatio || 1, px = e.offsetX * dpr, py = e.offsetY * dpr, h = hit(px, py); if (!h) return;
   hist(); const g = geom(st.sel); st.drag = { h, px, py, g, a: JSON.parse(JSON.stringify(ajGet(st.sel))), p: { ...st.player } }; e.preventDefault();
 });
 addEventListener('mousemove', e => {
   const dpr = devicePixelRatio || 1;
-  if (!st.drag) { if (st.sel && W() && e.target === vista) { const h = hit(e.offsetX * dpr, e.offsetY * dpr); vista.style.cursor = h === 'sprite' || h === 'player' || h === 'cc' ? 'move' : h === 'rx' ? 'ew-resize' : h === 'ry' || h === 'sort' ? 'ns-resize' : 'default'; } return; }
+  if (!st.drag) { if (st.sel && W() && e.target === vista && (!st.modo || st.modo === 'sprites')) { const h = hit(e.offsetX * dpr, e.offsetY * dpr); vista.style.cursor = h === 'sprite' || h === 'player' || h === 'cc' ? 'move' : h === 'rx' ? 'ew-resize' : h === 'ry' || h === 'sort' ? 'ns-resize' : 'default'; } return; }
   const r = vista.getBoundingClientRect(), px = (e.clientX - r.left) * dpr, py = (e.clientY - r.top) * dpr, d = st.drag, stp = e.shiftKey ? 0.1 : st.snap && d.h !== 'player' ? 1.6 : 0.5, q = v => Math.round(v / stp) * stp;
   const dx = (px - d.px) / Z, dy = (py - d.py) / Z, k = st.sel, m = d.g.flip ? -1 : 1;
   if (d.h === 'player') { st.player = { x: q(d.p.x + dx), y: q(d.p.y + dy) }; dibujar(); return; }
@@ -188,7 +188,8 @@ function panel() {
     <div class="fila"><button id="bProbar2" class="ok">▶ Probar</button><label class="chk"><input type="checkbox" id="cOculto" ${a.oculto ? 'checked' : ''}> Oculto (no sale en el juego)</label></div>
     <div class="fila"><button id="bCopiar" title="Ctrl+C">Copiar ajustes</button><button id="bPegar" ${st.clip ? '' : 'disabled'} title="Ctrl+V">Pegar</button><button id="bTodas" title="Copia estos ajustes a todas las imágenes de «${esc(tipo)}»">Aplicar a todo «${esc(tipo)}»</button></div>
     <div class="fila"><label class="chk"><input type="checkbox" id="cViento" ${st.viento ? 'checked' : ''}> Ver viento</label><label class="chk" title="Mover de 1,6 en 1,6 (un píxel del personaje)"><input type="checkbox" id="cSnap" ${st.snap ? 'checked' : ''}> Pasos de 1 píxel</label></div>
-    <div class="fila"><label class="chk"><input type="checkbox" id="cEspejo" ${st.espejo ? 'checked' : ''}> Ver en espejo</label><span class="esp"></span><button id="bReset" title="Quitar todos los ajustes de esta imagen">Valores de serie</button><button id="bBorrar" class="mal" title="Se mueve a la papelera del motor">Retirar</button></div></div>
+    <div class="fila"><label class="chk"><input type="checkbox" id="cEspejo" ${st.espejo ? 'checked' : ''}> Ver en espejo</label><span class="esp"></span><button id="bReset" title="Quitar todos los ajustes de esta imagen">Valores de serie</button><button id="bBorrar" class="mal" title="Se mueve a la papelera del motor">Retirar</button></div>
+    <div class="fila"><button id="bPintar" class="pri">✎ Editar píxeles</button></div></div>
   <div class="sec"><h3>Tamaño y posición</h3>
     <div class="campo"><span>Escala</span><input type="range" id="iEscR" min="0.25" max="3" step="0.05" value="${a.esc || 1}">${num('iEsc', a.esc || 1, 0.05, 0.1, 6)}</div>
     <div class="par"><label>Mover X ${num('iDx', a.dx || 0)}</label><label>Mover Y ${num('iDy', a.dy || 0)}</label></div>
@@ -248,7 +249,7 @@ function enlazar() {
   on('cSnap', 'change', e => { st.snap = e.target.checked; });
   on('bCopiar', 'click', copiar); on('bPegar', 'click', pegar); on('bTodas', 'click', aTodas);
   on('bReset', 'click', () => { hist(); delete AJ().sprites[k]; sucio(); panel(); dibujar(); lista(); });
-  on('bBorrar', 'click', borrar); on('bProbar2', 'click', abrirProbar);
+  on('bBorrar', 'click', borrar); on('bPintar', 'click', () => pxAbrir(k)); on('bProbar2', 'click', abrirProbar);
   const esc2 = v => { ajSet(k, a => { const old = a.esc || 1; a.esc = v === 1 ? undefined : v; if (a.col) { const f = v / old; a.col = { cx: r1(a.col.cx * f), cy: r1(a.col.cy * f), rx: r1(a.col.rx * f), ry: r1(a.col.ry * f) }; } }); $('#iEsc').value = v; $('#iEscR').value = v; upd(); };
   on('iEscR', 'input', e => esc2(+e.target.value)); on('iEsc', 'change', e => esc2(Math.max(0.1, +e.target.value || 1)));
   on('iDx', 'change', () => { ajSet(k, a => a.dx = n('iDx') || undefined); upd(); }); on('iDy', 'change', () => { ajSet(k, a => a.dy = n('iDy') || undefined); upd(); });
@@ -325,12 +326,13 @@ function quitarHuerfanos() { const set = new Set(claves()); hist(); let n = 0; f
 
 // ---------- Teclado: flechas para mover fino ----------
 function teclas(e) {
+  if (typeof PX !== 'undefined' && PX.on) return;
   const tag = document.activeElement && document.activeElement.tagName, enCampo = /INPUT|TEXTAREA|SELECT/.test(tag), mod = e.ctrlKey || e.metaKey;
   if (mod && !enCampo && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? rehacer() : deshacer(); return; }
   if (mod && !enCampo && e.key.toLowerCase() === 'y') { e.preventDefault(); rehacer(); return; }
   if (mod && !enCampo && e.key.toLowerCase() === 'c' && !getSelection().toString()) { copiar(); return; }
   if (mod && !enCampo && e.key.toLowerCase() === 'v') { pegar(); return; }
-  if (enCampo || !st.sel || !$$('.modal').every(m => m.hidden)) return;
+  if (enCampo || !st.sel || (st.modo && st.modo !== 'sprites') || !$$('.modal').every(m => m.hidden)) return;
   const d = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key]; if (!d) return;
   e.preventDefault(); const step = e.shiftKey ? 0.1 : st.snap ? 1.6 : 0.5, g = geom(st.sel), m = g.flip ? -1 : 1;
   ajSet(st.sel, a => {
@@ -413,7 +415,7 @@ $('#bProbar').onclick = abrirProbar; $('#pIr').onclick = irProbar; $('#pPegar').
 $('#bSubir').onclick = abrirSubir; $('#bSubirOk').onclick = subir; $$('[name=sDest]').forEach(r => r.onchange = destino);
 $('#sArchivos').onchange = e => { const P = $('#sPrev'); P.innerHTML = ''; for (const f of e.target.files) { const im = new Image(); im.onload = () => { const c = document.createElement('canvas'), s = Math.max(1, Math.floor(64 / Math.max(im.width, im.height))); c.width = im.width * s; c.height = im.height * s; const x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(im, 0, 0, c.width, c.height); c.title = `${f.name} · ${im.width}×${im.height}`; P.appendChild(c); }; im.src = URL.createObjectURL(f); } };
 $$('[data-cerrar]').forEach(b => b.onclick = () => b.closest('.modal').hidden = true);
-addEventListener('keydown', e => { if (e.key === 'Escape') $$('.modal').forEach(m => m.hidden = true); if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); if (st.dirty) guardar(); } });
+addEventListener('keydown', e => { if (e.key === 'Escape') $$('.modal').forEach(m => { if (m.id !== 'mPintar') m.hidden = true; }); if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); if (st.dirty) guardar(); } });
 addEventListener('beforeunload', e => { if (st.dirty) { e.preventDefault(); e.returnValue = ''; } });
 (async () => {
   try { st.AJ = norm(await (await fetch('/api/ajustes')).json()); } catch (e) { st.AJ = norm({}); toast('No se pudieron leer los ajustes', true); }

@@ -49,7 +49,7 @@ function passable(x, y, who) {
 const BEHIND_FR = 0.45;
 function solidBlockAt(tx, ty) { const b = at(tx, ty); if (!b) return false; const d = BD[b.type]; return !d.walk && !d.door; }
 // El jugador ocupa un poco más que un punto: se comprueban sus pies
-function playerFree(x, y) { return passable(x - 5, y + 5, 'player') && passable(x + 5, y + 5, 'player') && passable(x, y + 1, 'player'); }
+function playerFree(x, y) { return passable(x - JUG('choqueAncho', 5), y + JUG('choquePie', 5), 'player') && passable(x + JUG('choqueAncho', 5), y + JUG('choquePie', 5), 'player') && passable(x, y + JUG('choqueCentro', 1), 'player'); }
 // ---------- Estadísticas ----------
 const scaleHp = () => (1 + S.tier * 0.15) * (0.75 + diff() * 0.25);
 const scaleDmg = () => 1 + S.tier * 0.08; // la dificultad ya la aplica hurt()

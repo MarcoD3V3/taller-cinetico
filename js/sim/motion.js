@@ -44,7 +44,7 @@ function lvPoint(px, py) {
 const _flyMove = () => hasFlag('phoenixWings') || mountFly();
 // ---------- Pies libres: colisión + alturas ----------
 function playerFree(x, y) {
-  if (!(passable(x - 5, y + 5, 'player') && passable(x + 5, y + 5, 'player') && passable(x, y + 1, 'player'))) return false;
+  if (!(passable(x - JUG('choqueAncho', 5), y + JUG('choquePie', 5), 'player') && passable(x + JUG('choqueAncho', 5), y + JUG('choquePie', 5), 'player') && passable(x, y + JUG('choqueCentro', 1), 'player'))) return false;
   const p = S.player; if (x === p.x && y === p.y) return true;
   const to = lvPoint(x, y + 5), cur = lvPoint(p.x, p.y + 5);
   if (to <= cur || _flyMove()) return true;
@@ -85,7 +85,7 @@ const JUMP_V = 175, GRAV = 900;
 function tryJump() {
   if (ui.open || (P.z || 0) > 0.5 || P.swim === 2) { if (P.swim === 2) toastErr('En agua profunda no puedes saltar'); return; }
   if (survOn()) { const pc = S.pc; if (pc.stam < 5) { toastErr('Sin aguante'); return; } pc.stam -= 5; pc.rest = 0; }
-  P.vz = JUMP_V * (P.swim === 1 ? 0.8 : 1); P.z = 0.01; P.air = 0;
+  P.vz = JUG('salto', JUMP_V) * (P.swim === 1 ? 0.8 : 1); P.z = 0.01; P.air = 0;
   if (P.swim === 1) splash(S.player.x, S.player.y + 6, 5);
   tone(260, 0.1, 'sine', 0.03, 1.8);
 }
@@ -94,7 +94,7 @@ let _swimRip = 0, _drownMsg = 0;
 function motionPre(dt) {
   const p = S.player;
   if (P.z > 0 || P.vz > 0) {
-    P.vz -= GRAV * dt; P.z += P.vz * dt; P.air = (P.air || 0) + dt;
+    P.vz -= JUG('gravedad', GRAV) * dt; P.z += P.vz * dt; P.air = (P.air || 0) + dt;
     if (P.z <= 0) { const v = -P.vz; P.z = 0; P.vz = 0; land(v); }
   }
   const was = P.swim || 0; P.swim = swimState();

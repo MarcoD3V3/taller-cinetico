@@ -1,18 +1,28 @@
 # Motor de sprites
 
-Herramienta aparte para ajustar los sprites del juego sin tocar código. Doble clic en **motor.bat** (en la carpeta del juego):
-se abre en el navegador (`http://127.0.0.1:8795/motor/`). Solo funciona en tu ordenador.
+Herramienta aparte para ajustar el juego sin tocar código. Doble clic en **motor.bat** (carpeta del juego): se abre en el
+navegador (`http://127.0.0.1:8795/motor/`). Solo funciona en tu ordenador.
 
-## Qué se puede hacer
-- **Subir sprites** (PNG o WEBP con fondo transparente): árboles de un tipo del juego, o cosas del suelo en una categoría (existente o nueva).
-- Por imagen: **escala**, **mover el dibujo**, **choque** (automático, propio o sin choque), **línea de orden** (desde dónde tapa al personaje),
-  **viento**, **ocultar** y **retirar** (va a `herramientas/motor/papelera`, no se borra).
-- Por tipo de árbol: en qué **biomas** sale y con qué densidad.
-- Por categoría del suelo: tamaño del píxel, si se levanta (se ordena con el personaje), si va centrada, viento, qué da al recogerla,
-  y en qué **suelos** sale (peso) y la densidad de cada suelo.
-- **Probar**: abre el juego en otra pestaña con tus cambios (aunque no estén guardados) en un mundo pequeño con ese sprite,
-  o en un mundo que traigas (Exportar en el juego → «Pegar un mundo exportado»). No se guarda nada. Dentro, **C** muestra choques y líneas.
+## Secciones
+- **Sprites**: escala, mover, choque (automático, propio o sin choque), línea de orden (desde dónde tapa al personaje), viento,
+  ocultar, retirar; biomas de cada árbol; suelos, píxel, viento y objeto de cada categoría del suelo.
+  **✎ Editar píxeles** (lápiz, borrador, cubo, cuentagotas, línea, rectángulos, mover, simetría, voltear, lienzo, paletas)
+  y **✎ Nuevo sprite** para dibujar desde cero. **Subir sprites** para tus PNG/WEBP.
+- **Jugador**: velocidad al andar y correr, vida, aguante y maná base, alcance, salto, gravedad, choque, tamaño del dibujo y
+  línea de orden. Son la base: habilidades, nivel, equipo, pociones, clima, heridas y monturas siguen multiplicando encima.
+  Doble clic en el personaje de prueba de la vista abre esta sección.
+- **Comandos**: crea comandos `/nombre` para el chat del juego. Su función: pasos (otros comandos con `$1 $2… $todo $x $y $cx $cy`)
+  y, si quieres, JavaScript con `api` (dar, tp, poner suelo, mensajes…).
 
-## Dónde se guarda
-**Guardar en el juego** escribe `sprites/ajustes.js`. El juego lo carga y lo aplica (`js/render/motor-ajustes.js`), así que va con el
-código: al subirlo a GitHub llega a la web y a la app. **Exportar / Importar** sirven para copias o pasar ajustes a otro equipo.
+## Probar
+**▶ Probar** entra directamente al **mundo de prueba**: se genera como el del juego, es aparte (no sale en el juego normal) y se guarda
+al salir. Lleva un cuadrado pequeño con el sprite elegido. **⚙** cambia las opciones (mundo nuevo o guardado, suelo, tamaño del cuadrado,
+copias, hora, clima, ver choques, empezar volando; también traer un mundo tuyo exportado, que no se toca).
+Dentro: **doble espacio** vuelo libre (rápido, sin choques ni capas), **doble clic** selecciona un sprite o al jugador,
+**clic derecho** abre un menú con sus ajustes (y «Abrir en el motor»), **C** muestra choques y líneas de orden.
+Los cambios del motor se ven en el juego de prueba al momento.
+
+## Guardar y publicar
+Todo se guarda solo como **borrador** a cada rato (también Ctrl+S). El juego de verdad no cambia hasta **⬆ Publicar**: entonces
+se escribe `sprites/ajustes.js` y se sube todo lo de `sprites/` (ajustes e imágenes) a GitHub, y llega a la web y a la app.
+Las imágenes retiradas o reemplazadas quedan en `herramientas/motor/papelera`.
