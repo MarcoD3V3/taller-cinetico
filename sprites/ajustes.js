@@ -48,14 +48,14 @@ window.AJUSTES = {
   "arboles/arbol_muerto_5": {
    "dy": 0,
    "viento": 1,
-   "orden": 0,
+   "orden": -7.5,
    "cols": [
     {
      "forma": "elipse",
-     "x": -20,
-     "y": -5.4,
+     "x": -21,
+     "y": -5,
      "w": 24.4,
-     "h": 11.6,
+     "h": 13.5,
      "rot": 15
     }
    ]
@@ -102,6 +102,48 @@ window.AJUSTES = {
     }
    ],
    "orden": -4.5
+  },
+  "arboles/abedul_5": {
+   "cols": [
+    {
+     "forma": "elipse",
+     "x": 1,
+     "y": -1,
+     "w": 11,
+     "h": 7.5
+    }
+   ],
+   "orden": -3
+  },
+  "arboles/arbol_de_cristal_10": {
+   "cols": [
+    {
+     "forma": "elipse",
+     "x": -12.5,
+     "y": -3,
+     "w": 30.8,
+     "h": 7.7
+    }
+   ],
+   "orden": -2
+  },
+  "arboles/arbol_de_cristal_5": {
+   "cols": [
+    {
+     "forma": "elipse",
+     "x": 16,
+     "y": -0.5,
+     "w": 28.5,
+     "h": 7.7
+    }
+   ],
+   "orden": -1.5
+  },
+  "suelo/arbusto_nieve_1": {
+   "orden": -4.5
+  },
+  "suelo/arbusto_p_1": {
+   "orden": -4.5
   }
  },
  "suelo": {
@@ -112,6 +154,7 @@ window.AJUSTES = {
  "jugador": {
   "choqueCentro": 11.5,
   "choquePie": 7.5,
-  "choqueAncho": 4.5
+  "choqueAncho": 4.5,
+  "alcance": 1.5
  }
 };
