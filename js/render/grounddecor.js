@@ -9,19 +9,27 @@
 const GD_PX = 1.6;
 // Qué categorías salen en cada suelo (peso relativo) y cuántas casillas llevan algo
 const GD_BIOME = {
-  GRASS: [0.08, { flor: 5, hierba: 3, rama: 1.5, hoja: 1.5, piedra: 1.5, roca: 0.6, pluma: 0.3, seta: 0.3 }],
-  DARKGRASS: [0.1, { rama: 3, hoja: 2, hojaseca: 2, pina: 2, seta: 2, tocon: 0.5, piedra: 1, roca: 1, flor: 0.4 }],
-  JUNGLEGRASS: [0.09, { hoja: 3, flor: 3, hierba: 2, seta: 1.5, rama: 1 }],
-  DRYGRASS: [0.06, { rama: 1.5, piedra: 2, hueso: 1, cactus: 0.6, hojaseca: 1, hierba: 1 }],
-  SWAMPGRASS: [0.08, { seta: 3, rama: 2, hoja: 2, hierba: 1, roca: 0.5 }],
-  MUD: [0.04, { rama: 2, piedra: 2, seta: 1 }], PEAT: [0.04, { rama: 2, seta: 2, piedra: 1 }],
+  GRASS: [0.08, { flor: 5, hierba: 3, rama: 1.5, hoja: 1.5, piedra: 1.5, roca: 0.6, pina: 0.4, pluma: 0.3, seta: 0.3, tierra: 0.3 }],
+  DARKGRASS: [0.1, { rama: 3, hoja: 2, hojaseca: 2, pina: 2, seta: 2, raiz: 1, tocon: 0.5, piedra: 1, roca: 1, flor: 0.4 }],
+  JUNGLEGRASS: [0.09, { hoja: 3, flor: 3, hierba: 2, seta: 1.5, raiz: 1, rama: 1 }],
+  DRYGRASS: [0.06, { rama: 1.5, piedra: 2, hueso: 1, cactus: 0.6, hojaseca: 1, hierba: 1, tierra: 0.6 }],
+  SWAMPGRASS: [0.08, { seta: 3, rama: 2, hoja: 2, raiz: 1, hierba: 1, roca: 0.5 }],
+  MUD: [0.05, { rama: 2, piedra: 2, tierra: 2, seta: 1, raiz: 1 }], PEAT: [0.05, { rama: 2, seta: 2, raiz: 1.5, tierra: 1, piedra: 1 }],
   MOSS: [0.09, { flor: 4, piedra: 1.5, seta: 1, roca: 1, hierba: 1 }],
-  SAND: [0.05, { concha: 4, playa: 2.5, piedra: 1.5, pluma: 0.4 }], BLACKSAND: [0.04, { concha: 2, piedra: 3, playa: 1 }],
-  REDSAND: [0.05, { cactus: 2, desierto: 2, hueso: 2, piedra: 1 }], TERRACOTTA: [0.04, { desierto: 2, piedra: 2, hueso: 0.6 }],
-  SALT: [0.025, { piedra: 2, hueso: 1 }], GRAVEL: [0.05, { piedra: 4, roca: 2 }], CLAY: [0.03, { piedra: 3 }],
+  SAND: [0.05, { concha: 4, playa: 2.5, piedra: 1.5, pluma: 0.4 }], BLACKSAND: [0.04, { concha: 2, piedra: 2, cascajo: 2, playa: 1 }],
+  REDSAND: [0.05, { cactus: 2, desierto: 2, hueso: 2, piedra: 1 }], TERRACOTTA: [0.04, { desierto: 2, piedra: 2, mena: 0.5, hueso: 0.6 }],
+  SALT: [0.025, { piedra: 2, cristal: 0.6, hueso: 1 }], GRAVEL: [0.05, { piedra: 3, cascajo: 3, roca: 1.5 }], CLAY: [0.03, { piedra: 2, tierra: 2 }],
   SNOW: [0.04, { nieve: 3, hielo: 2, piedra: 0.6, rama: 0.4 }], ICE: [0.025, { hielo: 3 }],
-  ASH: [0.05, { volcan: 3, hueso: 2, piedra: 1 }], MYCELIUM: [0.1, { seta: 6, piedra: 0.6 }],
-  AMETHYST: [0.06, { hielo: 2, piedra: 1 }], TOXIC: [0.05, { hueso: 2, chatarra: 2, seta: 1 }],
+  ASH: [0.05, { volcan: 2, brasa: 2, hueso: 1.5, cascajo: 1, carbon: 1 }], MYCELIUM: [0.1, { seta: 4, setacueva: 3, piedra: 0.6 }],
+  AMETHYST: [0.07, { cristal: 4, hielo: 1, piedra: 1 }], TOXIC: [0.05, { hueso: 2, chatarra: 2, seta: 1, setacueva: 1 }],
+  DIRT: [0.06, { tierra: 3, piedra: 2, raiz: 1.5, rama: 1, pina: 0.5 }],
+  ROCKFLOOR: [0.06, { cascajo: 3, piedra: 2, roca: 1, mena: 0.4 }], STONEFLOOR: [0.05, { cascajo: 3, piedra: 2, roca: 1 }],
+  BASALTFLOOR: [0.05, { cascajo: 3, carbon: 1, volcan: 1, brasa: 0.5 }], PERMAFLOOR: [0.05, { hielo: 3, cascajo: 2, nieve: 1 }],
+  CAVEFLOOR: [0.08, { cascajo: 3, setacueva: 2, mena: 1, carbon: 1, cristal: 0.6, hueso: 0.6, raiz: 0.5 }],
+  DEEPFLOOR: [0.07, { cascajo: 3, cristal: 1.5, mena: 1.5, setacueva: 1, carbon: 1 }],
+  SPOREFLOOR: [0.09, { setacueva: 3, seta: 2, vacio: 0.5, raiz: 1, hueso: 0.6 }],
+  CINDERFLOOR: [0.08, { brasa: 4, volcan: 2, carbon: 1.5, hueso: 0.5 }],
+  VOIDFLOOR: [0.08, { vacio: 5, cristal: 1, cascajo: 1 }], LIGHTSHAFT: [0.05, { cascajo: 2, piedra: 2, raiz: 1 }],
 };
 let _gd = null; // { cat: [img…] }, cuando los sprites ya cargaron
 const _gdPick = new Map(); // tipo de suelo → lista ponderada de categorías
@@ -44,8 +52,8 @@ function gdFor(t) {
 // ---------- Variedad sin más sprites ----------
 // Cada sprite sale en 3 tamaños (reducido píxel a píxel, sin mezclar colores: el píxel sigue igual de grande),
 // con tonos distintos (flores, conchas, hojas, setas), girado 90° si es algo plano y en espejo.
-const GD_HUE = { flor: [0, 25, -25, 50, -50, 90, 180], concha: [0, 15, -15, 330], hoja: [0, 20, -15], hojaseca: [0, 15, -20], seta: [0, 20, -20] };
-const GD_FLAT = new Set(['rama', 'hueso', 'concha', 'hoja', 'hojaseca', 'pluma', 'playa', 'pina']);
+const GD_HUE = { flor: [0, 25, -25, 50, -50, 90, 180], concha: [0, 15, -15, 330], hoja: [0, 20, -15], hojaseca: [0, 15, -20], seta: [0, 20, -20], setacueva: [0, 40, -40, 120], cristal: [0, 60, -60, 150, 210], vacio: [0, 25, -25] };
+const GD_FLAT = new Set(['rama', 'hueso', 'concha', 'hoja', 'hojaseca', 'pluma', 'playa', 'pina', 'raiz', 'cascajo']);
 const GD_SIZES = [1, 0.8, 0.65], _gdVar = new Map();
 function gdVariant(im, cat, si, hi, rot) {
   const key = im.__id || (im.__id = Math.random().toString(36).slice(2)); const k2 = key + '|' + si + '|' + hi + '|' + rot;
@@ -88,7 +96,9 @@ function drawGroundDecor(ctx, k, ox, oy, x0, y0, x1, y1) {
 const GD_GIVE = { flor: ['petals', 'Flor'], hierba: ['herbs', 'Hierbas'], piedra: ['stone', 'Piedrecitas'], roca: ['stone', 'Roca', 2], desierto: ['stone', 'Piedra de arenisca'],
   nieve: ['snow', 'Nieve'], hielo: ['ice', 'Hielo'], volcan: ['basalt', 'Roca volcánica'], rama: ['stick', 'Rama'], hoja: ['herbs', 'Hojas'], hojaseca: ['herbs', 'Hojas secas'],
   pina: ['stick', 'Piñas y bellotas'], seta: ['mushroom', 'Setas'], tocon: ['log', 'Tocón'], hueso: ['bone', 'Huesos'], pluma: ['feather', 'Pluma'], concha: ['shell', 'Concha'],
-  playa: ['kelp', 'Algas y madera'], cactus: ['cactus', 'Cactus'], chatarra: ['gear', 'Chatarra'] };
+  playa: ['kelp', 'Algas y madera'], cactus: ['cactus', 'Cactus'], chatarra: ['ironNugget', 'Chatarra'],
+  setacueva: ['glowcap', 'Seta de cueva'], cristal: ['crystal', 'Cristalito'], mena: ['ironNugget', 'Trocito de mena'], carbon: ['coal', 'Carbón'], cascajo: ['gravel', 'Cascajo'],
+  brasa: ['coal', 'Ascua'], vacio: ['voidstone', 'Esquirla abisal'], raiz: ['stick', 'Raíces'], tierra: ['dirt', 'Terrón'] };
 const gdGive = cat => { const g = GD_GIVE[cat]; return g && ITEMS[g[0]] ? g : ['stone', 'Piedra']; };
 function gdPick(x, y) {
   const o = gdAt(x, y); if (!o) return false; const [id, name, n = 1] = gdGive(o.cat);
@@ -111,5 +121,5 @@ function gdPick(x, y) {
   if (ui.mine && ui.mine.gd) ui.mine = { t: 0, x: -1e9, y: 0 };
   m0(fdt);
 }; }
-const o_need = cat => cat === 'roca' || cat === 'tocon' || cat === 'chatarra' ? 0.6 : 0.25; // lo grande tarda un poco más
+const o_need = cat => cat === 'roca' || cat === 'tocon' || cat === 'chatarra' || cat === 'mena' ? 0.6 : 0.25; // lo grande tarda un poco más
 { const t0 = tileCard; tileCard = (tx, ty) => { const h = t0(tx, ty), o = !(typeof decorAt === 'function' && decorAt(tx, ty)) && gdAt(tx, ty); if (!o) return h; const [id, name] = gdGive(o.cat); return h + `<div class="small good">🌼 ${esc(name)}: mantén clic para recoger (${esc(ITEMS[id].n)})</div>`; }; }

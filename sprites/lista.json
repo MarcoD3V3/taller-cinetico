@@ -233,6 +233,22 @@
    1795202978
   ],
   [
+   "suelo/brasa_1.png",
+   1795239746
+  ],
+  [
+   "suelo/brasa_2.png",
+   1795239746
+  ],
+  [
+   "suelo/brasa_3.png",
+   1795239746
+  ],
+  [
+   "suelo/brasa_4.png",
+   1795239746
+  ],
+  [
    "suelo/cactus_1.png",
    1795239242
   ],
@@ -243,6 +259,50 @@
   [
    "suelo/cactus_3.png",
    1795239242
+  ],
+  [
+   "suelo/carbon_1.png",
+   1795239746
+  ],
+  [
+   "suelo/carbon_2.png",
+   1795239746
+  ],
+  [
+   "suelo/cascajo_1.png",
+   1795239746
+  ],
+  [
+   "suelo/cascajo_2.png",
+   1795239746
+  ],
+  [
+   "suelo/cascajo_3.png",
+   1795239746
+  ],
+  [
+   "suelo/cascajo_4.png",
+   1795239746
+  ],
+  [
+   "suelo/cascajo_5.png",
+   1795239746
+  ],
+  [
+   "suelo/cascajo_6.png",
+   1795239746
+  ],
+  [
+   "suelo/cascajo_7.png",
+   1795239746
+  ],
+  [
+   "suelo/cascajo_8.png",
+   1795239746
+  ],
+  [
+   "suelo/cascajo_9.png",
+   1795239746
   ],
   [
    "suelo/chatarra_1.png",
@@ -279,6 +339,34 @@
   [
    "suelo/concha_3.png",
    1795239242
+  ],
+  [
+   "suelo/cristal_1.png",
+   1795239746
+  ],
+  [
+   "suelo/cristal_2.png",
+   1795239746
+  ],
+  [
+   "suelo/cristal_3.png",
+   1795239746
+  ],
+  [
+   "suelo/cristal_4.png",
+   1795239746
+  ],
+  [
+   "suelo/cristal_5.png",
+   1795239746
+  ],
+  [
+   "suelo/cristal_6.png",
+   1795239746
+  ],
+  [
+   "suelo/cristal_7.png",
+   1795239746
   ],
   [
    "suelo/desierto_1.png",
@@ -393,6 +481,14 @@
    1795239242
   ],
   [
+   "suelo/flor_33.png",
+   1795239746
+  ],
+  [
+   "suelo/flor_34.png",
+   1795239746
+  ],
+  [
    "suelo/flor_4.png",
    1795239242
   ],
@@ -429,6 +525,10 @@
    1795239242
   ],
   [
+   "suelo/hielo_4.png",
+   1795239746
+  ],
+  [
    "suelo/hierba_1.png",
    1795239242
   ],
@@ -443,6 +543,18 @@
   [
    "suelo/hierba_4.png",
    1795239242
+  ],
+  [
+   "suelo/hierba_5.png",
+   1795239746
+  ],
+  [
+   "suelo/hierba_6.png",
+   1795239746
+  ],
+  [
+   "suelo/hierba_7.png",
+   1795239746
   ],
   [
    "suelo/hoja_1.png",
@@ -509,6 +621,22 @@
    1795239242
   ],
   [
+   "suelo/mena_1.png",
+   1795239746
+  ],
+  [
+   "suelo/mena_2.png",
+   1795239746
+  ],
+  [
+   "suelo/mena_3.png",
+   1795239746
+  ],
+  [
+   "suelo/mena_4.png",
+   1795239746
+  ],
+  [
    "suelo/nieve_1.png",
    1795239242
   ],
@@ -549,6 +677,14 @@
    1795239242
   ],
   [
+   "suelo/pina_6.png",
+   1795239746
+  ],
+  [
+   "suelo/pina_7.png",
+   1795239746
+  ],
+  [
    "suelo/playa_2.png",
    1795239242
   ],
@@ -569,8 +705,16 @@
    1795239242
   ],
   [
+   "suelo/raiz_1.png",
+   1795239746
+  ],
+  [
    "suelo/rama_1.png",
    1795239242
+  ],
+  [
+   "suelo/rama_10.png",
+   1795239746
   ],
   [
    "suelo/rama_2.png",
@@ -599,6 +743,10 @@
   [
    "suelo/rama_8.png",
    1795239242
+  ],
+  [
+   "suelo/rama_9.png",
+   1795239746
   ],
   [
    "suelo/roca_1.png",
@@ -665,8 +813,64 @@
    1795239242
   ],
   [
+   "suelo/seta_5.png",
+   1795239746
+  ],
+  [
+   "suelo/setacueva_1.png",
+   1795239746
+  ],
+  [
+   "suelo/setacueva_2.png",
+   1795239746
+  ],
+  [
+   "suelo/setacueva_3.png",
+   1795239746
+  ],
+  [
+   "suelo/setacueva_4.png",
+   1795239746
+  ],
+  [
+   "suelo/tierra_1.png",
+   1795239746
+  ],
+  [
+   "suelo/tierra_2.png",
+   1795239746
+  ],
+  [
    "suelo/tocon_1.png",
    1795239242
+  ],
+  [
+   "suelo/vacio_1.png",
+   1795239746
+  ],
+  [
+   "suelo/vacio_2.png",
+   1795239746
+  ],
+  [
+   "suelo/vacio_3.png",
+   1795239746
+  ],
+  [
+   "suelo/vacio_4.png",
+   1795239746
+  ],
+  [
+   "suelo/vacio_5.png",
+   1795239746
+  ],
+  [
+   "suelo/vacio_6.png",
+   1795239746
+  ],
+  [
+   "suelo/vacio_7.png",
+   1795239746
   ],
   [
    "suelo/volcan_1.png",
