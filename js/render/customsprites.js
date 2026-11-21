@@ -154,16 +154,36 @@ function csIcon(c, set, r) { const b = csBox(set.raw, 24), s0 = r / Math.max(b.w
 // 2×3 casillas mide unos 40×60 píxeles), sin suavizado. La parte de abajo de la imagen (sombra incluida)
 // va donde nace el árbol de serie.
 const CS_TREE_PX = 1.6, _csTreeImgs = new Map(), _csTreeSpr = new Map();
+// La sombra que traen pintada los árboles (un color liso abajo) se vuelve transparente: deja ver la hierba.
+// Se detecta el color que más se repite en las filas de abajo y se cambia, con su borde, por negro translúcido.
+function csShadowFix(img) {
+  const W = img.width, H = img.height, c = csCanvas(W, H), g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(img, 0, 0);
+  let d; try { d = g.getImageData(0, 0, W, H); } catch (e) { return img; } const p = d.data, cnt = new Map();
+  for (let y = Math.floor(H * 0.85); y < H; y++) for (let x = 0; x < W; x++) { const i = (y * W + x) * 4; if (p[i + 3] < 128) continue; const k = (p[i] >> 2) << 12 | (p[i + 1] >> 2) << 6 | (p[i + 2] >> 2); cnt.set(k, (cnt.get(k) || 0) + 1); }
+  let best = -1, bn = 0; for (const [k, n] of cnt) if (n > bn) { bn = n; best = k; } if (best < 0 || bn < 6) return img;
+  const sr = ((best >> 12) & 63) * 4 + 2, sg = ((best >> 6) & 63) * 4 + 2, sb = (best & 63) * 4 + 2, y0 = Math.floor(H * 0.6), sh = new Uint8Array(W * H);
+  const near = i => Math.abs(p[i] - sr) + Math.abs(p[i + 1] - sg) + Math.abs(p[i + 2] - sb) <= 26;
+  for (let y = y0; y < H; y++) for (let x = 0; x < W; x++) { const i = (y * W + x) * 4; if (p[i + 3] >= 128 && near(i)) sh[y * W + x] = 1; }
+  // el borde oscuro de la sombra (pegado a la sombra y al vacío)
+  const lum = i => p[i] * 0.3 + p[i + 1] * 0.59 + p[i + 2] * 0.11, sl = sr * 0.3 + sg * 0.59 + sb * 0.11;
+  for (let y = y0; y < H; y++) for (let x = 0; x < W; x++) {
+    const j = y * W + x, i = j * 4; if (sh[j] || p[i + 3] < 128 || lum(i) > sl) continue;
+    let s2 = 0, e = 0; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const X = x + dx, Y = y + dy; if (X < 0 || Y < 0 || X >= W || Y >= H) { e++; continue; } const q = Y * W + X; if (sh[q] === 1) s2++; else if (p[q * 4 + 3] < 128) e++; }
+    if (s2 && e) sh[j] = 2;
+  }
+  let n = 0; for (let j = 0; j < W * H; j++) if (sh[j]) { const i = j * 4; p[i] = 8; p[i + 1] = 12; p[i + 2] = 10; p[i + 3] = sh[j] === 2 ? 70 : 84; n++; }
+  if (!n) return img; g.putImageData(d, 0, 0); return c;
+}
 function csTreeImgs(t) {
   if (!CSPR.ready) return null; if (_csTreeImgs.has(t)) return _csTreeImgs.get(t);
   const g = GI[t], n = g && _cslug(g.n), L = [];
   if (n) { const one = csGet('arboles', n); if (one) L.push(one.raw); for (let i = 1; i <= 8; i++) { const s = csGet('arboles', n + '_' + i); if (s) L.push(s.raw); } }
-  const r = L.length ? L : null; _csTreeImgs.set(t, r); return r;
+  const r = L.length ? L.map(csShadowFix) : null; _csTreeImgs.set(t, r); return r;
 }
 { const t0 = treeSprite; treeSprite = (t, v, size) => {
   const imgs = csTreeImgs(t); if (!imgs) return t0(t, v, size);
   const key = t * 16 + v * 4 + size; let s = _csTreeSpr.get(key); if (s) return s;
-  const im = imgs[v % imgs.length], b = csBox(im, 100), k = [0.62, 0.78, 0.9, 1][size] || 1; // talado a medias: más pequeño
+  const im = imgs[v % imgs.length], b = csBox(im, 40), k = [0.62, 0.78, 0.9, 1][size] || 1; // talado a medias: más pequeño
   // El lienzo va a la escala de la imagen (1 píxel = 1,6 unidades): se amplía al dibujar, sin suavizado y sin deformar
   // Lienzo del tamaño del árbol (+1 px de margen): nunca se corta, por ancho que sea
   const S2 = CS_TREE_PX * k, cw = b.w + 2, ch = b.h + 2, cv = csCanvas(cw, ch), c = cv.getContext('2d');

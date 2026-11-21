@@ -86,3 +86,6 @@ function worldFlowers() { if (typeof CSPR === 'undefined' || !CSPR.ready) return
   }
   return d0(c, x, y, t, px, py);
 }; }
+// La hierba antigua del mundo (matas de rayitas, hierba seca y juncos de serie) se quita: queda solo la nueva.
+// Se saca de la lista de adornos, así tampoco queda nada invisible que recoger en esa casilla.
+for (const k in DECOR_BY) { DECOR_BY[k] = DECOR_BY[k].filter(d => d !== 'clump' && d !== 'dryTuft' && d !== 'reedS'); if (!DECOR_BY[k].length) delete DECOR_BY[k]; }
