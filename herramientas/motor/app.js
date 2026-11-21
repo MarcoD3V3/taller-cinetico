@@ -282,12 +282,12 @@ function enlazar() {
 
 // ---------- Copiar, pegar y aplicar a todo el tipo ----------
 function copiar() { if (!st.sel) return; const a = { ...ajGet(st.sel) }; delete a.oculto; st.clip = JSON.parse(JSON.stringify(a)); toast('Ajustes copiados'); const b = $('#bPegar'); if (b) b.disabled = false; }
-function pegar() { if (!st.sel || !st.clip) return; const c = JSON.parse(JSON.stringify(st.clip)); ajSet(st.sel, a => { for (const q of ['esc', 'dx', 'dy', 'col', 'orden', 'viento']) a[q] = c[q]; }); panel(); dibujar(); lista(); toast('Ajustes pegados'); }
+function pegar() { if (!st.sel || !st.clip) return; const c = JSON.parse(JSON.stringify(st.clip)); ajSet(st.sel, a => { for (const q of ['esc', 'dx', 'dy', 'col', 'cols', 'orden', 'viento']) a[q] = c[q]; }); panel(); dibujar(); lista(); toast('Ajustes pegados'); }
 function aTodas() {
   if (!st.sel) return; const tipo = tipoDe(st.sel), pre = st.sel.slice(0, st.sel.indexOf('/') + 1), ks = claves().filter(k => k.startsWith(pre) && tipoDe(k) === tipo && k !== st.sel);
   if (!ks.length) return toast('No hay más imágenes de ese tipo'); if (!confirm(`¿Copiar los ajustes de esta imagen a las otras ${ks.length} de «${tipo}»?\n(Se puede deshacer con Ctrl+Z)`)) return;
   hist(); const src = { ...ajGet(st.sel) }; delete src.oculto;
-  for (const k of ks) { const a = AJ().sprites[k] || (AJ().sprites[k] = {}); for (const q of ['esc', 'dx', 'dy', 'col', 'orden', 'viento']) { if (src[q] === undefined) delete a[q]; else a[q] = JSON.parse(JSON.stringify(src[q])); } if (!Object.keys(a).length) delete AJ().sprites[k]; }
+  for (const k of ks) { const a = AJ().sprites[k] || (AJ().sprites[k] = {}); for (const q of ['esc', 'dx', 'dy', 'col', 'cols', 'orden', 'viento']) { if (src[q] === undefined) delete a[q]; else a[q] = JSON.parse(JSON.stringify(src[q])); } if (!Object.keys(a).length) delete AJ().sprites[k]; }
   sucio(); lista(); toast(`Aplicado a ${ks.length} imágenes`);
 }
 

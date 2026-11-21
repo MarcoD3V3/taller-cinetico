@@ -34,7 +34,7 @@ function passable(x, y, who) {
   // Árboles, roca y menas no se atraviesan (los voladores pasan por encima)
   // Los árboles solo bloquean con el tronco: se puede pasar entre ellos y por detrás de la copa
   // (con la forma de la base de cada dibujo: render/customsprites.js · treeBlocks)
-  if (!ghost && !flier && typeof treeBlocks === 'function' && treeBlocks(x, y)) return false;
+  if (!ghost && !flier && typeof treeBlocks === 'function' && treeBlocks(x, y, who)) return false;
   if (!gi.tree && gi.solid && !ghost && !flier) return false;
   const b = c.b && c.b[i]; if (!b) return true;
   const d = BD[b.type];

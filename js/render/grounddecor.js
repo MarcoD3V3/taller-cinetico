@@ -124,7 +124,7 @@ function gdAdj(o) {
     if (a.esc && a.esc !== 1) { const w0 = q.w, h0 = q.h; q.w *= a.esc; q.h *= a.esc; q.px += (w0 - q.w) / 2; if (!q.tall && !q.up) q.py += 0; }
     if (a.dx) q.px += a.dx * (q.flip ? -1 : 1);
     q.oy = a.dy || 0; q.sortDy = a.orden || 0;
-    if (a.col) q.col = { cx: a.col.cx, cy: a.col.cy, rx: a.col.rx, ry: a.col.ry };
+    if (Array.isArray(a.cols)) q.cols = a.cols.map(c => colEscala(c, 1, 1)); else if (a.col) q.col = { cx: a.col.cx, cy: a.col.cy, rx: a.col.rx, ry: a.col.ry };
     if (a.viento != null) q.sw = (q.sw || (GD_SWAY[q.cat] ? GD_SWAY[q.cat][0] : 1)) * a.viento;
   }
   return o;

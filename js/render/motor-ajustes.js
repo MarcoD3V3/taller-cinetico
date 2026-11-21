@@ -101,16 +101,31 @@ function motorDebugDraw() {
   for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
     const t = gnd(tx, ty), g = GI[t];
     if (g.tree && csTreeImgs(t)) { const sz = g.hp ? clamp(Math.round((treeHp(tx, ty) || g.hp) / g.hp * 3), 0, 3) : 3, s = treeSprite(t, (hash2(tx, ty, 61) * 64) | 0, sz), bx = tx * T + 16, by = ty * T + 26;
-      if (s.col) { ctx.strokeStyle = '#ff3b3b'; ctx.beginPath(); ctx.ellipse(bx + s.col.cx, by + s.col.cy, s.col.rx, s.col.ry, 0, 0, 7); ctx.stroke(); }
+      if (!s.noCol) for (const c of colsArbol(s)) { ctx.strokeStyle = c.activo === false ? '#888' : c.trigger ? '#3bffd0' : '#ff3b3b'; colTrazar(ctx, c, bx, by); ctx.stroke(); }
       ctx.strokeStyle = '#3bc8ff'; ctx.beginPath(); ctx.moveTo(bx - 14, by + (s.sortDy || 0)); ctx.lineTo(bx + 14, by + (s.sortDy || 0)); ctx.stroke(); }
     const o0 = typeof gdAt === 'function' && gdAt(tx, ty);
     if (o0) for (const o of o0.group || [o0]) { if (!o.up) continue; const cx = o.px + o.w / 2;
       ctx.strokeStyle = '#3bc8ff'; ctx.beginPath(); ctx.moveTo(cx - o.w / 2, o.py + (o.sortDy || 0)); ctx.lineTo(cx + o.w / 2, o.py + (o.sortDy || 0)); ctx.stroke();
-      if (o.col) { ctx.strokeStyle = '#ff3b3b'; ctx.beginPath(); ctx.ellipse(cx + o.col.cx * (o.flip ? -1 : 1), o.py + o.col.cy, o.col.rx, o.col.ry, 0, 0, 7); ctx.stroke(); } }
+      for (const c of colsSuelo(o)) { ctx.strokeStyle = c.activo === false ? '#888' : c.trigger ? '#3bffd0' : '#ff3b3b'; colTrazar(ctx, c, cx, o.py); ctx.stroke(); } }
   }
   const p = S.player; ctx.strokeStyle = '#ffe14a'; ctx.beginPath(); ctx.moveTo(p.x - 10, p.y + 8); ctx.lineTo(p.x + 10, p.y + 8); ctx.stroke(); // tus pies (lo que se compara con las líneas)
   ctx.restore();
 }
+
+// ---------- Triggers (colisores «Is Trigger»): al entrar el jugador se ejecuta su comando ----------
+const _motorDentro = new Set(); let _motorTrigT = 0;
+function motorTriggers() {
+  if (!S || !S.player) return; const now = performance.now(); if (now - _motorTrigT < 150) return; _motorTrigT = now;
+  const p = S.player, x = p.x, y = p.y + 5, tx0 = Math.floor(x / T), ty0 = Math.floor(y / T), dentro = new Set();
+  for (let ty = ty0 - 2; ty <= ty0 + 2; ty++) for (let tx = tx0 - 2; tx <= tx0 + 2; tx++) {
+    const t = gnd(tx, ty), g = GI[t]; let L = [], bx = tx * T + 16, by = ty * T + 26;
+    if (g.tree && csTreeImgs(t)) { const sz = g.hp ? clamp(Math.round((treeHp(tx, ty) || g.hp) / g.hp * 3), 0, 3) : 3, s = treeSprite(t, (hash2(tx, ty, 61) * 64) | 0, sz); if (s.cols) L = s.cols.map((c, i) => [c, `a${tx},${ty},${i}`, bx, by]); }
+    const o0 = typeof gdAt === 'function' && gdAt(tx, ty); if (o0) (o0.group || [o0]).forEach((o, j) => { if (o.cols) colsSuelo(o).forEach((c, i) => L.push([c, `s${tx},${ty},${j},${i}`, o.px + o.w / 2, o.py])); });
+    for (const [c, id, ax, ay] of L) if (c.trigger && c.activo !== false && c.cmd && colDentro(c, x - ax, y - ay)) { dentro.add(id); if (!_motorDentro.has(id)) { try { runCmd(String(c.cmd).replace(/^\//, '')); } catch (e) { console.warn(e); } } }
+  }
+  _motorDentro.clear(); for (const id of dentro) _motorDentro.add(id);
+}
+{ const r1 = render; render = fdt => { r1(fdt); motorTriggers(); }; }
 
 // ---------- Modo prueba (mundo para testear, aparte del juego normal) ----------
 // · ▶ Probar entra directamente: sin menús ni personajes. El mundo de prueba («motor-mundo») se genera como el del

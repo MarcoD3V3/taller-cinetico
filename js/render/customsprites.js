@@ -194,7 +194,8 @@ function csTreeMake(im, flip, k, a) {
   if (flip) { c.translate(cw, 0); c.scale(-1, 1); } c.drawImage(im, b.x, b.y, b.w, b.h, 1, 1, b.w, b.h);
   const mx = flip ? -1 : 1, dx = (a.dx || 0) * k * mx, dy = (a.dy || 0) * k;
   const s = { cv, k, dw: cw * S2, dh: ch * S2, ax: (1 + b.w / 2) * S2 - dx, ay: (1 + b.h) * S2 - 6 - dy, sortDy: (a.orden || 0) * k, wind: a.viento ?? 1, key: im.__key };
-  if (a.col === false) { s.col = null; s.noCol = true; }
+  if (Array.isArray(a.cols)) { s.cols = a.cols.map(c => colEscala(c, k, mx)); s.col = null; s.noCol = !s.cols.length; }
+  else if (a.col === false) { s.col = null; s.noCol = true; }
   else if (a.col) s.col = { cx: a.col.cx * k * mx, cy: a.col.cy * k, rx: a.col.rx * k, ry: a.col.ry * k };
   else s.col = csTrunkBase(c, cw, ch, S2, s.ax, s.ay);
   return s;
@@ -221,22 +222,55 @@ function csTrunkBase(c, w, h, S2, ax, ay) {
   const cx = (xl + xr + 1) / 2 * S2 - ax, cy = (yb - 0.5) * S2 - ay;
   return { cx, cy, rx: Math.max(4, (xr - xl + 1) / 2 * S2 + 1), ry: Math.max(3, 2.4 * S2) };
 }
-// ¿Choca (x, y) con el tronco de algún árbol cercano? Mira la casilla y sus vecinas: un árbol inclinado tiene el tronco fuera de su casilla.
-function treeBlocks(x, y) {
+// ---------- Colisores (como los 2D de Unity) ----------
+// Cada uno: forma (caja, circulo, capsula, elipse, poligono), x/y (desplazamiento desde la base), w/h (tamaño), r (radio),
+// dir (cápsula: 'v' o 'h'), rot (grados), pts (polígono: puntos [x, y] desde la base), activo, trigger (no bloquea; puede
+// ejecutar un comando al entrar), capas { j: jugador, c: criaturas, p: proyectiles } con las que choca.
+function colEscala(c, k, m) { return { ...c, x: (c.x || 0) * k * m, y: (c.y || 0) * k, w: (c.w || 0) * k, h: (c.h || 0) * k, r: (c.r || 0) * k, rot: (c.rot || 0) * m, pts: c.pts ? c.pts.map(([x, y]) => [x * k * m, y * k]) : null }; }
+function colEspejo(c) { return { ...c, x: -(c.x || 0), rot: -(c.rot || 0), pts: c.pts ? c.pts.map(([x, y]) => [-x, y]) : null }; }
+// ¿El punto (lx, ly), relativo a la base del sprite, está dentro del colisor?
+function colDentro(c, lx, ly) {
+  if (c.forma === 'poligono') { const P = c.pts || []; if (P.length < 3) return false; const px = lx - (c.x || 0), py = ly - (c.y || 0); let d = false;
+    for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const [xi, yi] = P[i], [xj, yj] = P[j]; if ((yi > py) !== (yj > py) && px < (xj - xi) * (py - yi) / (yj - yi) + xi) d = !d; } return d; }
+  let dx = lx - (c.x || 0), dy = ly - (c.y || 0);
+  if (c.rot) { const a = -c.rot * Math.PI / 180, cs = Math.cos(a), sn = Math.sin(a); [dx, dy] = [dx * cs - dy * sn, dx * sn + dy * cs]; }
+  if (c.forma === 'caja') return Math.abs(dx) <= c.w / 2 && Math.abs(dy) <= c.h / 2;
+  if (c.forma === 'circulo') return dx * dx + dy * dy <= c.r * c.r;
+  if (c.forma === 'capsula') { const v = c.dir !== 'h', rr = v ? c.w / 2 : c.h / 2, L = Math.max(0, (v ? c.h : c.w) / 2 - rr), t = Math.max(-L, Math.min(L, v ? dy : dx)), qx = v ? dx : dx - t, qy = v ? dy - t : dy; return qx * qx + qy * qy <= rr * rr; }
+  const ex = dx / (c.w / 2 || 1), ey = dy / (c.h / 2 || 1); return ex * ex + ey * ey <= 1; // elipse
+}
+// el contorno de un colisor como trazado (para verlo): bx, by = base del sprite en el lienzo; e = escala del lienzo
+function colTrazar(g, c, bx, by, e = 1) {
+  g.beginPath(); const X = bx + (c.x || 0) * e, Y = by + (c.y || 0) * e;
+  if (c.forma === 'poligono') { (c.pts || []).forEach(([x, y], i) => i ? g.lineTo(X + x * e, Y + y * e) : g.moveTo(X + x * e, Y + y * e)); g.closePath(); return; }
+  g.save(); g.translate(X, Y); if (c.rot) g.rotate(c.rot * Math.PI / 180);
+  if (c.forma === 'caja') g.rect(-c.w / 2 * e, -c.h / 2 * e, c.w * e, c.h * e);
+  else if (c.forma === 'circulo') g.arc(0, 0, c.r * e, 0, 7);
+  else if (c.forma === 'capsula') { const v = c.dir !== 'h', rr = (v ? c.w : c.h) / 2 * e, L = Math.max(0, (v ? c.h : c.w) / 2 * e - rr);
+    if (v) { g.arc(0, -L, rr, Math.PI, 0); g.lineTo(rr, L); g.arc(0, L, rr, 0, Math.PI); g.closePath(); } else { g.arc(L, 0, rr, -Math.PI / 2, Math.PI / 2); g.lineTo(-L, rr); g.arc(-L, 0, rr, Math.PI / 2, Math.PI * 1.5); g.closePath(); } }
+  else g.ellipse(0, 0, Math.max(0.1, c.w / 2 * e), Math.max(0.1, c.h / 2 * e), 0, 0, 7);
+  g.restore();
+}
+const colCapa = who => who === 'player' ? 'j' : who && typeof who === 'object' && who.proj ? 'p' : 'c';
+const colBloquea = (c, who) => c.activo !== false && !c.trigger && (!c.capas || c.capas[colCapa(who)] !== false);
+// los colisores de un árbol (los del motor, o la elipse automática de la base)
+function colsArbol(sp) { if (sp.cols) return sp.cols; if (sp.col) return [{ forma: 'elipse', x: sp.col.cx, y: sp.col.cy, w: sp.col.rx * 2, h: sp.col.ry * 2 }]; return []; }
+function colsSuelo(o) { if (o.cols) return o.flip ? o.cols.map(colEspejo) : o.cols; if (o.col) return [{ forma: 'elipse', x: o.col.cx * (o.flip ? -1 : 1), y: o.col.cy, w: o.col.rx * 2, h: o.col.ry * 2 }]; return []; }
+// ¿Choca (x, y) con algún árbol u objeto del suelo cercano? who: quién se mueve (jugador, criatura, proyectil)
+function treeBlocks(x, y, who) {
   const tx0 = Math.floor(x / T), ty0 = Math.floor(y / T);
-  for (let ty = ty0 - 1; ty <= ty0 + 1; ty++) for (let tx = tx0 - 1; tx <= tx0 + 1; tx++) {
+  for (let ty = ty0 - 2; ty <= ty0 + 2; ty++) for (let tx = tx0 - 2; tx <= tx0 + 2; tx++) {
     const ch = peekChunk(tx >> CSH, ty >> CSH); if (!ch) continue;
     const i = ((ty & CMASK) << CSH) | (tx & CMASK), t = ch.g[i], g = GI[t]; if (!g.tree) continue;
-    let col = null, noCol = false;
-    if (csTreeImgs(t)) { const sz = g.hp ? clamp(Math.round((ch.t[i] || g.hp) / g.hp * 3), 0, 3) : 3, sp = treeSprite(t, (hash2(tx, ty, 61) * 64) | 0, sz); col = sp.col; noCol = !!sp.noCol; }
-    if (noCol) continue;
-    if (col) { const dx = (x - (tx * T + 16) - col.cx) / col.rx, dy = (y - (ty * T + 26) - col.cy) / col.ry; if (dx * dx + dy * dy < 1) return true; }
+    if (csTreeImgs(t)) { const sz = g.hp ? clamp(Math.round((ch.t[i] || g.hp) / g.hp * 3), 0, 3) : 3, sp = treeSprite(t, (hash2(tx, ty, 61) * 64) | 0, sz);
+      if (sp.noCol) continue; const lx = x - (tx * T + 16), ly = y - (ty * T + 26);
+      for (const c of colsArbol(sp)) if (colBloquea(c, who) && colDentro(c, lx, ly)) return true; }
     else if (tx === tx0 && ty === ty0) { const dx = x - (tx * T + 16), dy = (y - (ty * T + 25)) * 1.6, r = g.tree.big || g.tree.s === 'jungle' || g.tree.s === 'baobab' ? 9 : 6.5; if (dx * dx + dy * dy < r * r) return true; }
   }
-  // matas y objetos del suelo con choque puesto en el motor
-  if (typeof gdAt === 'function') for (let ty = ty0 - 1; ty <= ty0 + 1; ty++) for (let tx = tx0 - 1; tx <= tx0 + 1; tx++) {
+  // matas y objetos del suelo con colisores puestos en el motor
+  if (typeof gdAt === 'function') for (let ty = ty0 - 2; ty <= ty0 + 2; ty++) for (let tx = tx0 - 2; tx <= tx0 + 2; tx++) {
     const o0 = gdAt(tx, ty); if (!o0) continue;
-    for (const o of o0.group || [o0]) { if (!o.col) continue; const dx = (x - (o.px + o.w / 2) - o.col.cx * (o.flip ? -1 : 1)) / o.col.rx, dy = (y - o.py - o.col.cy) / o.col.ry; if (dx * dx + dy * dy < 1) return true; }
+    for (const o of o0.group || [o0]) { if (!o.cols && !o.col) continue; const lx = x - (o.px + o.w / 2), ly = y - o.py; for (const c of colsSuelo(o)) if (colBloquea(c, who) && colDentro(c, lx, ly)) return true; }
   }
   return false;
 }

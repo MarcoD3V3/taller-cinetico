@@ -13,6 +13,7 @@ const JUG_P = [
   ['choqueAncho', 'Choque: medio ancho', 5, 0.5, 0.5, 30, 'unidades', 'Puntos de los pies a cada lado.'], ['choquePie', 'Choque: pies (abajo)', 5, 0.5, -20, 30, 'unidades', ''],
   ['choqueCentro', 'Choque: punto central', 1, 0.5, -20, 30, 'unidades', ''], ['escala', 'Tamaño del dibujo', 1.6, 0.1, 0.5, 6, '', 'Solo se ve más grande o pequeño; el choque va aparte.'],
   ['orden', 'Línea de orden (pies)', 8, 0.5, -20, 40, 'unidades', 'Con esta línea se decide si un árbol o una mata te tapa.']];
+// (en la vista: arrastra los puntos verdes de choque, la línea amarilla y el punto dorado del alcance)
 const jugV = k => { const j = AJ().jugador || {}, p = JUG_P.find(x => x[0] === k); return typeof j[k] === 'number' ? j[k] : p[2]; };
 function jugSet(k, v) { hist(); const p = JUG_P.find(x => x[0] === k); AJ().jugador = AJ().jugador || {}; if (v === null || v === p[2]) delete AJ().jugador[k]; else AJ().jugador[k] = Math.max(p[4], Math.min(p[5], v)); if (!Object.keys(AJ().jugador).length) delete AJ().jugador; sucio(); }
 
@@ -131,3 +132,24 @@ function dibujarComandos() {
   $('#izq').insertBefore(s, $('#izq').firstChild); s.querySelectorAll('button').forEach(b => b.onclick = () => modo(b.dataset.m));
   const n0 = norm; norm = a => { a = n0(a); if (a.comandos && !Array.isArray(a.comandos)) delete a.comandos; return a; };
 })();
+
+// ---------- Jugador: asas con el ratón (puntos de choque, línea de orden y alcance) ----------
+function jugAsas() { const p = { x: 16, y: 26 }, a = jugV('choqueAncho'), pie = jugV('choquePie'), cen = jugV('choqueCentro'), R = jugV('alcance') * 32;
+  return [{ t: 'izq', p: [p.x - a, p.y + pie] }, { t: 'der', p: [p.x + a, p.y + pie] }, { t: 'cen', p: [p.x, p.y + cen] }, { t: 'orden', p: [p.x + 14, p.y + jugV('orden')] }, { t: 'alc', p: [p.x + R * 0.71, p.y - R * 0.71] }]; }
+vista.addEventListener('mousedown', e => {
+  if (st.modo !== 'jugador' || !W()) return; const dpr = devicePixelRatio || 1, px = e.offsetX * dpr, py = e.offsetY * dpr;
+  const h = jugAsas().find(a => Math.abs(px - sx(a.p[0])) < 10 && Math.abs(py - sy(a.p[1])) < 10) || (Math.abs(py - sy(26 + jugV('orden'))) < 6 && Math.abs(px - sx(16)) < 16 * Z ? { t: 'orden' } : null);
+  if (!h) return; e.preventDefault(); e.stopImmediatePropagation(); hist(); st.jdrag = h.t;
+}, true);
+addEventListener('mousemove', e => {
+  if (st.modo === 'jugador' && !st.jdrag && e.target === vista && W()) { const dpr = devicePixelRatio || 1, px = e.offsetX * dpr, py = e.offsetY * dpr; vista.style.cursor = jugAsas().some(a => Math.abs(px - sx(a.p[0])) < 10 && Math.abs(py - sy(a.p[1])) < 10) ? 'move' : 'default'; }
+  if (!st.jdrag) return; const dpr = devicePixelRatio || 1, r = vista.getBoundingClientRect(), px = (e.clientX - r.left) * dpr, py = (e.clientY - r.top) * dpr, wx = wxOf(px) - 16, wy = wyOf(py) - 26;
+  const stp = e.shiftKey ? 0.1 : 0.5, q = v => Math.round(v / stp) * stp, t = st.jdrag, st0 = st.drag; st.drag = { h: 'jug' };
+  if (t === 'izq' || t === 'der') { jugSet('choqueAncho', Math.max(0.5, q(Math.abs(wx)))); jugSet('choquePie', q(wy)); }
+  else if (t === 'cen') jugSet('choqueCentro', q(wy)); else if (t === 'orden') jugSet('orden', q(wy));
+  else if (t === 'alc') jugSet('alcance', Math.max(1, Math.round(Math.hypot(wx, wy) / 32 * 2) / 2));
+  st.drag = st0; dibujar(); document.querySelectorAll('#der [data-j]').forEach(i => { if (document.activeElement !== i) i.value = jugV(i.dataset.j); });
+});
+addEventListener('mouseup', () => { if (st.jdrag) { st.jdrag = null; panel(); } });
+// asas dibujadas encima de la vista del jugador
+{ const dj = dibujarJugador; dibujarJugador = () => { dj(); if (!W()) return; const c = vx; for (const a of jugAsas()) { const x = sx(a.p[0]), y = sy(a.p[1]); c.fillStyle = '#000'; c.fillRect(x - 6, y - 6, 12, 12); c.fillStyle = a.t === 'orden' ? '#ffe14a' : a.t === 'alc' ? '#e0b54c' : '#5fe07a'; c.fillRect(x - 4, y - 4, 8, 8); } }; }
