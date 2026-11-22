@@ -245,6 +245,10 @@ function motorMenu(s, cx, cy) {
   h += `<div style="color:#6e6a62;font-size:11px;margin-top:6px">Se guarda solo en el borrador del motor · se publica desde el motor.</div>`;
   m.innerHTML = h; document.body.appendChild(m);
   m.addEventListener('mousedown', e => e.stopPropagation()); m.addEventListener('contextmenu', e => e.preventDefault());
+  // se desplaza con la rueda (sin barra visible) y la rueda no hace zoom en el juego mientras estás encima
+  if (!document.getElementById('motorMenuCss')) { const st2 = document.createElement('style'); st2.id = 'motorMenuCss'; st2.textContent = '#motorMenu{scrollbar-width:none;-ms-overflow-style:none;overscroll-behavior:contain}#motorMenu::-webkit-scrollbar{display:none;width:0;height:0}'; document.head.appendChild(st2); }
+  m.addEventListener('wheel', e => { e.stopPropagation(); m.scrollTop += e.deltaY; e.preventDefault(); }, { passive: false });
+  m.scrollTop = window._motorMenuScroll || 0; m.addEventListener('scroll', () => { window._motorMenuScroll = m.scrollTop; });
   m.querySelectorAll('details').forEach(d => d.addEventListener('toggle', () => {}));
   m.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
     const act = b.dataset.a, a = ((window.AJUSTES.sprites || {})[s.key]) || {}, num = v => Math.round(v * 100) / 100;
@@ -314,7 +318,7 @@ if (MOTOR_PRUEBA) {
     if (MOTOR_ARR.on && e.button === 0 && e.target.id === 'c' && MOTOR_SEL.o && MOTOR_SEL.o.tipo === 'sprite') { const w = mouseWorld(), L = motorColsSel(MOTOR_SEL.o), c = L[MOTOR_SEL.ci || 0]; if (c) { MOTOR_ARR.drag = { x: w.x, y: w.y, base: JSON.parse(JSON.stringify(c)), shift: e.shiftKey }; e.preventDefault(); e.stopImmediatePropagation(); return; } }
     if (!e.target.closest || !e.target.closest('#motorMenu')) { if (e.button !== 2) motorMenuCerrar(); }
     if (e.button !== 2 || e.target.id !== 'c') return; const w = mouseWorld(), L = motorRects(w.x, w.y), s = L[0] || (MOTOR_SEL.o && L.find(x => x.key === MOTOR_SEL.o.key));
-    if (!s) return; e.preventDefault(); e.stopImmediatePropagation(); motorMenu(s, e.clientX + 6, e.clientY + 6);
+    if (!s) return; e.preventDefault(); e.stopImmediatePropagation(); window._motorMenuScroll = 0; motorMenu(s, e.clientX + 6, e.clientY + 6);
   }, true);
   addEventListener('contextmenu', e => { if (e.target.id === 'c' && document.getElementById('motorMenu')) e.preventDefault(); }, true);
   addEventListener('mousemove', e => { const d = MOTOR_ARR.drag, s0 = MOTOR_SEL.o; if (!d || !s0) return; const w = mouseWorld(), m = s0.flip ? -1 : 1, k = s0.k || 1, dx = (w.x - d.x) / k * m, dy = (w.y - d.y) / k, q = v => Math.round(v * 2) / 2;
