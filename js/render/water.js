@@ -197,6 +197,13 @@ function wfxBuild(u, W, x0, y0) {
           let b = 0; while (b < th.length && Dd >= th[b]) b++; kk = pal * 8 + b; } }
       if (kk !== runK) { if (runK >= 0) { let e = shade.get(runK); if (e === undefined) { const col = bandCol(runK >> 3, runK & 7); e = col ? { col, p: new Path2D() } : null; shade.set(runK, e); } if (e) e.p.rect(runS * 2, ly * 2, (lx - runS) * 2, 2); } runK = kk; runS = lx; }
     } }
+  // Playas: donde hay mucha arena junta. En algunos tramos de playa (zonas que cambian despacio por el mundo)
+  // llegan olas grandes: revientan fuerte, levantan espuma y el agua sube mucho más por la arena.
+  const arenaT = new Float32Array(R * R); for (let ty = 0; ty < R; ty++) for (let tx = 0; tx < R; tx++) { const g = GI[baseTile(gnd(x0 - M + tx, y0 - M + ty))]; arenaT[ty * R + tx] = /SAND/.test(g.key || '') ? 1 : 0; }
+  const playaT = new Float32Array(R * R); for (let ty = 3; ty < R - 3; ty++) for (let tx = 3; tx < R - 3; tx++) { let n = 0; for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) n += arenaT[(ty + dy) * R + tx + dx];
+    const gx = x0 - M + tx, gy = y0 - M + ty, zona = smooth(0.42, 0.62, vnoise(gx / 26, gy / 26, 4747)); playaT[ty * R + tx] = smooth(0.18, 0.5, n / 49) * zona; }
+  const fuerza = (lx, ly) => { const fx = (lx * 2 + 1) / 32 - 0.5 + M, fy = (ly * 2 + 1) / 32 - 0.5 + M, ix = Math.max(0, Math.min(R - 2, fx | 0)), iy = Math.max(0, Math.min(R - 2, fy | 0)), ax = Math.max(0, Math.min(1, fx - ix)), ay = Math.max(0, Math.min(1, fy - iy));
+    return (playaT[iy * R + ix] * (1 - ax) + playaT[iy * R + ix + 1] * ax) * (1 - ay) + (playaT[(iy + 1) * R + ix] * (1 - ax) + playaT[(iy + 1) * R + ix + 1] * ax) * ay; };
   // listas de la orilla (celdas de 2 px; distancias interpoladas de los bloques)
   const bil = (F, lx, ly) => { const fx = lx / 2 - 0.25 + MB, fy = ly / 2 - 0.25 + MB, ix = fx | 0, iy = fy | 0, ax = fx - ix, ay = fy - iy, i = iy * NG + ix;
     return ((F[i] * (1 - ax) + F[i + 1] * ax) * (1 - ay) + (F[i + NG] * (1 - ax) + F[i + NG + 1] * ax) * ay) * 2; };
@@ -204,18 +211,20 @@ function wfxBuild(u, W, x0, y0) {
   const off = (wx, wy) => 0.18 * Math.sin(wx * 0.011) + 0.18 * Math.sin(wy * 0.013 + 1.7) + 0.1 * Math.sin((wx + wy) * 0.031);
   for (let by = 0; by < NB; by++) for (let bx = 0; bx < NB; bx++) {
     const gi = (by + MB) * NG + bx + MB, k = bm[by * NB + bx];
-    if (k === 1 ? cdB[gi] > 5.6 : k === 2 ? cdB[gi] > 2 : !((wsB && wsB[gi] <= 2.3) || (wcB && wcB[gi] <= 1.3))) continue; // lejos de la orilla: nada
+    const fb = fuerza(bx * 2, by * 2);
+    if (k === 1 ? cdB[gi] > 5.6 : k === 2 ? cdB[gi] > 2 : !((wsB && wsB[gi] <= 2.3 + 2.6 * fb) || (wcB && wcB[gi] <= 1.3))) continue; // lejos de la orilla: nada (en playas con olas grandes el agua llega más lejos)
     for (let sy = 0; sy < 2; sy++) for (let sx = 0; sx < 2; sx++) {
       const lx = bx * 2 + sx, ly = by * 2 + sy, wx = x0 * T + lx * 2, wy = y0 * T + ly * 2;
-      if (k === 1) { const c = Math.max(1, bil(cdB, lx, ly) - 1); if (c <= 10) shoreS.push(lx, ly, Math.round(c * 4), Math.round(off(wx, wy) * 1000)); }
+      const fz = Math.round(fuerza(lx, ly) * 100);
+      if (k === 1) { const c = Math.max(1, bil(cdB, lx, ly) - 1); if (c <= 10) shoreS.push(lx, ly, Math.round(c * 4), Math.round(off(wx, wy) * 1000), fz); }
       else if (k === 2) { const c = Math.max(1, bil(cdB, lx, ly) - 1); if (c <= 3) shoreC.push(lx, ly, Math.round(c * 4), Math.round(hash2(lx >> 2, ly >> 2, x0 + y0 * 7) * 6283)); }
-      else { const ws = wsB ? Math.max(0.5, bil(wsB, lx, ly) - 1) : 99; if (ws <= 3.6) wetS.push(lx, ly, Math.round(ws * 4), Math.round(off(wx, wy) * 1000));
+      else { const ws = wsB ? Math.max(0.5, bil(wsB, lx, ly) - 1) : 99; if (ws <= 3.6 + 5.6 * fz / 100) wetS.push(lx, ly, Math.round(ws * 4), Math.round(off(wx, wy) * 1000), fz);
         else if (wcB) { const wc = Math.max(0.5, bil(wcB, lx, ly) - 1); if (wc <= 1.5) wetC.push(lx, ly, Math.round(wc * 4), 0); } }
     }
   }
   // olas que vienen de mar adentro (hasta ~4 casillas de la orilla) con el mismo ritmo que la espuma: llegan justo cuando esta revienta
   for (let by = 0; by < NB; by++) for (let bx = 0; bx < NB; bx++) { const i = by * NB + bx; if (bm[i] !== 1) continue; const D = depB[i]; if (D < 0.5 || D > 4.6) continue;
-    swellS.push(bx, by, Math.round(D * 100), Math.round(off(x0 * T + bx * 4 + 2, y0 * T + by * 4 + 2) * 1000)); }
+    swellS.push(bx, by, Math.round(D * 100), Math.round(off(x0 * T + bx * 4 + 2, y0 * T + by * 4 + 2) * 1000), Math.round(fuerza(bx * 2, by * 2) * 100)); }
   // la forma del agua (un píxel por bloque) para recortar el oleaje
   const mkP = kind => { const P = new Path2D(); for (let by = 0; by < NB; by++) { let bx = 0; while (bx < NB) { if (bm[by * NB + bx] !== kind) { bx++; continue; } const s0 = bx; while (bx < NB && bm[by * NB + bx] === kind) bx++; P.rect(s0 * 4, by * 4, (bx - s0) * 4, 4); } } return P; };
   const seaP = anyS ? mkP(1) : null, calmP = anyC ? mkP(2) : null;
@@ -301,28 +310,32 @@ function wfxTop(c, X, Y, d, t) {
   const P = (lx, ly, v) => { buf[ly * N + lx] = v; };
   const C_WET = (31 << 24) | (20 << 16) | (30 << 8) | 40, C_WET2 = (51 << 24) | (16 << 16) | (24 << 8) | 30, C_LITE = (41 << 24) | (250 << 16) | (240 << 8) | 210, C_SOFT = (107 << 24) | (255 << 16) | (250 << 8) | 240, C_FOAM = (224 << 24) | (255 << 16) | (253 << 8) | 250;
   const phase = o => { const p = t / 6.5 + o / 1000; return p - Math.floor(p); };
+  const tam = (o, f) => { if (!f) return 0; const cyc = Math.floor(t / 6.5 + o / 1000); return f / 100 * (0.45 + 0.55 * ihash(cyc, 7919)); }; // lo grande que viene ESTA ola (siempre la misma en todo el tramo)
   const front = s => s < 0.62 ? 9.5 * Math.pow(1 - s / 0.62, 1.4) + 0.6 : 0.6 + (s - 0.62) / 0.38 * 3.5;
   const tk5 = Math.floor(t * 5), tk2 = Math.floor(t * 2), sd = d.ph * 9973 | 0;
   // olas largas: crestas que avanzan hacia la orilla, más marcadas al acercarse; detrás, una franja algo más oscura
   let a = d.swellS || [];
-  for (let i = 0; i < a.length; i += 4) {
-    const bx = a[i], by = a[i + 1], D = a[i + 2] / 100, s = phase(a[i + 3]), cl = 1 - (D - 0.5) / 4.1;
-    for (let w = 0; w < 2; w++) { const pos = 0.6 + (1 - ((s + w * 0.5) % 1)) * 3.6, dd = D - pos; if (w && D < 1.3) continue; // la segunda, más floja, se deshace antes de llegar
-      if (dd > -0.07 && dd < 0.07) { if (ihash(bx * 3 + tk2, by * 7 + sd) < 0.18 * (1 - cl)) continue; const al = Math.round((w ? 45 : 70) + cl * (w ? 50 : 120)), c = (al << 24) | (255 << 16) | (250 << 8) | 236, lx = bx * 2, ly = by * 2; P(lx, ly, c); P(lx + 1, ly, c); }
-      else if (dd >= 0.07 && dd < 0.2 && !w) { const c = (Math.round(20 + cl * 30) << 24) | (60 << 16) | (24 << 8) | 4, lx = bx * 2, ly = by * 2; P(lx, ly + 1, c); P(lx + 1, ly + 1, c); } }
+  for (let i = 0; i < a.length; i += 5) {
+    const bx = a[i], by = a[i + 1], D = a[i + 2] / 100, s = phase(a[i + 3]), g = tam(a[i + 3], a[i + 4]), cl = 1 - (D - 0.5) / 4.1;
+    for (let w = 0; w < 2; w++) { const pos = 0.6 + (1 - ((s + w * 0.5) % 1)) * 3.6, dd = D - pos, an = 0.07 + g * 0.09; if (w && D < 1.3) continue; // la segunda, más floja, se deshace antes de llegar
+      if (dd > -an && dd < an) { if (ihash(bx * 3 + tk2, by * 7 + sd) < 0.18 * (1 - cl) * (1 - g)) continue; const al = Math.min(235, Math.round(((w ? 45 : 70) + cl * (w ? 50 : 120)) * (1 + g * 0.9))), c = (al << 24) | (255 << 16) | (250 << 8) | 236, lx = bx * 2, ly = by * 2;
+        P(lx, ly, c); P(lx + 1, ly, c); if (g > 0.35 && !w) { P(lx, ly + 1, c); P(lx + 1, ly + 1, c); } } // ola grande: cresta más gruesa y blanca
+      else if (dd >= an && dd < an + 0.14 + g * 0.1 && !w) { const c = (Math.round((20 + cl * 30) * (1 + g)) << 24) | (60 << 16) | (24 << 8) | 4, lx = bx * 2, ly = by * 2; P(lx, ly + 1, c); P(lx + 1, ly + 1, c); } }
   }
   a = d.wetS;
-  for (let i = 0; i < a.length; i += 4) {
-    const lx = a[i], ly = a[i + 1], wd = a[i + 2] / 4, s = phase(a[i + 3]);
-    const reach = s < 0.5 ? 0 : s < 0.62 ? (s - 0.5) / 0.12 * 2.6 : 2.6 * (1 - (s - 0.62) / 0.38) + 0.6 * ((s - 0.62) / 0.38);
+  for (let i = 0; i < a.length; i += 5) {
+    const lx = a[i], ly = a[i + 1], wd = a[i + 2] / 4, s = phase(a[i + 3]), g = tam(a[i + 3], a[i + 4]), sube = 2.6 + 6.2 * g; // con ola grande el agua sube mucho más por la arena
+    const reach = s < 0.5 ? 0 : s < 0.62 ? (s - 0.5) / 0.12 * sube : sube * (1 - (s - 0.62) / 0.38) + 0.6 * ((s - 0.62) / 0.38);
     if (wd <= reach + 0.2) P(lx, ly, s < 0.66 && Math.abs(wd - reach) < 0.7 && ihash(lx + tk5, ly * 3) > 0.25 ? C_FOAM : wd < 1.2 ? C_WET2 : C_WET);
     else if (wd < 1.1) P(lx, ly, C_WET);
   }
   a = d.wetC; for (let i = 0; i < a.length; i += 4) P(a[i], a[i + 1], C_WET);
   a = d.shoreS;
-  for (let i = 0; i < a.length; i += 4) {
-    const lx = a[i], ly = a[i + 1], cdv = a[i + 2] / 4, s = phase(a[i + 3]), pos = front(s), str = s < 0.62 ? 1 : 1 - (s - 0.62) / 0.38, dd = cdv - pos;
-    if (Math.abs(dd) < 0.8 && ihash(lx * 7 + tk5, ly * 13 + sd) > 0.1 + (1 - str) * 0.65) P(lx, ly, C_FOAM);
+  for (let i = 0; i < a.length; i += 5) {
+    const lx = a[i], ly = a[i + 1], cdv = a[i + 2] / 4, s = phase(a[i + 3]), g = tam(a[i + 3], a[i + 4]), pos = front(s), str = s < 0.62 ? 1 : 1 - (s - 0.62) / 0.38, dd = cdv - pos;
+    // ola grande al reventar (s≈0.5-0.7): rompiente ancha y espuma que salta mar adentro
+    if (g > 0.2 && s > 0.48 && s < 0.72 && cdv < 2 + 6 * g && ihash(lx * 5 + tk5 * 3, ly * 11 + sd) < 0.12 + g * 0.3) { P(lx, ly, C_FOAM); continue; }
+    if (Math.abs(dd) < 0.8 + 1.4 * g && ihash(lx * 7 + tk5, ly * 13 + sd) > 0.1 + (1 - str) * 0.65) P(lx, ly, C_FOAM);
     else if (cdv < 1.6 && ihash(lx + tk2 * 31, ly + sd) < 0.45) P(lx, ly, C_SOFT);
     else if (s < 0.62 && dd > 0 && dd < 2.4) P(lx, ly, C_LITE);
   }

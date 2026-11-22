@@ -391,10 +391,11 @@ function riverAt(x, y, P) {
   const big = Math.abs(fbmN(x / 520, y / 520, s + 700, 3) - 0.5);
   const wv = vnoise(x / 1100, y / 1100, s + 710);
   const w = (0.0035 + wv * wv * 0.016) * P.rivers;
-  if (big < w) return 2; if (big < w * 1.7) return 1;
+  riverAt.inner = false;
+  if (big < w) return 2; if (big < w * 1.7) { riverAt.inner = big < w * 1.32; return 1; } // inner: la parte de la orilla pegada al agua
   const creek = Math.abs(fbmN(x / 160, y / 160, s + 720, 2) - 0.5);
   const cw = 0.006 * P.rivers * smooth(0.55, 0.75, vnoise(x / 400, y / 400, s + 730));
-  if (creek < cw) return 2; if (creek < cw * 1.6) return 1;
+  if (creek < cw) return 2; if (creek < cw * 1.6) { riverAt.inner = creek < cw * 1.3; return 1; }
   return 0;
 }
 const DENSE_WOODS = new Set(['jungle', 'mangrove']);
@@ -413,7 +414,7 @@ function tileAt(x, y, P, cl, bio) {
   if (cl[0] > oc + 0.04) {
     const r = riverAt(x, y, P);
     if (r === 2) return B.riverI;
-    if (r === 1) return B.bankI >= 0 ? B.bankI : (B.riverI === G.LAVA ? G.BASALT : B.riverI === G.ICE ? G.SNOW : B.riverI === G.OILRIVER ? G.TERRACOTTA : B.gI === G.SAND || B.gI === G.REDSAND ? B.gI : (hash2(x, y, s + 3) < 0.5 ? G.CLAY : G.SAND));
+    if (r === 1) return B.bankI >= 0 ? B.bankI : (B.riverI === G.LAVA ? G.BASALT : B.riverI === G.ICE ? G.SNOW : B.riverI === G.OILRIVER ? G.TERRACOTTA : B.gI === G.SAND || B.gI === G.REDSAND ? B.gI : (riverAt.inner ? G.SAND : hash2(x, y, s + 3) < 0.5 ? G.CLAY : G.SAND)); // junto al agua solo arena (playa); más adentro, arena y arcilla
   }
   // Lagos
   const lakeAt = (B.lakeAt ?? 0.32) + (P.water - 0.35) * 0.5 + (P.lakes || 0);
