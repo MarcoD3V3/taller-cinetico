@@ -31,7 +31,7 @@ function hudRender() {
   const p = hudEl().querySelector('.hdpanel'), row = ([k, n, t, mn, mx, st]) => t === 'check'
     ? `<label class="hdrow"><span>${n}</span><span class="tg"><input type="checkbox" data-opt="${k}" ${OPT[k] ? 'checked' : ''}><i></i></span></label>`
     : `<label class="hdrow col"><span>${n} <b data-optv="${k}">${Math.round(OPT[k] * 100)} %</b></span><input type="range" data-opt="${k}" min="${mn}" max="${mx}" step="${st}" value="${OPT[k]}"></label>`;
-  const more = [['minimap', 'Minimapa', 'check'], ['altHud', 'Barra de altura al volar', 'check'], ['hover', 'Tarjeta al pasar el cursor', 'check']];
+  const more = [['minimap', 'Minimapa', 'check'], ['altHud', 'Barra de altura al volar', 'check'], ['hover', 'Tarjeta al pasar el cursor', 'check'], ['xray', 'Ver al personaje bajo las copas', 'check']];
   p.innerHTML = `<div class="hdh">Paneles del juego</div>${HUD_ROWS.map(row).join('')}${more.map(row).join('')}<button class="hdmore" data-hd="opts">Más en Ajustes › Interfaz</button>`;
   bindRanges(p);
 }
