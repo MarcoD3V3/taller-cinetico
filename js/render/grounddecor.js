@@ -186,10 +186,22 @@ function gdVisibles(x0, y0, x1, y1) {
   }
   return _gdFr;
 }
+// La sombra se queda en su nivel del terreno: si la casilla de al lado es más alta o más baja (un escalón), se
+// recorta en ese borde y no se pinta encima del escalón. Se calcula una vez por objeto.
+function gdSombraForma(o) {
+  let cx = Math.round(o.px) + o.w / 2 + 1, cy = o.py + (o.oy || 0) - 0.5, rx = o.w * 0.42, ry = Math.max(1.2, o.h * 0.14);
+  if (typeof lvAt !== 'function') return [cx, cy, rx, ry];
+  const tx = Math.floor(cx / T), ty = Math.floor(cy / T), l = lvAt(tx, ty);
+  const L = lvAt(tx - 1, ty) === l ? (tx - 1) * T : tx * T, R = lvAt(tx + 1, ty) === l ? (tx + 2) * T : (tx + 1) * T;
+  const U = lvAt(tx, ty - 1) === l ? (ty - 1) * T : ty * T, D = lvAt(tx, ty + 1) === l ? (ty + 2) * T : (ty + 1) * T;
+  const a = Math.max(cx - rx, L), b = Math.min(cx + rx, R), c = Math.max(cy - ry, U), d = Math.min(cy + ry, D);
+  if (b - a < 1 || d - c < 0.6) return null;
+  return [(a + b) / 2, (c + d) / 2, (b - a) / 2, (d - c) / 2];
+}
 // sombras de muchos objetos en un solo trazado (dos tonos): mucho más barato que una por una
 function gdSombras(ctx, L) {
   let a = null, b = null;
-  for (const o of L) { const P = o.nosh ? (b || (b = new Path2D())) : (a || (a = new Path2D())), cx = Math.round(o.px) + o.w / 2 + 1, cy = o.py + (o.oy || 0) - 0.5, rx = o.w * 0.42, ry = Math.max(1.2, o.h * 0.14); P.moveTo(cx + rx, cy); P.ellipse(cx, cy, rx, ry, 0, 0, 6.2832); }
+  for (const o of L) { const sh = o.sh || (o.sh = gdSombraForma(o)); if (!sh) continue; const P = o.nosh ? (b || (b = new Path2D())) : (a || (a = new Path2D())); P.moveTo(sh[0] + sh[2], sh[1]); P.ellipse(sh[0], sh[1], sh[2], sh[3], 0, 0, 6.2832); }
   if (a) { ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.fill(a); } if (b) { ctx.fillStyle = 'rgba(0,0,0,.08)'; ctx.fill(b); }
 }
 function drawGroundDecor(ctx, k, ox, oy, x0, y0, x1, y1) {
