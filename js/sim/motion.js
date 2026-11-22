@@ -137,11 +137,15 @@ function drawRipples(ctx) {
 function rawLv(x, y) { const c = getChunk(x >> CSH, y >> CSH); return (c.h || chunkLv(c))[((y & CMASK) << CSH) | (x & CMASK)]; }
 function rockOf(t, mtn) { const g = GI[t], c0 = mtn && !g.rock && !g.dot ? [118, 116, 112] : g.c || [110, 100, 80]; return mtn || g.rock || g.dot || g.solid && !g.tree ? [c0[0] * 0.8, c0[1] * 0.8, c0[2] * 0.8] : [c0[0] * 0.25 + 112 * 0.75, c0[1] * 0.2 + 94 * 0.8, c0[2] * 0.2 + 74 * 0.8]; }
 function paintCliffs(u, W, x0, y0) {
+  // La roca y las menas sueltas son un bloque: una capa por encima del suelo en el que están. Así tienen las
+  // mismas paredes, cantos y sombras que las terrazas (misma forma, otra textura). La roca de la montaña ya
+  // tiene su altura propia y no se toca.
+  const lvV = (x, y) => { const l = lvAt(x, y), g = GI[gnd(x, y)]; return g.solid && !g.flora && !g.liquid && !g.tree && !g.hole && l <= LV_FOOT ? l + 1 : l; };
   const px32 = (r, g, b) => (255 << 24 | Math.max(0, Math.min(255, b)) << 16 | Math.max(0, Math.min(255, g)) << 8 | Math.max(0, Math.min(255, r))) >>> 0;
   const scale = (v, f) => { const r = v & 255, g = (v >> 8) & 255, b = (v >> 16) & 255; return px32(r * f, g * f, b * f); };
   for (let ty = 0; ty < CH; ty++) for (let tx = 0; tx < CH; tx++) {
-    const gx = x0 + tx, gy = y0 + ty, l = lvAt(gx, gy), bx = tx * T, by = ty * T;
-    const up = lvAt(gx, gy - 1), lf = lvAt(gx - 1, gy), rt = lvAt(gx + 1, gy), dn = 0;
+    const gx = x0 + tx, gy = y0 + ty, l = lvV(gx, gy), bx = tx * T, by = ty * T;
+    const up = lvV(gx, gy - 1), lf = lvV(gx - 1, gy), rt = lvV(gx + 1, gy), dn = 0;
     // Terrazas altas un poco más claras (se lee la altura de un vistazo)
     // (en la montaña ya se leen las capas por sus paredes: no hace falta aclarar)
     // (el agua es plana: no se aclara por terraza; si no, en lagos y costas salían recuadros de otro tono)
@@ -166,7 +170,7 @@ function paintCliffs(u, W, x0, y0) {
     /* Esquina exterior: la pared lateral de la terraza de la diagonal de arriba baja también por esta casilla
        (tanto como su pared frontal); si no, en la esquina quedaba un hueco sin textura */
     if (up <= l) for (const side of [-1, 1]) {
-      const dg = lvAt(gx + side, gy - 1); if (dg <= l || lvAt(gx + side, gy) > l) continue;
+      const dg = lvV(gx + side, gy - 1); if (dg <= l || lvV(gx + side, gy) > l) continue;
       if (meLiq && GI[gnd(gx + side, gy - 1)].liquid) continue;
       const fh = Math.min(T, faceH(dg - l)), wmax = Math.min(7, 3 + (dg - l) * 2), rk = rockOf(gnd(gx + side, gy - 1), rawLv(gx + side, gy - 1) > LV_FOOT), sh = side < 0 ? 0.72 : 0.95;
       for (let y = 0; y < fh + 3 && y < T; y++) {

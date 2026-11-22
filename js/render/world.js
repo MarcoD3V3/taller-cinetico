@@ -34,30 +34,6 @@ function blockChunk(cx, cy, now) {
   }
   return e.c;
 }
-// ---------- Roca y menas como bloques altos ----------
-// La roca y las menas no se pueden atravesar, pero se pintaban planas como el suelo. Ahora se leen como bloques:
-// cara de arriba algo más clara con canto iluminado, pared frontal más oscura (con vetas verticales) cuando delante
-// no hay roca, lados con luz y sombra, y una sombra que proyectan sobre el suelo de delante.
-function paintRelieveRoca(u, W, x0, y0) {
-  const esRoca = t => { const g = GI[t]; return !!(g && g.solid && !g.tree && !g.flora && !g.liquid && !g.plant); };
-  const px = (i, f) => { const v = u[i]; u[i] = (0xff000000 | Math.min(255, ((v >>> 16) & 255) * f) << 16 | Math.min(255, ((v >>> 8) & 255) * f) << 8 | Math.min(255, (v & 255) * f)) >>> 0; };
-  const PARED = 9;
-  for (let ty = 0; ty < CH; ty++) for (let tx = 0; tx < CH; tx++) {
-    const gx = x0 + tx, gy = y0 + ty, t = gnd(gx, gy), bx = tx * T, by = ty * T;
-    if (esRoca(t)) {
-      const sur = esRoca(gnd(gx, gy + 1)), norte = esRoca(gnd(gx, gy - 1)), oeste = esRoca(gnd(gx - 1, gy)), este = esRoca(gnd(gx + 1, gy));
-      const caraH = sur ? T : T - PARED; // la cara de arriba ocupa la casilla menos la pared de delante
-      for (let y = 0; y < caraH; y++) for (let x = 0; x < T; x++) px((by + y) * W + bx + x, 1.06);
-      if (!norte) for (let x = 0; x < T; x++) { px(by * W + bx + x, 1.28); px((by + 1) * W + bx + x, 1.12); }        // canto de arriba con luz
-      if (!oeste) for (let y = 0; y < caraH; y++) px((by + y) * W + bx, 1.18);                                          // lado izquierdo con luz
-      if (!este) for (let y = 0; y < caraH; y++) { px((by + y) * W + bx + T - 1, 0.7); px((by + y) * W + bx + T - 2, 0.85); } // lado derecho en sombra
-      if (!sur) for (let y = caraH; y < T; y++) { const k = y - caraH; for (let x = 0; x < T; x++) { // pared frontal
-        let f = 0.62 - k * 0.02; if (((x + ((gx * 7) & 3)) & 3) === 0) f *= 0.82; if (k === 0) f = 0.5; if (y === T - 1) f = 0.42; px((by + y) * W + bx + x, f); } }
-    } else if (esRoca(gnd(gx, gy - 1)) && !GI[t].liquid) { // sombra de la roca sobre el suelo de delante
-      for (let y = 0; y < 5; y++) { const f = 0.68 + y * 0.065; for (let x = 0; x < T; x++) px((by + y) * W + bx + x, f); }
-    }
-  }
-}
 function buildChunk(cx, cy, s = 1) {
   const c0 = mkCanvas(CH * T * s, CH * T * s), c = c0.getContext('2d');
   const x0 = cx * CH, y0 = cy * CH, wc = getChunk(x0 >> CSH, y0 >> CSH); // 16×16 cabe dentro de un chunk de 32
@@ -65,7 +41,7 @@ function buildChunk(cx, cy, s = 1) {
   if (s === 1) { const W = CH * T, img = c.createImageData(W, W), u = new Uint32Array(img.data.buffer);
     for (let y = 0; y < CH; y++) for (let x = 0; x < CH; x++) { const t0 = wc.g[(((y0 + y) & CMASK) << CSH) | ((x0 + x) & CMASK)], g0 = GI[t0]; if (g0.ruin || g0.abyss) continue;
       const tv = (hash2(x0 + x, y0 + y, 51) * TEX_VARS) | 0, src = g0.kelp ? kelpTexPx(kelpUnder(x0 + x, y0 + y), tv) : tileTexPx(g0.flora ? (g0.u >= 0 ? g0.u : G.GRASS) : t0, tv); for (let r = 0; r < T; r++) u.set(src.subarray(r * T, r * T + T), (y * T + r) * W + x * T); }
-    blendEdges(u, W, x0, y0); paintCliffs(u, W, x0, y0); paintRelieveRoca(u, W, x0, y0);
+    blendEdges(u, W, x0, y0); paintCliffs(u, W, x0, y0);
     c.putImageData(img, 0, 0); if (typeof wfxPaint === 'function') wfxPaint(c, x0, y0); _baseDone = true; }
   c.scale(s, s); _treeLayer = s === 1; _treeList = [];
   const lights = [];

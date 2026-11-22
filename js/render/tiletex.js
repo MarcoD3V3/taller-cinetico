@@ -99,7 +99,7 @@ function stonesTex(c, h, n, crack) {
 const ihash = (x, y) => { let h = (Math.imul(x, 73856093) ^ Math.imul(y, 19349663)) >>> 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
 const BLEND_E = 15, baseTile = t => { const g = GI[t]; return g.flora ? (g.u >= 0 ? g.u : G.GRASS) : t; };
 /* todos los bloques entran en la transición (también la roca y la mena), menos ruinas, abismos y pozos */
-const blendable = t => { const g = GI[t]; return !g.ruin && !g.abyss && !g.hole && !g.tree; };
+const blendable = t => { const g = GI[t]; return !g.ruin && !g.abyss && !g.hole && !g.tree && !(g.solid && !g.flora && !g.liquid); }; // la roca es un bloque alto: borde limpio
 // Agua y otros líquidos: borde más estrecho (la orilla se ve nítida). 8 vecinos (también las esquinas, para que la transición no salga con muescas). Mira los chunks
 // vecinos aunque aún no estén cargados (se generan: el terreno es determinista), así nunca se corta en un borde.
 const BL_DX = [1, 0, -1, 0, 1, -1, -1, 1], BL_DY = [0, 1, 0, -1, 1, 1, -1, -1];

@@ -12,9 +12,17 @@ function fogArr(c) {
   if (!c.fog) { c.fog = new Uint8Array(CS * CS); const s = S.fog && S.fog[ckey(c.cx, c.cy)]; if (s) unrle(s, c.fog); }
   return c.fog;
 }
+// Solo se oscurece la roca PROFUNDA (roca en 3 casillas a la redonda): el interior de las montañas. Las rocas
+// pequeñas sueltas y los bordes se ven siempre (antes su centro salía como manchas negras raras).
+function fogDeep(c) {
+  if (c.deep && c.deepV === _fogTerr) return c.deep; const d = c.deep || (c.deep = new Uint8Array(CS * CS)); c.deepV = _fogTerr;
+  const gx0 = c.cx * CS, gy0 = c.cy * CS, rk = (x, y) => { const cc = peekChunk(x >> CSH, y >> CSH); return cc ? fogRock(GI[cc.g[((y & CMASK) << CSH) | (x & CMASK)]]) : true; };
+  for (let y = 0; y < CS; y++) for (let x = 0; x < CS; x++) { let ok = 1; for (let dy = -3; dy <= 3 && ok; dy++) for (let dx = -3; dx <= 3; dx++) if (!rk(gx0 + x + dx, gy0 + y + dy)) { ok = 0; break; } d[(y << CSH) | x] = ok; }
+  return d;
+}
 function fogHidden(x, y) {
   const c = peekChunk(x >> CSH, y >> CSH); if (!c) return false;
-  const i = ((y & CMASK) << CSH) | (x & CMASK); return fogRock(GI[c.g[i]]) && !(c.fog || fogArr(c))[i];
+  const i = ((y & CMASK) << CSH) | (x & CMASK); return fogRock(GI[c.g[i]]) && !(c.fog || fogArr(c))[i] && !!fogDeep(c)[i];
 }
 function fogMark(x, y) {
   const c = getChunk(x >> CSH, y >> CSH), f = fogArr(c), i = ((y & CMASK) << CSH) | (x & CMASK);
