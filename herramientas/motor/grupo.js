@@ -96,3 +96,22 @@ addEventListener('keydown', e => {
   if (e.key === 'Escape' && st.multi.size && !enCampo && Qs('.modal').every(m => m.hidden)) { st.multi.clear(); marcarSel(); panel(); dibujar(); }
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a' && !enCampo && document.querySelector('#lista:hover')) { e.preventDefault(); st.multi = new Set(visibles()); marcarSel(); panel(); dibujar(); }
 });
+
+// ---------- Con varios elegidos, lo que cambias en la vista se aplica a todos al momento ----------
+// (arrastrar el dibujo, la línea de orden, los colisores, las flechas…). Se mira qué cambió en el primero y se lleva a los demás:
+// posición y línea de orden se suman, la escala se multiplica, viento, ocultar y colisores se copian.
+st.snap = null; st.noProp = false;
+function snapSel() { st.snap = st.sel ? JSON.stringify(ajGet(st.sel)) : null; }
+function propagar() {
+  const old = JSON.parse(st.snap || '{}'), now = ajGet(st.sel), J2 = o => JSON.stringify(o === undefined ? null : o);
+  for (const k of st.multi) { if (k === st.sel) continue; const a = AJ().sprites[k] || (AJ().sprites[k] = {});
+    for (const q of ['dx', 'dy', 'orden']) { const d = (now[q] || 0) - (old[q] || 0); if (d) a[q] = r2((a[q] || 0) + d) || undefined; }
+    if ((now.esc || 1) !== (old.esc || 1)) { const v = r2((a.esc || 1) * (now.esc || 1) / (old.esc || 1)); a.esc = v === 1 ? undefined : v; }
+    for (const q of ['viento', 'oculto', 'col', 'cols']) if (J2(now[q]) !== J2(old[q])) a[q] = now[q] === undefined ? undefined : JSON.parse(JSON.stringify(now[q]));
+    for (const q in a) if (a[q] === undefined || a[q] === null) delete a[q]; if (!Object.keys(a).length) delete AJ().sprites[k]; }
+}
+{ const s0 = sucio; sucio = (v = true) => { if (v && !st.noProp && grupoActivo() && st.sel && st.snap !== null && JSON.stringify(ajGet(st.sel)) !== st.snap) propagar(); s0(v); snapSel(); }; }
+const sinProp = f => function (...a) { st.noProp = true; try { return f.apply(this, a); } finally { st.noProp = false; snapSel(); } };
+deshacer = sinProp(deshacer); rehacer = sinProp(rehacer); aTodos = sinProp(aTodos);
+{ const m0 = marcarSel; marcarSel = () => { m0(); snapSel(); }; }
+document.getElementById('bDeshacer').onclick = () => deshacer(); document.getElementById('bRehacer').onclick = () => rehacer(); // con la versión que no se propaga
