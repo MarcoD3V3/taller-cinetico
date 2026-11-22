@@ -149,7 +149,9 @@ function drawTrees(ctx, k, ox, oy, x0, y0, x1, y1, front) {
     }
   }
   if (typeof treeExtras === 'function') treeExtras(items, dc, x0, y0, x1, y1, front, pty);
-  items.sort((a, b) => a[0] - b[0]); for (const it of items) it[1]();
+  { const m = dc.getTransform(); _gdBase = [m.a, m.e, m.f]; WIND_BASE = _gdBase; } // la base de esta pasada (todo se dibuja sin save/restore)
+  items.sort((a, b) => a[0] - b[0]); for (const it of items) { const f = it[1]; if (typeof f === 'function') f(); else gdPut(dc, f, true); }
+  WIND_BASE = null;
   if (layer) {
     // aparece y se desvanece con suavidad (≈0,2 s), con una curva sin tirones
     {

@@ -112,7 +112,7 @@ function render(fdt) {
   const x0 = Math.floor((view.x - cw / 2 / z) / T) - 1, x1 = Math.ceil((view.x + cw / 2 / z) / T) + 1;
   const y0 = Math.floor((view.y - ch / 2 / z) / T) - 1, y1 = Math.ceil((view.y + ch / 2 / z) / T) + 1;
   // Suelo
-  ctx.setTransform(k, 0, 0, k, ox, oy); ctx.imageSmoothingEnabled = true;
+  ctx.setTransform(k, 0, 0, k, ox, oy); ctx.imageSmoothingEnabled = false; // nítido, como el resto del pixel art (y unas 4 veces más barato que suavizado)
   const far = k <= 0.75, detail = z > 0.68, now = performance.now(); _bcBudget = 2;
   const sc = k <= 0.35 ? 0.25 : far ? 0.5 : 1, cm = sc === 1 ? chunks : sc === 0.5 ? chunksH : chunksQ;
   _staleBudget = 2; _buildBudget = cm.size < 6 ? 99 : sc === 0.25 ? 6 : sc === 1 ? 1 : 2; // a tamaño completo, 1 por fotograma (sin tirones)

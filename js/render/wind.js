@@ -23,8 +23,10 @@ function windSway(seed, amp) {
   return (lean + wob) * amp;
 }
 // Dibuja una imagen inclinada desde su base (la base queda quieta y la punta se mueve)
+let WIND_BASE = null; // [k, ox, oy] de la pasada actual: inclina con setTransform (sin save/restore, más barato)
 function windDraw(dc, im, x, y, w, h, seed, amp) {
   const sw = windSway(seed, amp);
   if (Math.abs(sw) < 0.05) { dc.drawImage(im, x, y, w, h); return; }
+  if (WIND_BASE) { const [k, ox, oy] = WIND_BASE; dc.setTransform(k, 0, -sw / h * k, k, ox + k * x, oy + k * (y + h)); dc.drawImage(im, 0, -h, w, h); dc.setTransform(k, 0, 0, k, ox, oy); return; }
   dc.save(); dc.translate(x, y + h); dc.transform(1, 0, -sw / h, 1, 0, 0); dc.drawImage(im, 0, -h, w, h); dc.restore();
 }

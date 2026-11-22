@@ -124,6 +124,25 @@ function wfxOpenMax(x, y) {
   m = 0; for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) m = Math.max(m, wfxOpen(cx + dx, cy + dy));
   if (_wfxOpenM.size > 30000) _wfxOpenM.clear(); _wfxOpenM.set(k, m); return m;
 }
+// Cada masa de agua (todas sus casillas unidas) se decide UNA vez: mar (oleaje, olas que llegan y rompen) o agua
+// quieta. Así un lago nunca queda partido con una mitad agitada y la otra en calma. Es mar si toca un bioma de
+// océano (o agua profunda, algas, coral) o si es grande; si es enorme (sigue más allá del límite) también.
+const _wfxCuerpo = new Map(), WFX_CUERPO_MAX = 2600, WFX_CUERPO_MAR = 900;
+const wfxK = (x, y) => (x + 1048576) * 2097152 + (y + 1048576);
+function wfxCuerpo(x, y) {
+  const k0 = wfxK(x, y); let v = _wfxCuerpo.get(k0); if (v !== undefined) return v;
+  const seen = new Set([k0]), st2 = [x, y], visto = []; let mar = false, n = 0;
+  while (st2.length) { const yy = st2.pop(), xx = st2.pop(); n++; visto.push(xx, yy);
+    const g = GI[baseTile(gnd(xx, yy))], b = BIOMES[biomeOf(xx, yy)];
+    if ((b && b.ocean) || g.kelp || g.coral || g.key === 'DEEP') mar = true;
+    if (n >= WFX_CUERPO_MAX) { mar = true; break; }
+    for (let d = 0; d < 4; d++) { const nx = xx + DX[d], ny = yy + DY[d], kk = wfxK(nx, ny); if (seen.has(kk)) continue; seen.add(kk); const known = _wfxCuerpo.get(kk); if (known !== undefined) { if (known === 1) mar = true; continue; } if (GI[baseTile(gnd(nx, ny))].liquid === 'water') st2.push(nx, ny); } }
+  if (n >= WFX_CUERPO_MAR) mar = true; v = mar ? 1 : 2;
+  if (_wfxCuerpo.size > 400000) _wfxCuerpo.clear();
+  for (let i = 0; i < visto.length; i += 2) _wfxCuerpo.set(wfxK(visto[i], visto[i + 1]), v);
+  if (mar) for (const kk of seen) if (!_wfxCuerpo.has(kk)) { /* lo que no se llegó a mirar se resolverá al pedirlo (y verá este mar) */ }
+  return v;
+}
 const WFX_PALK = ['sea', 'cold', 'lake', 'swamp'];
 // Todo se calcula en bloques de 4 px (como las transiciones del suelo); solo la espuma usa celdas de 2 px
 function wfxBuild(u, W, x0, y0) {
@@ -132,7 +151,7 @@ function wfxBuild(u, W, x0, y0) {
   for (let ty = 0; ty < R; ty++) for (let tx = 0; tx < R; tx++) {
     const gx = x0 - M + tx, gy = y0 - M + ty, t = baseTile(gnd(gx, gy)), g = GI[t]; if (g.liquid !== 'water') continue;
     const inside = tx >= M && ty >= M && tx < M + CH && ty < M + CH;
-    const sw = g.key === 'SWAMPWATER', b = BIOMES[biomeOf(gx, gy)], sea = !sw && ((b && b.ocean) || g.kelp || g.coral || g.key === 'DEEP' || wfxOpenMax(gx, gy) > 0.5), i = ty * R + tx;
+    const sw = g.key === 'SWAMPWATER', b = BIOMES[biomeOf(gx, gy)], sea = wfxCuerpo(gx, gy) === 1, i = ty * R + tx;
     kindT[i] = sea ? 1 : 2; palT[i] = sea ? (g.key === 'COLDWATER' ? 1 : 0) : (sw ? 3 : 2);
     if (inside) { any = true; if (g.coral || g.key === 'WARMWATER') warmN++; }
   }
@@ -181,7 +200,7 @@ function wfxBuild(u, W, x0, y0) {
   // listas de la orilla (celdas de 2 px; distancias interpoladas de los bloques)
   const bil = (F, lx, ly) => { const fx = lx / 2 - 0.25 + MB, fy = ly / 2 - 0.25 + MB, ix = fx | 0, iy = fy | 0, ax = fx - ix, ay = fy - iy, i = iy * NG + ix;
     return ((F[i] * (1 - ax) + F[i + 1] * ax) * (1 - ay) + (F[i + NG] * (1 - ax) + F[i + NG + 1] * ax) * ay) * 2; };
-  const shoreS = [], wetS = [], shoreC = [], wetC = [];
+  const shoreS = [], wetS = [], shoreC = [], wetC = [], swellS = [];
   const off = (wx, wy) => 0.18 * Math.sin(wx * 0.011) + 0.18 * Math.sin(wy * 0.013 + 1.7) + 0.1 * Math.sin((wx + wy) * 0.031);
   for (let by = 0; by < NB; by++) for (let bx = 0; bx < NB; bx++) {
     const gi = (by + MB) * NG + bx + MB, k = bm[by * NB + bx];
@@ -194,6 +213,9 @@ function wfxBuild(u, W, x0, y0) {
         else if (wcB) { const wc = Math.max(0.5, bil(wcB, lx, ly) - 1); if (wc <= 1.5) wetC.push(lx, ly, Math.round(wc * 4), 0); } }
     }
   }
+  // olas que vienen de mar adentro (hasta ~4 casillas de la orilla) con el mismo ritmo que la espuma: llegan justo cuando esta revienta
+  for (let by = 0; by < NB; by++) for (let bx = 0; bx < NB; bx++) { const i = by * NB + bx; if (bm[i] !== 1) continue; const D = depB[i]; if (D < 0.5 || D > 4.6) continue;
+    swellS.push(bx, by, Math.round(D * 100), Math.round(off(x0 * T + bx * 4 + 2, y0 * T + by * 4 + 2) * 1000)); }
   // la forma del agua (un píxel por bloque) para recortar el oleaje
   const mkP = kind => { const P = new Path2D(); for (let by = 0; by < NB; by++) { let bx = 0; while (bx < NB) { if (bm[by * NB + bx] !== kind) { bx++; continue; } const s0 = bx; while (bx < NB && bm[by * NB + bx] === kind) bx++; P.rect(s0 * 4, by * 4, (bx - s0) * 4, 4); } } return P; };
   const seaP = anyS ? mkP(1) : null, calmP = anyC ? mkP(2) : null;
@@ -227,7 +249,7 @@ function wfxBuild(u, W, x0, y0) {
   for (let i = 0; i < nC; i++) { const c = pickIn(calmTiles, 0.8, 570 + i); if (c) fish.push({ x: c[0], y: c[1], r: 10 + hash2(x0, y0, 580 + i) * 14, w: 0.07 + hash2(x0, y0, 590 + i) * 0.06, s: hash2(x0, y0, 600 + i) * 6.28, n: 1, small: 0 }); }
   if (AGUA.d.size > 90) AGUA.d.delete(AGUA.d.keys().next().value);
   let full = !anyC && !shoreS.length && !wetS.length; if (full) for (let i = 0; i < NB * NB; i++) if (bm[i] !== 1) { full = false; break; }
-  AGUA.d.set(key, { seaP, calmP, cdq, shade: [...shade.values()].filter(Boolean), shoreS: Int16Array.from(shoreS), wetS: Int16Array.from(wetS), shoreC: Int16Array.from(shoreC), wetC: Int16Array.from(wetC), life, fish, emit, sea: anyS, calm: anyC, ph: hash2(x0, y0, 777), fullSea: full });
+  AGUA.d.set(key, { seaP, calmP, cdq, shade: [...shade.values()].filter(Boolean), swellS: Int16Array.from(swellS), shoreS: Int16Array.from(shoreS), wetS: Int16Array.from(wetS), shoreC: Int16Array.from(shoreC), wetC: Int16Array.from(wetC), life, fish, emit, sea: anyS, calm: anyC, ph: hash2(x0, y0, 777), fullSea: full });
 }
 // tras volcar los píxeles del trozo: capas de color de la profundidad (una por banda)
 function wfxPaint(c, x0, y0) {
@@ -281,7 +303,15 @@ function wfxTop(c, X, Y, d, t) {
   const phase = o => { const p = t / 6.5 + o / 1000; return p - Math.floor(p); };
   const front = s => s < 0.62 ? 9.5 * Math.pow(1 - s / 0.62, 1.4) + 0.6 : 0.6 + (s - 0.62) / 0.38 * 3.5;
   const tk5 = Math.floor(t * 5), tk2 = Math.floor(t * 2), sd = d.ph * 9973 | 0;
-  let a = d.wetS;
+  // olas largas: crestas que avanzan hacia la orilla, más marcadas al acercarse; detrás, una franja algo más oscura
+  let a = d.swellS || [];
+  for (let i = 0; i < a.length; i += 4) {
+    const bx = a[i], by = a[i + 1], D = a[i + 2] / 100, s = phase(a[i + 3]), cl = 1 - (D - 0.5) / 4.1;
+    for (let w = 0; w < 2; w++) { const pos = 0.6 + (1 - ((s + w * 0.5) % 1)) * 3.6, dd = D - pos; if (w && D < 1.3) continue; // la segunda, más floja, se deshace antes de llegar
+      if (dd > -0.07 && dd < 0.07) { if (ihash(bx * 3 + tk2, by * 7 + sd) < 0.18 * (1 - cl)) continue; const al = Math.round((w ? 45 : 70) + cl * (w ? 50 : 120)), c = (al << 24) | (255 << 16) | (250 << 8) | 236, lx = bx * 2, ly = by * 2; P(lx, ly, c); P(lx + 1, ly, c); }
+      else if (dd >= 0.07 && dd < 0.2 && !w) { const c = (Math.round(20 + cl * 30) << 24) | (60 << 16) | (24 << 8) | 4, lx = bx * 2, ly = by * 2; P(lx, ly + 1, c); P(lx + 1, ly + 1, c); } }
+  }
+  a = d.wetS;
   for (let i = 0; i < a.length; i += 4) {
     const lx = a[i], ly = a[i + 1], wd = a[i + 2] / 4, s = phase(a[i + 3]);
     const reach = s < 0.5 ? 0 : s < 0.62 ? (s - 0.5) / 0.12 * 2.6 : 2.6 * (1 - (s - 0.62) / 0.38) + 0.6 * ((s - 0.62) / 0.38);
@@ -301,7 +331,7 @@ function wfxTop(c, X, Y, d, t) {
     const lx = a[i], ly = a[i + 1], cdv = a[i + 2] / 4, w = Math.sin(t * 0.9 + a[i + 3] / 1000);
     if (cdv < 1.4 && w > 0.2) P(lx, ly, C_SOFT); else if (cdv > 1.6 && cdv < 2.6 && w > 0.85) P(lx, ly, C_LITE);
   }
-  if (d.shoreS.length || d.wetS.length || d.shoreC.length || d.wetC.length) { AGUA.sbx.putImageData(AGUA.sbi, 0, 0); c.drawImage(AGUA.sbc, X, Y, N * 2, N * 2); }
+  if ((d.swellS && d.swellS.length) || d.shoreS.length || d.wetS.length || d.shoreC.length || d.wetC.length) { AGUA.sbx.putImageData(AGUA.sbi, 0, 0); c.drawImage(AGUA.sbc, X, Y, N * 2, N * 2); }
   // plantas y cosas que flotan
   for (const o of d.life) {
     if (o.t === 'lily') { const x = Math.round(X + o.x + Math.sin(t * 0.3 + o.s * 6) * 0.6), y = Math.round(Y + o.y); c.fillStyle = 'rgba(0,20,10,.18)'; c.fillRect(x + 1, y + 5, 6, 1); c.drawImage(AGUA.lily[o.v], x, y); }
@@ -338,17 +368,18 @@ function wfxCompose(d, t) {
   const S = CH * T + WFX_PAD * 2;
   if (!d._c) { d._c = mkCanvas(S, S); d._x = d._c.getContext('2d'); d._x.imageSmoothingEnabled = false; }
   const c = d._x; c.clearRect(0, 0, S, S);
+  if (!d.fullSea) wfxSurface(c, WFX_PAD, WFX_PAD, d, t); // oleaje recortado a la forma del agua: se hace aquí (8 veces por segundo), no en cada fotograma
   wfxTop(c, WFX_PAD, WFX_PAD, d, t);
 }
 function drawWater(ctx, k, ox, oy, x0, y0, x1, y1, now) {
   if (OPT.water === false) return;
   wfxInit(); _wfxFrame++;
-  const t = now / 1000; let budget = 1; const list = [];
+  const t = now / 1000; let budget = 2; const list = [];
   const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false; ctx.setTransform(k, 0, 0, k, ox, oy);
   for (let cy = Math.floor(y0 / CH); cy <= Math.floor(y1 / CH); cy++) for (let cx = Math.floor(x0 / CH); cx <= Math.floor(x1 / CH); cx++) {
     const key = chunkKey(cx, cy), d = AGUA.d.get(key); if (d && chunks.has(key)) list.push([cx * CH * T, cy * CH * T, d]); }
   for (const [X, Y, d] of list) wfxUnder(ctx, X, Y, d, t);          // peces, algas y corales bajo el agua
-  for (const [X, Y, d] of list) wfxSurface(ctx, X, Y, d, t);        // oleaje
+  for (const [X, Y, d] of list) if (d.fullSea) wfxSurface(ctx, X, Y, d, t); // mar abierto entero: patrón directo (sin recorte, barato)
   for (const [X, Y, d] of list) {                                     // orilla, flotantes, ondas: guardados y rehechos a 8 fps
     const tk = Math.floor(t * 8 + d.ph); d._seen = _wfxFrame;
     if ((!d._c || d._tk !== tk) && budget > 0) { budget--; d._tk = tk; wfxCompose(d, t); }

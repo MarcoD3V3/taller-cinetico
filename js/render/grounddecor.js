@@ -151,24 +151,45 @@ function gdAt00(tx, ty) {
   const up = tall || (!GD_FLAT.has(cat) && h >= 8);
   return { cat, im, px, py, w, h, tall, up, sw: swayAmp, seed: hash2(tx, ty, 93), flip: hash2(tx, ty, 76) < 0.5 && cat !== 'chatarra' };
 }
+// Lo visible del suelo se reúne UNA vez por fotograma (antes se miraba cada casilla tres veces: suelo, árboles de detrás y de delante)
+const _gdFr = { n: -1, key: '', bajo: [], alto: [] };
+function gdVisibles(x0, y0, x1, y1) {
+  const key = x0 + ',' + y0 + ',' + x1 + ',' + y1, fn = typeof frameNo !== 'undefined' ? frameNo : 0;
+  if (_gdFr.n === fn && _gdFr.key === key) return _gdFr;
+  _gdFr.n = fn; _gdFr.key = key; const bajo = _gdFr.bajo = [], alto = _gdFr.alto = [];
+  if (OPT.decor === false || !gdSets()) return _gdFr;
+  const fh = typeof fogHidden === 'function' ? fogHidden : null;
+  for (let ty = y0 - 1; ty <= y1 + 3; ty++) for (let tx = x0 - 2; tx <= x1 + 2; tx++) {
+    const o = gdAt(tx, ty); if (!o || (fh && fh(tx, ty))) continue;
+    if (o.up) { for (const q of o.group || [o]) alto.push(q); }
+    else if (tx >= x0 && tx <= x1 && ty >= y0 && ty <= y1) bajo.push(o);
+  }
+  return _gdFr;
+}
+// sombras de muchos objetos en un solo trazado (dos tonos): mucho más barato que una por una
+function gdSombras(ctx, L) {
+  let a = null, b = null;
+  for (const o of L) { const P = o.nosh ? (b || (b = new Path2D())) : (a || (a = new Path2D())), cx = Math.round(o.px) + o.w / 2 + 1, cy = o.py + (o.oy || 0) - 0.5, rx = o.w * 0.42, ry = Math.max(1.2, o.h * 0.14); P.moveTo(cx + rx, cy); P.ellipse(cx, cy, rx, ry, 0, 0, 6.2832); }
+  if (a) { ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.fill(a); } if (b) { ctx.fillStyle = 'rgba(0,0,0,.08)'; ctx.fill(b); }
+}
 function drawGroundDecor(ctx, k, ox, oy, x0, y0, x1, y1) {
   if (OPT.decor === false || !gdSets()) return;
   const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false; ctx.setTransform(k, 0, 0, k, ox, oy); if (typeof windTick === 'function') windTick();
-  for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
-    const o = gdAt(tx, ty); if (!o || o.up || (typeof fogHidden === 'function' && fogHidden(tx, ty))) continue;
-    gdPut(ctx, o);
-  }
+  const V = gdVisibles(x0, y0, x1, y1); gdSombras(ctx, V.bajo); _gdBase = [k, ox, oy];
+  for (const o of V.bajo) gdPut(ctx, o, true);
   ctx.imageSmoothingEnabled = sm;
 }
-function gdPut(ctx, o) {
-  {
-    const x = Math.round(o.px), y = Math.round(o.py - o.h + (o.oy || 0));
-    // perspectiva: sombra pequeña en el suelo, bajo el objeto (vista 3/4 como el resto del juego)
-    if (!o.nosh) ctx.fillStyle = 'rgba(0,0,0,.22)'; else ctx.fillStyle = 'rgba(0,0,0,.08)'; ctx.beginPath(); ctx.ellipse(x + o.w / 2 + 1, o.py + (o.oy || 0) - 0.5, o.w * 0.42, Math.max(1.2, o.h * 0.14), 0, 0, 7); ctx.fill();
-    const sw = o.sw && typeof windSway === 'function' ? windSway(o.seed, o.sw) : 0;
-    if (o.flip || Math.abs(sw) > 0.05) { ctx.save(); ctx.translate(x + o.w / 2, y + o.h); if (sw) ctx.transform(1, 0, -sw / o.h, 1, 0, 0); if (o.flip) ctx.scale(-1, 1); ctx.drawImage(o.im, -o.w / 2, -o.h, o.w, o.h); ctx.restore(); }
-    else ctx.drawImage(o.im, x, y, o.w, o.h);
-  }
+// imagen en espejo guardada (se dibuja sin transformar el lienzo)
+function gdEspejo(im) { if (im.__esp) return im.__esp; const c = mkCanvas(im.width, im.height), x = c.getContext('2d'); x.translate(im.width, 0); x.scale(-1, 1); x.drawImage(im, 0, 0); return (im.__esp = c); }
+let _gdBase = null; // transformación de la pasada actual [k, ox, oy] (para no usar save/restore en cada objeto)
+function gdPut(ctx, o, sinSombra) {
+  const x = Math.round(o.px), y = Math.round(o.py - o.h + (o.oy || 0));
+  // perspectiva: sombra pequeña en el suelo, bajo el objeto (vista 3/4 como el resto del juego); en las pasadas grandes van todas juntas (gdSombras)
+  if (!sinSombra) gdSombras(ctx, [o]);
+  const sw = o.sw && typeof windSway === 'function' ? windSway(o.seed, o.sw) : 0, im = o.flip ? gdEspejo(o.im) : o.im;
+  if (Math.abs(sw) > 0.05 && _gdBase) { const [k, ox, oy] = _gdBase, bx = x + o.w / 2, by = y + o.h; ctx.setTransform(k, 0, -sw / o.h * k, k, ox + k * bx, oy + k * by); ctx.drawImage(im, -o.w / 2, -o.h, o.w, o.h); ctx.setTransform(k, 0, 0, k, ox, oy); }
+  else if (Math.abs(sw) > 0.05) { ctx.save(); ctx.translate(x + o.w / 2, y + o.h); ctx.transform(1, 0, -sw / o.h, 1, 0, 0); ctx.drawImage(im, -o.w / 2, -o.h, o.w, o.h); ctx.restore(); }
+  else ctx.drawImage(im, x, y, o.w, o.h);
 }
 // ---------- Recoger: clic mantenido un momento (como las flores de serie) y da su objeto ----------
 const GD_GIVE = { pasto_verde: ['herbs', 'Pasto alto'], pasto_seco: ['herbs', 'Pasto seco'], pasto_selva: ['herbs', 'Hierba de selva'], pasto_pantano: ['herbs', 'Juncos'], arbi_verde: ['stick', 'Arbusto', 2], arbi_oscuro: ['stick', 'Matorral', 2], arbi_selva: ['herbs', 'Arbusto de selva', 2], arbi_seco: ['stick', 'Matorral seco', 2], matojo: ['petals', 'Flores'], planta: ['herbs', 'Plantas'], arbusto_p: ['herbs', 'Arbusto pequeño'], arbusto_m: ['stick', 'Arbusto', 2], arbusto_g: ['stick', 'Arbusto grande', 3], arbusto_nieve: ['snow', 'Arbusto nevado'], flor: ['petals', 'Flor'], hierba: ['herbs', 'Hierbas'], piedra: ['stone', 'Piedrecitas'], roca: ['stone', 'Roca', 2], desierto: ['stone', 'Piedra de arenisca'],
@@ -205,8 +226,7 @@ const o_need = cat => cat === 'roca' || cat === 'tocon' || cat === 'chatarra' ||
 // así un arbusto detrás de un árbol queda tapado por el árbol, y al revés. Se pasa por detrás como con los árboles.
 function treeExtras(items, dc, x0, y0, x1, y1, front, pty) {
   if (OPT.decor === false || !gdSets()) return;
-  for (let ty = y0 - 1; ty <= y1 + 3; ty++) for (let tx = x0 - 2; tx <= x1 + 2; tx++) {
-    const o0 = gdAt(tx, ty); if (!o0 || !o0.up || (typeof fogHidden === 'function' && fogHidden(tx, ty))) continue;
-    for (const o of o0.group || [o0]) { const sy = o.py + (o.sortDy || 0); if ((sy > pty) === front) items.push([sy, () => gdPut(dc, o)]); }
-  }
+  const V = gdVisibles(x0, y0, x1, y1), L = [];
+  for (const o of V.alto) { const sy = o.py + (o.sortDy || 0); if ((sy > pty) === front) { L.push(o); items.push([sy, o]); } } // objeto (no función): se dibuja con gdPut
+  gdSombras(dc, L); // las sombras de esta pasada, todas de una vez y debajo de todo
 }
