@@ -178,13 +178,13 @@ const BIOMES = [], BI_ = {};
 function BI(key, o) { BI_[key] = BIOMES.length; o.key = key; BIOMES.push(o); }
 const STD_ORES = [['IRON', 30], ['COPPER', 18], ['COAL', 16], ['ZINC', 16], ['RED', 12], ['TIN', 10], ['LEAD', 6]];
 // Océanos
-BI('frozenOcean', { n: 'Océano helado', ocean: 1, g: 'COLDWATER', alt: [['ICE', 0.56]], fauna: [['fish', 2], ['penguin', 1], ['polarbear', 0.3], ['seal', 1]], fd: 2, mc: '#a8cce4', river: 'ICE' });
-BI('coldOcean', { n: 'Océano frío', ocean: 1, g: 'COLDWATER', wet: [['KELP', 0.03]], fauna: [['fish', 3], ['seal', 0.5]], fd: 2, mc: '#2f5a88' });
-BI('ocean', { n: 'Océano', ocean: 1, g: 'WATER', wet: [['KELP', 0.02]], fauna: [['fish', 3], ['dolphin', 0.4]], fd: 2, mc: '#2a62a4' });
-BI('warmOcean', { n: 'Océano cálido', ocean: 1, g: 'WARMWATER', wet: [['REEF', 0.07]], fauna: [['fish', 3], ['turtle', 0.6], ['jellyfish', 1]], fd: 3, mc: '#2aa0b4' });
-BI('deepOcean', { n: 'Océano profundo', ocean: 1, g: 'DEEP', wet: [['KELP', 0.05]], fauna: [['fish', 2], ['squid', 1], ['jellyfish', 0.5]], fd: 2, mc: '#173a6a' });
+BI('frozenOcean', { n: 'Océano helado', ocean: 1, g: 'COLDWATER', alt: [['ICE', 0.56]], fauna: [['fish', 2], ['penguin', 1], ['polarbear', 0.3], ['seal', 1]], fd: 4, mc: '#a8cce4', river: 'ICE' });
+BI('coldOcean', { n: 'Océano frío', ocean: 1, g: 'COLDWATER', wet: [['KELP', 0.03]], fauna: [['fish', 3], ['seal', 0.5]], fd: 4, mc: '#2f5a88' });
+BI('ocean', { n: 'Océano', ocean: 1, g: 'WATER', wet: [['KELP', 0.02]], fauna: [['fish', 3], ['dolphin', 0.4]], fd: 4, mc: '#2a62a4' });
+BI('warmOcean', { n: 'Océano cálido', ocean: 1, g: 'WARMWATER', wet: [['REEF', 0.07]], fauna: [['fish', 3], ['turtle', 0.6], ['jellyfish', 1]], fd: 5, mc: '#2aa0b4' });
+BI('deepOcean', { n: 'Océano profundo', ocean: 1, g: 'DEEP', wet: [['KELP', 0.05]], fauna: [['fish', 2], ['squid', 1], ['jellyfish', 0.5]], fd: 4, mc: '#173a6a' });
 // Costas
-BI('beach', { n: 'Playa', g: 'SAND', trees: [['PALM', 0.014]], plants: [['DEADBUSH', 0.002]], fauna: [['crab', 2], ['turtle', 0.5], ['seagull', 1]], fd: 3, mc: '#e6d498' });
+BI('beach', { n: 'Playa', g: 'SAND', trees: [['PALM', 0.034]], plants: [['DEADBUSH', 0.003], ['CACTUS', 0.004]], fauna: [['crab', 2.5], ['turtle', 1], ['seagull', 2]], fd: 5, mc: '#e6d498' });
 BI('stonyShore', { n: 'Costa rocosa', g: 'GRAVEL', alt: [['STONE', 0.55], ['TITANIUM', 0.78]], stone: 0.55, fauna: [['crab', 1], ['seal', 1], ['seagull', 1]], fd: 2, mc: '#8a8f94' });
 BI('mangrove', { n: 'Manglar', g: 'MUD', alt: [['SWAMPWATER', 0.57]], trees: [['MANGROVE', 0.14]], plants: [['REEDS', 0.05]], fauna: [['crab', 2], ['snake', 1], ['flamingo', 1], ['frog', 1]], fd: 3, mc: '#4f6a3a', river: 'SWAMPWATER', lake: 'SWAMPWATER', lakeAt: 0.4 });
 // Frío

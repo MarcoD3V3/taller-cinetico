@@ -66,7 +66,7 @@ const GD_HUE = { matojo: [0, 30, -30, 60, -60, 150], flor: [0, 25, -25, 50, -50,
 const GD_FLAT = new Set(['rama', 'hueso', 'concha', 'hoja', 'hojaseca', 'pluma', 'playa', 'pina', 'raiz', 'cascajo']);
 const GD_TALL = new Set(['arbusto_m', 'arbusto_g', 'arbi_verde', 'arbi_oscuro', 'arbi_selva', 'arbi_seco']);
 // Lo que se mece con el viento: [cuánto se mueve la punta, qué parte de ellos]
-const GD_SWAY = { pasto_verde: [1.6, 1], pasto_seco: [1.8, 1], pasto_selva: [1.4, 1], pasto_pantano: [1.6, 1], arbi_verde: [1.4, 1], arbi_oscuro: [1.3, 1], arbi_selva: [1.3, 1], arbi_seco: [1.1, 1], arbusto_g: [1.8, 1], arbusto_m: [1.5, 1], arbusto_p: [1.1, 0.8], flor: [1.2, 0.6], matojo: [1.3, 0.7], planta: [1, 0.6], hierba: [1, 0.7], arbusto_nieve: [0.6, 1] };
+const GD_SWAY = { pasto_playa: [1.8, 1], flora_playa: [1.1, 0.8], pasto_verde: [1.6, 1], pasto_seco: [1.8, 1], pasto_selva: [1.4, 1], pasto_pantano: [1.6, 1], arbi_verde: [1.4, 1], arbi_oscuro: [1.3, 1], arbi_selva: [1.3, 1], arbi_seco: [1.1, 1], arbusto_g: [1.8, 1], arbusto_m: [1.5, 1], arbusto_p: [1.1, 0.8], flor: [1.2, 0.6], matojo: [1.3, 0.7], planta: [1, 0.6], hierba: [1, 0.7], arbusto_nieve: [0.6, 1] };
 const GD_SIZES = [1, 1, 1], _gdVar = new Map();
 function gdVariant(im, cat, si, hi, rot) {
   const key = im.__id || (im.__id = Math.random().toString(36).slice(2)); const k2 = key + '|' + si + '|' + hi + '|' + rot;
@@ -104,8 +104,8 @@ function gdPiece(tx, ty, cat, k, sx, by) {
   const sw = GD_SWAY[cat] ? GD_SWAY[cat][0] : 0;
   return { cat, im, px: tx * T + sx - w / 2, py: ty * T + by, w, h, tall: true, up: true, sw, nosh: cat.startsWith('pasto'), seed: hash2(tx, ty, 310 + k), flip: hash2(tx, ty, 320 + k) < 0.5 };
 }
-function gdPatch(tx, ty, t) {
-  const cats = gdPatchCats(t); if (!cats) return null;
+function gdPatch(tx, ty, t, catsP) {
+  const cats = catsP || gdPatchCats(t); if (!cats) return null;
   const pv = fbm(tx / 6, ty / 6, 555); if (pv < 0.65) return null;
   const core = pv > 0.71, n = core ? 3 : 2, out = [], pick = (L, k) => L[(hash2(tx, ty, 360 + k) * L.length) | 0];
   for (let k = 0; k < n; k++) {
@@ -130,15 +130,35 @@ function gdAdj(o) {
   return o;
 }
 function gdAt0(tx, ty) { return gdAdj(gdAt00(tx, ty)); }
+// ---------- Playas: la arena junto al mar o a un agua grande lleva su propia flora y cosas (dunas, cactus, maderas, cocos…) ----------
+const GD_PLAYA = [0.2, { pasto_playa: 3, flora_playa: 2.6, cactus_playa: 0.7, playa: 3.2, concha: 1.6, piedra: 0.8, pluma: 0.3 }];
+const GD_PLAYA_PATCH = [['pasto_playa'], ['flora_playa', 'cactus_playa', 'pasto_playa']];
+let _gdPlaya = null;
+function gdForPlaya() { if (_gdPlaya !== null) return _gdPlaya; const [dens, w] = GD_PLAYA, L = []; let tot = 0; for (const c in w) if (_gd[c] && _gd[c].length) { tot += w[c]; L.push([tot, c]); } return (_gdPlaya = L.length ? { dens, tot, L } : false); }
+function gdEsPlaya(tx, ty, t) { // arena con agua cerca (en 8 direcciones, a 2 y a 5 casillas) o el bioma de playa
+  if (!/SAND/.test(GI[t].key || '')) return false; const b = BIOMES[biomeOf(tx, ty)]; if (b && b.key === 'beach') return true;
+  for (const r of [2, 5]) for (let d = 0; d < 8; d++) { const g = GI[gnd(tx + BL_DX[d] * r, ty + BL_DY[d] * r)]; if (g.liquid === 'water') return true; }
+  return false;
+}
 function gdAt00(tx, ty) {
   if (OPT.decor === false || !gdSets() || !Object.keys(_gd).length) return null;
   const t = gnd(tx, ty);
+  if (gdEsPlaya(tx, ty, t) && gdForPlaya()) { // playa
+    if (!at(tx, ty) && !(S && S.picked && S.picked['g' + tx + ',' + ty])) { const pg = gdPatch(tx, ty, t, GD_PLAYA_PATCH); if (pg) return pg; }
+    const d = gdForPlaya(), hv = hash2(tx, ty, 71); if (hv >= d.dens) return null;
+    for (let k = 0; k < 4; k++) { const nx = tx + DX[k], ny = ty + DY[k], hn = hash2(nx, ny, 71); if (hn < hv && hn < d.dens && gnd(nx, ny) === t) return null; }
+    if (at(tx, ty) || (S && S.picked && S.picked['g' + tx + ',' + ty])) return null;
+    return gdHacer(tx, ty, d);
+  }
   if (gdPatchCats(t) && !at(tx, ty) && !(S && S.picked && S.picked['g' + tx + ',' + ty])) { const pg = gdPatch(tx, ty, t); if (pg) return pg; }
   const d = gdFor(t), hv = hash2(tx, ty, 71); if (!d || hv >= d.dens) return null;
   // repartido, sin montones: si una vecina (arriba, abajo, a los lados) también lleva algo y le toca antes, esta se queda vacía
   for (let k = 0; k < 4; k++) { const nx = tx + DX[k], ny = ty + DY[k], hn = hash2(nx, ny, 71); if (hn < hv && hn < d.dens && gnd(nx, ny) === t) return null; }
   if (gnd(tx + 1, ty) !== t || gnd(tx - 1, ty) !== t || gnd(tx, ty + 1) !== t || gnd(tx, ty - 1) !== t) return null;
   if (at(tx, ty) || (S && S.picked && S.picked['g' + tx + ',' + ty])) return null;
+  return gdHacer(tx, ty, d);
+}
+function gdHacer(tx, ty, d) {
   const r = hash2(tx, ty, 72) * d.tot; let cat = d.L[d.L.length - 1][1]; for (const [lim, c] of d.L) if (r < lim) { cat = c; break; }
   const L = _gd[cat], base = L[(hash2(tx, ty, 73) * L.length) | 0];
   const si = (hash2(tx, ty, 77) * 3) | 0, hi = (hash2(tx, ty, 78) * 8) | 0, rot = GD_FLAT.has(cat) && hash2(tx, ty, 79) < 0.4;
@@ -192,7 +212,7 @@ function gdPut(ctx, o, sinSombra) {
   else ctx.drawImage(im, x, y, o.w, o.h);
 }
 // ---------- Recoger: clic mantenido un momento (como las flores de serie) y da su objeto ----------
-const GD_GIVE = { pasto_verde: ['herbs', 'Pasto alto'], pasto_seco: ['herbs', 'Pasto seco'], pasto_selva: ['herbs', 'Hierba de selva'], pasto_pantano: ['herbs', 'Juncos'], arbi_verde: ['stick', 'Arbusto', 2], arbi_oscuro: ['stick', 'Matorral', 2], arbi_selva: ['herbs', 'Arbusto de selva', 2], arbi_seco: ['stick', 'Matorral seco', 2], matojo: ['petals', 'Flores'], planta: ['herbs', 'Plantas'], arbusto_p: ['herbs', 'Arbusto pequeño'], arbusto_m: ['stick', 'Arbusto', 2], arbusto_g: ['stick', 'Arbusto grande', 3], arbusto_nieve: ['snow', 'Arbusto nevado'], flor: ['petals', 'Flor'], hierba: ['herbs', 'Hierbas'], piedra: ['stone', 'Piedrecitas'], roca: ['stone', 'Roca', 2], desierto: ['stone', 'Piedra de arenisca'],
+const GD_GIVE = { pasto_playa: ['herbs', 'Pasto de duna'], flora_playa: ['herbs', 'Planta de playa'], cactus_playa: ['cactus', 'Cactus'], pasto_verde: ['herbs', 'Pasto alto'], pasto_seco: ['herbs', 'Pasto seco'], pasto_selva: ['herbs', 'Hierba de selva'], pasto_pantano: ['herbs', 'Juncos'], arbi_verde: ['stick', 'Arbusto', 2], arbi_oscuro: ['stick', 'Matorral', 2], arbi_selva: ['herbs', 'Arbusto de selva', 2], arbi_seco: ['stick', 'Matorral seco', 2], matojo: ['petals', 'Flores'], planta: ['herbs', 'Plantas'], arbusto_p: ['herbs', 'Arbusto pequeño'], arbusto_m: ['stick', 'Arbusto', 2], arbusto_g: ['stick', 'Arbusto grande', 3], arbusto_nieve: ['snow', 'Arbusto nevado'], flor: ['petals', 'Flor'], hierba: ['herbs', 'Hierbas'], piedra: ['stone', 'Piedrecitas'], roca: ['stone', 'Roca', 2], desierto: ['stone', 'Piedra de arenisca'],
   nieve: ['snow', 'Nieve'], hielo: ['ice', 'Hielo'], volcan: ['basalt', 'Roca volcánica'], rama: ['stick', 'Rama'], hoja: ['herbs', 'Hojas'], hojaseca: ['herbs', 'Hojas secas'],
   pina: ['stick', 'Piñas y bellotas'], seta: ['mushroom', 'Setas'], tocon: ['log', 'Tocón'], hueso: ['bone', 'Huesos'], pluma: ['feather', 'Pluma'], concha: ['shell', 'Concha'],
   playa: ['kelp', 'Algas y madera'], cactus: ['cactus', 'Cactus'], chatarra: ['ironNugget', 'Chatarra'],

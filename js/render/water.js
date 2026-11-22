@@ -252,9 +252,9 @@ function wfxBuild(u, W, x0, y0) {
     }
   }
   const seed = hash2(x0, y0, 501), pickIn = (arr, minD, s) => { const ok = arr.filter(a => a[2] >= minD && a[0] > 40 && a[1] > 40 && a[0] < CH * T - 40 && a[1] < CH * T - 40); return ok.length ? ok[(hash2(x0, y0, s) * ok.length) | 0] : null; };
-  const nS = Math.min(3, Math.floor(seaTiles.length / 50)), nC = Math.min(2, Math.floor(calmTiles.length / 30));
+  const nS = Math.min(5, Math.floor(seaTiles.length / 35)), nC = Math.min(3, Math.floor(calmTiles.length / 25)); // más bancos de peces
   for (let i = 0; i < nS; i++) { const c = pickIn(seaTiles, 1, 510 + i); if (c) fish.push({ x: c[0], y: c[1], r: 18 + hash2(x0, y0, 520 + i) * 24, w: 0.12 + hash2(x0, y0, 530 + i) * 0.1, s: hash2(x0, y0, 540 + i) * 6.28, n: 4 + ((hash2(x0, y0, 550 + i) * 5) | 0), small: 1 }); }
-  if (seaTiles.length > 60 && (warmN > 20 || seed < 0.3)) { const c = pickIn(seaTiles, 1.5, 560); if (c) emit.push({ t: 'jelly', x: c[0], y: c[1], r: 14, s: seed * 6.28 }); }
+  if (seaTiles.length > 50 && (warmN > 20 || seed < 0.55)) { const c = pickIn(seaTiles, 1.5, 560); if (c) emit.push({ t: 'jelly', x: c[0], y: c[1], r: 14, s: seed * 6.28 }); }
   for (let i = 0; i < nC; i++) { const c = pickIn(calmTiles, 0.8, 570 + i); if (c) fish.push({ x: c[0], y: c[1], r: 10 + hash2(x0, y0, 580 + i) * 14, w: 0.07 + hash2(x0, y0, 590 + i) * 0.06, s: hash2(x0, y0, 600 + i) * 6.28, n: 1, small: 0 }); }
   if (AGUA.d.size > 90) AGUA.d.delete(AGUA.d.keys().next().value);
   let full = !anyC && !shoreS.length && !wetS.length; if (full) for (let i = 0; i < NB * NB; i++) if (bm[i] !== 1) { full = false; break; }
