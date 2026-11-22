@@ -35,7 +35,12 @@ function passable(x, y, who) {
   // Los árboles solo bloquean con el tronco: se puede pasar entre ellos y por detrás de la copa
   // (con la forma de la base de cada dibujo: render/customsprites.js · treeBlocks)
   if (!ghost && !flier && typeof treeBlocks === 'function' && treeBlocks(x, y, who)) return false;
-  if (!gi.tree && gi.solid && !ghost && !flier) return false;
+  if (!gi.tree && gi.solid && !ghost && !flier) {
+    // Vista 2,5D: la roca es un bloque una capa más alto; por detrás (su borde de arriba, lo que mide una capa) se
+    // puede meter un poco y la roca tapa los pies (drawFrontTiles). No si arriba sigue la roca (el interior del monte).
+    if (!(o && o.proj) && !gi.flora && !gi.liquid && y - ty * T < 14) { const ga = GI[gnd(tx, ty - 1)]; if (!(ga.solid && !ga.tree)) return true; }
+    return false;
+  }
   const b = c.b && c.b[i]; if (!b) return true;
   const d = BD[b.type];
   if (d.door) return who === 'player' || who === 'pet' || !!ghost || !!(o && o.proj);

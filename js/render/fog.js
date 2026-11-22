@@ -59,7 +59,7 @@ function fogSync(c) { if (c.fog && c.fogD) { (S.fog || (S.fog = {}))[ckey(c.cx, 
 { const m0 = mapRGB; mapRGB = (x, y, t) => fogHidden(x, y) ? [46, 44, 48] : m0(x, y, t); }
 // Capa de niebla: 4 píxeles por casilla. Lo descubierto se ve entero; la primera casilla oscura
 // pasa de transparente (en su borde) a negro total en su mitad; de ahí en adelante, negro.
-const FOG_Q = 4, _fogCells = new Float32Array(FOG_Q);
+const FOG_Q = 8, _fogCells = new Float32Array(FOG_Q);
 for (let i = 0; i < FOG_Q; i++) _fogCells[i] = (i + 0.5) / FOG_Q;
 let _fogCv = null, _fogImg = null;
 let _fogLast = '', _fogAny = false;
@@ -67,7 +67,7 @@ function drawFog(ctx, x0, y0, x1, y1) {
   if (!S) return; fogTick();
   const w = x1 - x0 + 1, h = y1 - y0 + 1, W = w * FOG_Q, H = h * FOG_Q;
   const fk = x0 + ',' + y0 + ',' + w + ',' + h + ',' + _fogVer + ',' + _fogTerr + ',' + WORLD.size;
-  if (fk === _fogLast) { if (_fogAny) { const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = true; ctx.drawImage(_fogCv, 0, 0, W, H, x0 * T, y0 * T, w * T, h * T); ctx.imageSmoothingEnabled = sm; } return; }
+  if (fk === _fogLast) { if (_fogAny) { const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false; ctx.drawImage(_fogCv, 0, 0, W, H, x0 * T, y0 * T, w * T, h * T); ctx.imageSmoothingEnabled = sm; } return; }
   _fogLast = fk; _fogAny = false;
   // Mapa de casillas ocultas (con un borde de 1 para mirar vecinas)
   const hid = new Uint8Array((w + 2) * (h + 2)); let any = false;
@@ -76,7 +76,7 @@ function drawFog(ctx, x0, y0, x1, y1) {
   if (!_fogCv || _fogCv.width < W || _fogCv.height < H) { _fogCv = mkCanvas(W + 64, H + 64); _fogImg = null; }
   const c = _fogCv.getContext('2d'); if (!_fogImg || _fogImg.width !== W || _fogImg.height !== H) _fogImg = c.createImageData(W, H);
   const u = new Uint32Array(_fogImg.data.buffer); u.fill(0);
-  const col = 0x0a0b0e, H2 = 0.5; // degradado de media casilla
+  const col = 0x1e1916, H2 = 0.75; // roca en sombra (no negro puro); borde de 3/4 de casilla // degradado de media casilla
   for (let ty = 0; ty < h; ty++) for (let tx = 0; tx < w; tx++) {
     const hi = (ty + 1) * (w + 2) + tx + 1; if (!hid[hi]) continue;
     // Distancia (en casillas) a la casilla descubierta más cercana, para cada píxel
@@ -85,11 +85,11 @@ function drawFog(ctx, x0, y0, x1, y1) {
       let a = 1;
       if (nb.length) { const fx = _fogCells[sx], fy = _fogCells[sy]; let dmin = 9;
         for (let k = 0; k < nb.length; k += 2) { const dx = nb[k], dy = nb[k + 1], ex = dx < 0 ? fx : dx > 0 ? 1 - fx : 0, ey = dy < 0 ? fy : dy > 0 ? 1 - fy : 0, d = Math.sqrt(ex * ex + ey * ey); if (d < dmin) dmin = d; }
-        const t = Math.min(1, dmin / H2); a = t * t * (3 - 2 * t); }
+        const t = Math.min(1, dmin / H2), s = t * t * (3 - 2 * t), B = [0, 0.5, 0.125, 0.625][((sy & 1) << 1) | (sx & 1)]; a = Math.min(1, Math.floor(s * 4 + B) / 4); } // escalones con trama, como pixel art
       u[(ty * FOG_Q + sy) * W + tx * FOG_Q + sx] = ((Math.round(a * 255) << 24) | col) >>> 0;
     }
   }
   c.putImageData(_fogImg, 0, 0);
-  const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = true;
+  const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
   ctx.drawImage(_fogCv, 0, 0, W, H, x0 * T, y0 * T, w * T, h * T); ctx.imageSmoothingEnabled = sm;
 }

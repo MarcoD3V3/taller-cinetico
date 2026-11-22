@@ -61,7 +61,7 @@ function buildChunk(cx, cy, s = 1) {
 // a pintar encima de él (copiándolas del trozo ya dibujado), así queda detrás de ellas
 function drawFrontTiles(ctx) {
   const p = S.player, fy = p.y + 5 - (P.z || 0) * 0, px = Math.floor(p.x / T), fr = Math.floor(fy / T);
-  for (let ty = fr + 1; ty <= fr + 2; ty++) for (let tx = px - 1; tx <= px + 1; tx++) {
+  for (let ty = fr; ty <= fr + 2; ty++) for (let tx = px - 1; tx <= px + 1; tx++) { // también la fila de los pies: te metes por detrás del bloque
     const g = GI[gnd(tx, ty)]; if (!g.solid || g.tree || g.flora || g.liquid) continue;
     if (typeof fogHidden === 'function' && fogHidden(tx, ty)) continue;
     const cx = Math.floor(tx / CH), cy = Math.floor(ty / CH), c = chunks.get(chunkKey(cx, cy)); if (!c) continue;

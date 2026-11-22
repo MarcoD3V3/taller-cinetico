@@ -36,17 +36,27 @@ function lvAt(x, y) {
 }
 // Roca rebajada o suelo de túnel a la altura a la que se picó (se guarda con la partida)
 function setLvMod(x, y, v) { (S.lvmod || (S.lvmod = {}))[x + ',' + y] = v; onTileChange(x, y, false); }
-// Nivel en un punto: la pared (parte de arriba de la casilla bajo un acantilado) cuenta como la terraza de arriba
-function lvPoint(px, py) {
+// La pared de un acantilado (la franja de arriba de la casilla que está bajo la terraza) es una cara vertical, la
+// perspectiva que da la altura: NO se pisa. Devuelve los datos de la pared si el punto cae en ella.
+function enPared(px, py) {
   const tx = Math.floor(px / T), ty = Math.floor(py / T), l = lvAt(tx, ty), up = lvAt(tx, ty - 1);
-  return up > l && py - ty * T < faceH(up - l) ? up : l;
+  if (up <= l || esRocaM(tx, ty - 1)) return null; // bajo la roca no hay pared en el suelo (va dentro de la roca)
+  const fh = faceH(up - l); return py - ty * T < fh ? { l, up, top: ty * T, fh } : null;
 }
+// Nivel en un punto (la pared cuenta como el suelo de abajo: desde arriba, pisarla es caerse)
+function lvPoint(px, py) { return lvAt(Math.floor(px / T), Math.floor(py / T)); }
+const playerFreeAt = (x, y) => passable(x - JUG('choqueAncho', 5), y + JUG('choquePie', 5), 'player') && passable(x + JUG('choqueAncho', 5), y + JUG('choquePie', 5), 'player') && passable(x, y + JUG('choqueCentro', 1), 'player');
 const _flyMove = () => hasFlag('phoenixWings') || mountFly();
 // ---------- Pies libres: colisión + alturas ----------
 function playerFree(x, y) {
   if (!(passable(x - JUG('choqueAncho', 5), y + JUG('choquePie', 5), 'player') && passable(x + JUG('choqueAncho', 5), y + JUG('choquePie', 5), 'player') && passable(x, y + JUG('choqueCentro', 1), 'player'))) return false;
   const p = S.player; if (x === p.x && y === p.y) return true;
-  const to = lvPoint(x, y + 5), cur = lvPoint(p.x, p.y + 5);
+  const to = lvPoint(x, y + 5), cur = lvPoint(p.x, p.y + 5), w = !_flyMove() && enPared(x, y + 5);
+  if (w && cur < w.up) { // contra la pared desde abajo: no se sube andando; saltando, trepas ARRIBA (no te quedas en la pared)
+    const hole = GI[gnd(Math.floor(p.x / T), Math.floor((p.y + 5) / T))].hole;
+    if (w.up - cur <= (hole ? 2 : 1) && ((P.z || 0) >= 5 || P.swim > 0)) P._trepa = w.top - 5.5;
+    return false;
+  }
   if (to <= cur || _flyMove()) return true;
   // Saltando se sube un nivel (dos si sales de un hoyo); nadando se trepa a la orilla
   const inHole = GI[gnd(Math.floor(p.x / T), Math.floor((p.y + 5) / T))].hole;
@@ -116,7 +126,12 @@ function land(v) {
 }
 // Después de mover: si has bajado de nivel, caes desde la altura de la pared
 function motionPost(fromLv) {
-  const p = S.player, now = lvPoint(p.x, p.y + 5);
+  const p = S.player;
+  // trepar: el salto contra una pared te deja encima de la terraza
+  if (P._trepa !== undefined) { const ty = P._trepa; P._trepa = undefined; if (playerFreeAt(p.x, ty)) { p.y = ty; P.z = Math.max(P.z || 0, 2); dust(p.x, p.y + 8, 4); } }
+  // bajar por el borde: caes hasta el pie de la pared (nunca te quedas de pie sobre ella)
+  const w = !_flyMove() && enPared(p.x, p.y + 5); if (w && fromLv >= w.up) { const ny = w.top + w.fh - 5 + 0.5; if (playerFreeAt(p.x, ny)) p.y = ny; }
+  const now = lvPoint(p.x, p.y + 5);
   if (now < fromLv && !_flyMove()) { P.z = (P.z || 0) + LV_H * (fromLv - now); if (!(P.vz > 0)) P.vz = 0; }
 }
 // Velocidad objetivo según el terreno y el agua; agarre (cuánto tarda en acelerar o frenar)
@@ -136,42 +151,60 @@ function drawRipples(ctx) {
 // Color de la pared: la propia roca si es roca; si es tierra o hierba, tierra parda
 function rawLv(x, y) { const c = getChunk(x >> CSH, y >> CSH); return (c.h || chunkLv(c))[((y & CMASK) << CSH) | (x & CMASK)]; }
 function rockOf(t, mtn) { const g = GI[t], c0 = mtn && !g.rock && !g.dot ? [118, 116, 112] : g.c || [110, 100, 80]; return mtn || g.rock || g.dot || g.solid && !g.tree ? [c0[0] * 0.8, c0[1] * 0.8, c0[2] * 0.8] : [c0[0] * 0.25 + 112 * 0.75, c0[1] * 0.2 + 94 * 0.8, c0[2] * 0.2 + 74 * 0.8]; }
+// La roca maciza es UN bloque: entre dos casillas de roca no se dibujan escalones (no se puede pisar encima, así
+// que esos saltos no tenían sentido y salían como rayas). La pared sale solo donde la roca da al suelo pisable.
+function esRocaM(x, y) { const g = GI[gnd(x, y)]; return !!(g.solid && !g.flora && !g.liquid && !g.tree && !g.hole); }
+function lvV(x, y) { const l = lvAt(x, y), g = GI[gnd(x, y)]; return g.solid && !g.flora && !g.liquid && !g.tree && !g.hole && l <= LV_FOOT ? l + 1 : l; }
 function paintCliffs(u, W, x0, y0) {
   // La roca y las menas sueltas son un bloque: una capa por encima del suelo en el que están. Así tienen las
   // mismas paredes, cantos y sombras que las terrazas (misma forma, otra textura). La roca de la montaña ya
   // tiene su altura propia y no se toca.
-  const lvV = (x, y) => { const l = lvAt(x, y), g = GI[gnd(x, y)]; return g.solid && !g.flora && !g.liquid && !g.tree && !g.hole && l <= LV_FOOT ? l + 1 : l; };
   const px32 = (r, g, b) => (255 << 24 | Math.max(0, Math.min(255, b)) << 16 | Math.max(0, Math.min(255, g)) << 8 | Math.max(0, Math.min(255, r))) >>> 0;
   const scale = (v, f) => { const r = v & 255, g = (v >> 8) & 255, b = (v >> 16) & 255; return px32(r * f, g * f, b * f); };
   for (let ty = 0; ty < CH; ty++) for (let tx = 0; tx < CH; tx++) {
     const gx = x0 + tx, gy = y0 + ty, l = lvV(gx, gy), bx = tx * T, by = ty * T;
-    const up = lvV(gx, gy - 1), lf = lvV(gx - 1, gy), rt = lvV(gx + 1, gy), dn = 0;
+    const rk0 = esRocaM(gx, gy), up = rk0 && esRocaM(gx, gy - 1) ? l : lvV(gx, gy - 1), lf = rk0 && esRocaM(gx - 1, gy) ? l : lvV(gx - 1, gy), rt = rk0 && esRocaM(gx + 1, gy) ? l : lvV(gx + 1, gy), dn = 0;
     // Terrazas altas un poco más claras (se lee la altura de un vistazo)
-    // (en la montaña ya se leen las capas por sus paredes: no hace falta aclarar)
+    // Cuanto más alta la capa, más luz (también en la montaña): la altura se lee de un vistazo
     // (el agua es plana: no se aclara por terraza; si no, en lagos y costas salían recuadros de otro tono)
-    if (l && l <= LV_FOOT && !GI[gnd(gx, gy)].liquid) { const f = Math.max(0.55, 1 + l * 0.04); for (let y = 0; y < T; y++) { let i = (by + y) * W + bx; for (let x = 0; x < T; x++, i++) { const v = u[i]; u[i] = (0xff000000 | Math.min(255, ((v >> 16) & 255) * f) << 16 | Math.min(255, ((v >> 8) & 255) * f) << 8 | Math.min(255, (v & 255) * f)) >>> 0; } } }
+    if (l && !rk0 && !GI[gnd(gx, gy)].liquid) { const f = Math.max(0.6, Math.min(1.24, 1 + l * 0.034)); for (let y = 0; y < T; y++) { let i = (by + y) * W + bx; for (let x = 0; x < T; x++, i++) { const v = u[i]; u[i] = (0xff000000 | Math.min(255, ((v >> 16) & 255) * f) << 16 | Math.min(255, ((v >> 8) & 255) * f) << 8 | Math.min(255, (v & 255) * f)) >>> 0; } } }
     // Paredes laterales: franja de roca irregular en el lado bajo (la de la izquierda en sombra,
     // la de la derecha iluminada) y canto claro en la terraza alta
     const meLiq = GI[gnd(gx, gy)].liquid;
     for (const [side, hi] of [[-1, lf], [1, rt]]) {
       if (hi <= l || (meLiq && GI[gnd(gx + side, gy)].liquid)) continue; // agua junto a agua: misma superficie
-      const wmax = Math.min(7, 3 + (hi - l) * 2), rk = rockOf(gnd(gx + side, gy), rawLv(gx + side, gy) > LV_FOOT), sh = side < 0 ? 0.72 : 0.95;
+      const rkS = esRocaM(gx + side, gy), wmax = rkS ? 0 : Math.min(7, 3 + (hi - l) * 2), rk = rockOf(gnd(gx + side, gy), rawLv(gx + side, gy) > LV_FOOT), sh = side < 0 ? 0.72 : 0.95;
       for (let y = 0; y < T; y++) {
-        const wy = gy * T + y, w = wmax - ((ihash(wy >> 2, gx * 17 + side) * 3) | 0);
+        const wy = gy * T + y, w = rkS ? 0 : wmax - ((ihash(wy >> 2, gx * 17 + side) * 3) | 0);
         for (let k = 0; k < w; k++) { const x = side < 0 ? k : T - 1 - k, i = (by + y) * W + bx + x, f = sh * (k === w - 1 ? 0.6 : 1) * (((wy >> 2) & 1) ? 1.05 : 0.95);
           u[i] = px32(rk[0] * f, rk[1] * f, rk[2] * f); }
         // sombra suave junto a la pared
-        for (let k = w; k < w + 3; k++) { const x = side < 0 ? k : T - 1 - k, i = (by + y) * W + bx + x; u[i] = scale(u[i], 0.7 + (k - w) * 0.1); }
+        const sw = 3 + Math.min(4, (hi - l) * 2); for (let k = w; k < w + sw && k < T; k++) { const x = side < 0 ? k : T - 1 - k, i = (by + y) * W + bx + x, t = (k - w) / sw; u[i] = scale(u[i], 0.66 + 0.34 * t * t); } // sombra más ancha cuanto más alta la pared
       }
     }
+    if (rk0) { const dnL = esRocaM(gx, gy + 1) ? l : lvV(gx, gy + 1);
+      if (dnL < l) { const fhR = faceH(l - dnL), rock = rockOf(gnd(gx, gy), true), top = GI[gnd(gx, gy)].c || [120, 118, 114];
+        const finL = !esRocaM(gx - 1, gy) || esRocaM(gx - 1, gy + 1), finR = !esRocaM(gx + 1, gy) || esRocaM(gx + 1, gy + 1);
+        for (let x = 0; x < T; x++) { const wx = gx * T + x, y0f = Math.max(3, T - fhR + (((ihash(wx >> 2, gy * 5 + 9) * 3) | 0) - 1));
+          const esq = finL && x < 3 ? 1.2 - x * 0.06 : finR && x > T - 4 ? 0.64 + (T - 1 - x) * 0.1 : 1;
+          for (let y = y0f; y < T; y++) { const i = (by + y) * W + bx + x, yy = y - y0f;
+            if (yy < 2) { const f = yy === 0 ? 1.16 : 0.66; u[i] = px32(top[0] * f, top[1] * f, top[2] * f); continue; } // canto de arriba
+            const k = (y - y0f) / Math.max(1, T - y0f), band = ((y + ((ihash(wx >> 3, gy * 13) * 3) | 0)) >> 2) & 1, crack = ihash(wx >> 1, gy * 31 + (y >> 2)) > 0.92, peb = ihash(wx, gy * T + y) > 0.95;
+            const f = (1.12 - k * 0.45) * (band ? 1.07 : 0.93) * (crack ? 0.62 : 1) * (peb ? 1.22 : 1) * (y > T - 4 ? 0.78 + (T - 1 - y) * 0.06 : 1) * esq;
+            u[i] = px32(rock[0] * f, rock[1] * f, rock[2] * f); } } } }
     if (l > up) for (let x = 0; x < T; x++) { u[by * W + bx + x] = scale(u[by * W + bx + x], 1.25); u[(by + 1) * W + bx + x] = scale(u[(by + 1) * W + bx + x], 1.12); } // canto iluminado
+    if (rk0) for (const side of [-1, 1]) { const nl = esRocaM(gx + side, gy) ? l : lvV(gx + side, gy); if (nl >= l) continue;
+      const rock = rockOf(gnd(gx, gy), true), sh = side < 0 ? 1.0 : 0.62, wm = Math.min(5, 2 + (l - nl));
+      for (let y = 0; y < T; y++) { const wy = gy * T + y, w = wm - ((ihash(wy >> 2, gx * 17 + side) * 2) | 0);
+        for (let k = 0; k < w; k++) { const x = side < 0 ? k : T - 1 - k, i = (by + y) * W + bx + x, f = sh * (k === 0 ? 0.75 : 1) * (((wy >> 2) & 1) ? 1.05 : 0.95); u[i] = px32(rock[0] * f, rock[1] * f, rock[2] * f); } } }
     if (l > lf) for (let y = 0; y < T; y++) u[(by + y) * W + bx] = scale(u[(by + y) * W + bx], 1.2);
     if (l > rt) for (let y = 0; y < T; y++) u[(by + y) * W + bx + T - 1] = scale(u[(by + y) * W + bx + T - 1], 0.8);
     /* Esquina exterior: la pared lateral de la terraza de la diagonal de arriba baja también por esta casilla
        (tanto como su pared frontal); si no, en la esquina quedaba un hueco sin textura */
     if (up <= l) for (const side of [-1, 1]) {
-      const dg = lvV(gx + side, gy - 1); if (dg <= l || lvV(gx + side, gy) > l) continue;
+      const dg = rk0 && esRocaM(gx + side, gy - 1) ? l : lvV(gx + side, gy - 1); if (dg <= l || (rk0 && esRocaM(gx + side, gy) ? l : lvV(gx + side, gy)) > l) continue;
       if (meLiq && GI[gnd(gx + side, gy - 1)].liquid) continue;
+      if (esRocaM(gx + side, gy - 1)) continue; // la roca lleva su pared dentro
       const fh = Math.min(T, faceH(dg - l)), wmax = Math.min(7, 3 + (dg - l) * 2), rk = rockOf(gnd(gx + side, gy - 1), rawLv(gx + side, gy - 1) > LV_FOOT), sh = side < 0 ? 0.72 : 0.95;
       for (let y = 0; y < fh + 3 && y < T; y++) {
         const wy = gy * T + y, w = wmax - ((ihash(wy >> 2, gx * 17 + side) * 3) | 0);
@@ -184,22 +217,26 @@ function paintCliffs(u, W, x0, y0) {
     if (up <= l) continue;
     // Pared bajo la terraza de arriba: canto con hierba que cuelga, roca con estratos y grietas
     // (luz desde arriba), borde inferior irregular, sombra y cascada si arriba hay agua
-    const fh = faceH(up - l), ut = gnd(gx, gy - 1), ug = GI[ut], wet = ug.liquid === 'water';
+    const rkUp = esRocaM(gx, gy - 1), fh = rkUp ? 0 : faceH(up - l), ut = gnd(gx, gy - 1), ug = GI[ut], wet = ug.liquid === 'water';
     if (ug.liquid && meLiq) continue; // agua sobre agua: el agua se iguala, no hay salto
     const top = ug.flora ? GI[ug.u >= 0 ? ug.u : G.GRASS].c : (ug.c || [110, 140, 80]), c0 = ug.c || [110, 100, 80];
     const rock = rockOf(ut, rawLv(gx, gy - 1) > LV_FOOT);
+    const dH = up - l, SL = 6 + Math.min(3, dH) * 3; // largo de la sombra al pie: cuanto más alta la pared, más larga
+    const finL = lvV(gx - 1, gy - 1) <= lvV(gx - 1, gy) || esRocaM(gx - 1, gy), finR = lvV(gx + 1, gy - 1) <= lvV(gx + 1, gy) || esRocaM(gx + 1, gy); // ¿acaba aquí la pared? (esquina)
     for (let x = 0; x < T; x++) {
-      const wx = gx * T + x, hx = fh + (((ihash(wx >> 2, gy * 5 + 1) * 5) | 0) - 2), lipH = 2 + ((ihash(wx >> 1, gy * 7 + 3) * 4) | 0);
-      for (let y = 0; y < Math.min(T, hx + 7); y++) {
+      const wx = gx * T + x, hx = rkUp ? 0 : fh + (((ihash(wx >> 2, gy * 5 + 1) * 5) | 0) - 2), lipH = 2 + ((ihash(wx >> 1, gy * 7 + 3) * 4) | 0);
+      const esq = finL && x < 3 ? 1.22 - x * 0.06 : finR && x > T - 4 ? 0.62 + (T - 1 - x) * 0.1 : 1; // canto de la esquina: luz a la izquierda, sombra a la derecha
+      for (let y = 0; y < Math.min(T, hx + SL); y++) {
         const i = (by + y) * W + bx + x;
         if (wet && y >= hx) { const fz = 1 - (y - hx) / 7, b = ihash(wx >> 2, gy * 3 + ((y - hx) >> 1)) > 0.45; if (b) u[i] = px32(225 + 25 * fz, 238 + 14 * fz, 255); continue; } // espuma al pie
-        if (y >= hx) { u[i] = scale(u[i], y === hx ? 0.45 : 0.6 + (y - hx) * 0.06); continue; } // sombra al pie
+        if (y >= hx) { const t = (y - hx) / SL, d = ihash(wx, gy * T + y) * 0.06; u[i] = scale(u[i], y === hx ? 0.42 : Math.min(1, 0.56 + 0.44 * t * t + (t > 0.6 ? d : 0))); continue; } // sombra al pie (suave y más larga si la pared es alta)
         if (wet) { const col = ihash(wx >> 1, gy * 7 + 2), t = y / Math.max(1, hx), hi = col > 0.78, f = 0.88 + col * 0.18 + t * 0.12; u[i] = hi ? px32(205 + 40 * t, 228 + 22 * t, 255) : px32((96 + 70 * t) * f, (150 + 60 * t) * f, (205 + 30 * t) * f); continue; }
         if (y < lipH) { const f = y === 0 ? 1.18 : y === lipH - 1 ? 0.62 : 0.92; u[i] = px32(top[0] * f, top[1] * f, top[2] * f); continue; }
         const k = (y - lipH) / Math.max(1, hx - lipH), band = ((y + ((ihash(wx >> 3, gy * 13) * 3) | 0)) >> 2) & 1;
         const crack = ihash(wx >> 1, gy * 31 + (y >> 2)) > 0.92, peb = ihash(wx, gy * T + y) > 0.95;
         const f = (1.2 - k * 0.5) * (band ? 1.07 : 0.93) * (crack ? 0.62 : 1) * (peb ? 1.25 : 1) * (y === lipH ? 0.8 : 1);
-        u[i] = px32(rock[0] * f, rock[1] * f, rock[2] * f);
+        const ao = y > hx - 4 ? 0.82 + (hx - y) * 0.045 : 1; // oclusión: la base de la pared, más oscura
+        u[i] = px32(rock[0] * f * esq * ao, rock[1] * f * esq * ao, rock[2] * f * esq * ao);
       }
     }
     void dn;
@@ -208,7 +245,7 @@ function paintCliffs(u, W, x0, y0) {
 // Versión simple para el zoom lejano (trozos a media o cuarta resolución)
 function paintCliffsLo(c, x0, y0) {
   for (let ty = 0; ty < CH; ty++) for (let tx = 0; tx < CH; tx++) {
-    const gx = x0 + tx, gy = y0 + ty, l = lvAt(gx, gy), up = lvAt(gx, gy - 1);
+    const gx = x0 + tx, gy = y0 + ty, l = lvV(gx, gy), up = lvV(gx, gy - 1);
     if (l && !GI[gnd(gx, gy)].liquid) { c.fillStyle = l > 0 ? `rgba(255,255,255,${l * 0.04})` : `rgba(0,0,0,${Math.min(0.45, -l * 0.12)})`; c.fillRect(tx * T, ty * T, T, T); }
     if (up > l && !(GI[gnd(gx, gy - 1)].liquid && GI[gnd(gx, gy)].liquid)) { const fh = faceH(up - l); c.fillStyle = GI[gnd(gx, gy - 1)].liquid === 'water' ? '#a8d0f0' : '#5a4a3a'; c.fillRect(tx * T, ty * T, T, fh); c.fillStyle = 'rgba(0,0,0,.25)'; c.fillRect(tx * T, ty * T + fh, T, 5); }
   }
