@@ -185,9 +185,12 @@ function paintCliffs(u, W, x0, y0) {
     if (rk0) { const dnL = esRocaM(gx, gy + 1) ? l : lvV(gx, gy + 1);
       if (dnL < l) { const fhR = faceH(l - dnL), rock = rockOf(gnd(gx, gy), true), top = GI[gnd(gx, gy)].c || [120, 118, 114];
         const finL = !esRocaM(gx - 1, gy) || esRocaM(gx - 1, gy + 1), finR = !esRocaM(gx + 1, gy) || esRocaM(gx + 1, gy + 1);
+        const gb = GI[gnd(gx, gy + 1)], musgo = gb.flora || /GRASS|MOSS|JUNGLE/.test(gb.key || ''), mc = GI[gb.flora && gb.u >= 0 ? gb.u : G.GRASS].c || [80, 130, 60];
         for (let x = 0; x < T; x++) { const wx = gx * T + x, y0f = Math.max(3, T - fhR + (((ihash(wx >> 2, gy * 5 + 9) * 3) | 0) - 1));
           const esq = finL && x < 3 ? 1.2 - x * 0.06 : finR && x > T - 4 ? 0.64 + (T - 1 - x) * 0.1 : 1;
+          const cuelga = musgo && ihash(wx >> 1, gy * 11 + 5) > 0.62 ? 1 + ((ihash(wx, gy * 3) * 4) | 0) : 0;
           for (let y = y0f; y < T; y++) { const i = (by + y) * W + bx + x, yy = y - y0f;
+            if (cuelga && yy >= 1 && yy < 1 + cuelga) { const f = 0.8 - (yy - 1) * 0.1; u[i] = px32(mc[0] * f, mc[1] * f, mc[2] * f); continue; } // musgo que cuelga
             if (yy < 2) { const f = yy === 0 ? 1.16 : 0.66; u[i] = px32(top[0] * f, top[1] * f, top[2] * f); continue; } // canto de arriba
             const k = (y - y0f) / Math.max(1, T - y0f), band = ((y + ((ihash(wx >> 3, gy * 13) * 3) | 0)) >> 2) & 1, crack = ihash(wx >> 1, gy * 31 + (y >> 2)) > 0.92, peb = ihash(wx, gy * T + y) > 0.95;
             const f = (1.12 - k * 0.45) * (band ? 1.07 : 0.93) * (crack ? 0.62 : 1) * (peb ? 1.22 : 1) * (y > T - 4 ? 0.78 + (T - 1 - y) * 0.06 : 1) * esq;
@@ -204,14 +207,28 @@ function paintCliffs(u, W, x0, y0) {
     if (up <= l) for (const side of [-1, 1]) {
       const dg = rk0 && esRocaM(gx + side, gy - 1) ? l : lvV(gx + side, gy - 1); if (dg <= l || (rk0 && esRocaM(gx + side, gy) ? l : lvV(gx + side, gy)) > l) continue;
       if (meLiq && GI[gnd(gx + side, gy - 1)].liquid) continue;
-      if (esRocaM(gx + side, gy - 1)) continue; // la roca lleva su pared dentro
+      if (esRocaM(gx + side, gy - 1)) { // la roca lleva su pared dentro; aquí solo su sombra de esquina
+        if (!esRocaM(gx, gy - 1)) { const SLc = 6 + Math.min(3, dg - l) * 3;
+          for (let y = 0; y < SLc; y++) { const wv = side < 0 ? Math.round((SLc - y) * 0.85) : Math.max(0, 4 - y); // a la derecha de la roca la sombra se alarga en diagonal
+            for (let k = 0; k < wv; k++) { const x = side < 0 ? k : T - 1 - k, i = (by + y) * W + bx + x, t = Math.max(k / Math.max(1, wv), y / SLc); u[i] = scale(u[i], 0.56 + 0.44 * t * t); } } }
+        continue; }
       const fh = Math.min(T, faceH(dg - l)), wmax = Math.min(7, 3 + (dg - l) * 2), rk = rockOf(gnd(gx + side, gy - 1), rawLv(gx + side, gy - 1) > LV_FOOT), sh = side < 0 ? 0.72 : 0.95;
-      for (let y = 0; y < fh + 3 && y < T; y++) {
+      const ugd = GI[gnd(gx + side, gy - 1)], topc = ugd.flora ? GI[ugd.u >= 0 ? ugd.u : G.GRASS].c : (ugd.c || [110, 140, 80]), SLc = 6 + Math.min(3, dg - l) * 3;
+      for (let y = 0; y < fh + SLc + 2 && y < T; y++) {
         const wy = gy * T + y, w = wmax - ((ihash(wy >> 2, gx * 17 + side) * 3) | 0);
-        if (y >= fh) { for (let k = 0; k < w + 2; k++) { const x = side < 0 ? k : T - 1 - k, i = (by + y) * W + bx + x; u[i] = scale(u[i], 0.6 + (y - fh) * 0.1); } continue; }
-        for (let k = 0; k < w; k++) { const x = side < 0 ? k : T - 1 - k, i = (by + y) * W + bx + x, f = sh * (k === w - 1 ? 0.6 : 1) * (((wy >> 2) & 1) ? 1.05 : 0.95);
-          u[i] = px32(rk[0] * f, rk[1] * f, rk[2] * f); }
-        for (let k = w; k < w + 3; k++) { const x = side < 0 ? k : T - 1 - k, i = (by + y) * W + bx + x; u[i] = scale(u[i], 0.7 + (k - w) * 0.1); }
+        for (let k = 0; k < T; k++) {
+          const x = side < 0 ? k : T - 1 - k, wx = gx * T + x, i = (by + y) * W + bx + x;
+          const hxc = Math.min(fh, fh + (((ihash(wx >> 2, gy * 5 + 1) * 5) | 0) - 2)) - (k >= w - 2 ? (k - (w - 2)) * 2 : 0); // borde de abajo irregular y esquina redondeada (no cortada en recto)
+          if (y < hxc && k < w) { // pared lateral, con el canto de hierba arriba como la pared de delante
+            const lip = 2 + ((ihash(wx >> 1, gy * 7 + 3) * 3) | 0);
+            if (y < lip) { const f = y === 0 ? 1.15 : y === lip - 1 ? 0.62 : 0.9; u[i] = px32(topc[0] * f, topc[1] * f, topc[2] * f); continue; }
+            const f = sh * (k === w - 1 ? 0.6 : 1) * (((wy >> 2) & 1) ? 1.05 : 0.95) * (y > hxc - 3 ? 0.85 : 1); u[i] = px32(rk[0] * f, rk[1] * f, rk[2] * f); continue; }
+          // sombra junto a la pared y en cuña bajo la esquina (la luz viene de arriba a la izquierda: a la derecha se alarga)
+          const dy = y - Math.max(0, hxc), reach = dy < 0 ? w + 3 : side < 0 ? w + Math.round((SLc - dy) * 0.85) : w + Math.max(0, 3 - dy);
+          if (k >= reach) break; if (dy >= SLc) continue;
+          const t = Math.min(1, Math.max(0, dy < 0 ? (k - w) / 3 : Math.max((k - w) / Math.max(1, reach - w), dy / SLc)));
+          u[i] = scale(u[i], 0.56 + 0.44 * t * t);
+        }
       }
     }
     if (up <= l) continue;
@@ -224,11 +241,13 @@ function paintCliffs(u, W, x0, y0) {
     const dH = up - l, SL = 6 + Math.min(3, dH) * 3; // largo de la sombra al pie: cuanto más alta la pared, más larga
     const finL = lvV(gx - 1, gy - 1) <= lvV(gx - 1, gy) || esRocaM(gx - 1, gy), finR = lvV(gx + 1, gy - 1) <= lvV(gx + 1, gy) || esRocaM(gx + 1, gy); // ¿acaba aquí la pared? (esquina)
     for (let x = 0; x < T; x++) {
-      const wx = gx * T + x, hx = rkUp ? 0 : fh + (((ihash(wx >> 2, gy * 5 + 1) * 5) | 0) - 2), lipH = 2 + ((ihash(wx >> 1, gy * 7 + 3) * 4) | 0);
+      const wx = gx * T + x; let hx = rkUp ? 0 : fh + (((ihash(wx >> 2, gy * 5 + 1) * 5) | 0) - 2), lipH = 2 + ((ihash(wx >> 1, gy * 7 + 3) * 4) | 0);
       const esq = finL && x < 3 ? 1.22 - x * 0.06 : finR && x > T - 4 ? 0.62 + (T - 1 - x) * 0.1 : 1; // canto de la esquina: luz a la izquierda, sombra a la derecha
+      if (!rkUp && !wet) hx -= finR && x > T - 3 ? (x - (T - 3)) * 2 : finL && x < 2 ? (2 - x) * 2 : 0; // esquina redondeada
       for (let y = 0; y < Math.min(T, hx + SL); y++) {
         const i = (by + y) * W + bx + x;
         if (wet && y >= hx) { const fz = 1 - (y - hx) / 7, b = ihash(wx >> 2, gy * 3 + ((y - hx) >> 1)) > 0.45; if (b) u[i] = px32(225 + 25 * fz, 238 + 14 * fz, 255); continue; } // espuma al pie
+        if (rkUp && y >= hx && y - hx < 5 && ihash(wx * 3 + 1, gy * 7 + y) > 0.93) { const f = 0.75 + ihash(wx, y) * 0.4; u[i] = px32(rock[0] * f, rock[1] * f, rock[2] * f); continue; } // piedritas caídas
         if (y >= hx) { const t = (y - hx) / SL, d = ihash(wx, gy * T + y) * 0.06; u[i] = scale(u[i], y === hx ? 0.42 : Math.min(1, 0.56 + 0.44 * t * t + (t > 0.6 ? d : 0))); continue; } // sombra al pie (suave y más larga si la pared es alta)
         if (wet) { const col = ihash(wx >> 1, gy * 7 + 2), t = y / Math.max(1, hx), hi = col > 0.78, f = 0.88 + col * 0.18 + t * 0.12; u[i] = hi ? px32(205 + 40 * t, 228 + 22 * t, 255) : px32((96 + 70 * t) * f, (150 + 60 * t) * f, (205 + 30 * t) * f); continue; }
         if (y < lipH) { const f = y === 0 ? 1.18 : y === lipH - 1 ? 0.62 : 0.92; u[i] = px32(top[0] * f, top[1] * f, top[2] * f); continue; }
