@@ -95,6 +95,7 @@ function ambClimaSuelo(ctx, x0, y0, x1, y1) {
   for (const d of AMB.gotas) { const k = d.t / 0.32, X = Math.round(d.x), Y = Math.round(d.y), a = (1 - k) * 0.75; // salpicadura de píxeles
     if (d.agua) { const r = 1 + Math.round(k * 4); ctx.fillStyle = `rgba(220,240,255,${a.toFixed(2)})`; ctx.fillRect(X - r, Y, 1, 1); ctx.fillRect(X + r, Y, 1, 1); ctx.fillRect(X, Y - Math.ceil(r / 2), 1, 1); ctx.fillRect(X, Y + Math.ceil(r / 2), 1, 1); }
     else { ctx.fillStyle = `rgba(200,220,255,${a.toFixed(2)})`; const h = Math.round((1 - k) * 3); ctx.fillRect(X - 1 - Math.round(k * 2), Y - h, 1, 1); ctx.fillRect(X + 1 + Math.round(k * 2), Y - h, 1, 1); if (k < 0.3) ctx.fillRect(X, Y, 1, 1); } }
+  if (AMB.hum > 0.25 && typeof lvV === 'function') ambErosion(ctx, x0, y0, x1, y1); // erosión leve: surcos y orillas crecidas
   if (AMB.nieve > 0.03 && typeof lvV === 'function') { // nieve acumulada en los cantos de las terrazas y encima de la roca
     const key = x0 + ',' + y0 + ',' + x1 + ',' + y1;
     if (AMB.cantosK !== key) { AMB.cantosK = key; const L = []; for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) { const l = lvV(tx, ty), dn = lvV(tx, ty + 1), g = GI[gnd(tx, ty)]; if (g.liquid) continue;
@@ -105,6 +106,27 @@ function ambClimaSuelo(ctx, x0, y0, x1, y1) {
           ctx.fillStyle = 'rgba(244,248,255,.95)'; ctx.fillRect(tx * T + x, y - h + 1, 1, h); ctx.fillStyle = 'rgba(170,190,220,.7)'; ctx.fillRect(tx * T + x, y + 1, 1, 1); } }
       else { const n = Math.round(nv * 26); ctx.fillStyle = 'rgba(240,246,255,.9)'; for (let q = 0; q < n; q++) ctx.fillRect(tx * T + ((ihash(tx * 7 + q, ty) * T) | 0), ty * T + ((ihash(ty * 5 + q, tx) * (T - 10)) | 0), 2, 1); } } }
   ctx.imageSmoothingEnabled = sm;
+}
+// Erosión leve tras la lluvia (casi no se nota, a propósito):
+//  · al pie de las paredes de tierra, el agua que baja deja surcos finos y oscuros que bajan serpenteando;
+//  · el agua de lagos y ríos crece un poco: un borde mojado de píxeles azul oscuro en la tierra de la orilla.
+// Todo se va al secarse el suelo. Lo que se ve se calcula una vez por vista (no en cada fotograma).
+function ambErosion(ctx, x0, y0, x1, y1) {
+  const key = x0 + ',' + y0 + ',' + x1 + ',' + y1;
+  if (AMB.eroK !== key) { AMB.eroK = key; const surcos = [], orilla = [];
+    for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) { const g = GI[gnd(tx, ty)]; if (!g || g.liquid || g.solid) continue;
+      const l = lvV(tx, ty), up = lvV(tx, ty - 1), gu = GI[gnd(tx, ty - 1)];
+      if (up > l && !esRocaM(tx, ty - 1) && !(gu && gu.liquid) && ihash(tx, ty * 7) < 0.55) { const x = 6 + ((ihash(tx * 3, ty) * 20) | 0), alto = faceH(up - l); surcos.push(tx * T + x, ty * T + alto + 1, 6 + ((ihash(tx, ty * 3) * 10) | 0), tx * 31 + ty); } // nace al pie de la pared
+      void 0; }
+    if (typeof aguaVisible === 'function') for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) { const g = GI[gnd(tx, ty)]; if (!g || g.liquid !== 'water') continue;
+      for (let by = 0; by < T; by += 4) for (let bx = 0; bx < T; bx += 4) { const X = tx * T + bx, Y = ty * T + by; if (aguaVisible(X + 2, Y + 2) !== false) continue; // tierra que entra en la casilla de agua
+        if (aguaVisible(X + 6, Y + 2) || aguaVisible(X - 2, Y + 2) || aguaVisible(X + 2, Y + 6) || aguaVisible(X + 2, Y - 2)) orilla.push(X, Y); } }
+    AMB.surcos = surcos; AMB.orilla = orilla; }
+  const a = Math.min(1, (AMB.hum - 0.25) / 0.6);
+  ctx.fillStyle = `rgba(38,26,16,${(a * 0.28).toFixed(3)})`; // surcos finos que bajan serpenteando
+  const S2 = AMB.surcos || []; for (let i = 0; i < S2.length; i += 4) { let x = S2[i], y = S2[i + 1]; const n = S2[i + 2], sd = S2[i + 3];
+    for (let q = 0; q < n; q++) { ctx.fillRect(x, y + q, 1, 1); if (ihash(sd, q) < 0.3) x += ihash(sd + 1, q) < 0.5 ? -1 : 1; } }
+  ctx.fillStyle = `rgba(20,50,90,${(a * 0.32).toFixed(3)})`; const O = AMB.orilla || []; for (let i = 0; i < O.length; i += 2) ctx.fillRect(O[i], O[i + 1], 4, 4); // orilla crecida
 }
 // hojas y luciérnagas: por encima del mundo (las luciérnagas, también por encima de la oscuridad)
 function ambEncima(ctx, k, ox, oy) {
