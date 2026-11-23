@@ -85,6 +85,7 @@ function playerFree(x, y) {
   if (to <= cur || _flyMove()) return true;
   // Saltando se sube un nivel (dos si sales de un hoyo); nadando se trepa a la orilla
   const inHole = GI[gnd(Math.floor(p.x / T), Math.floor((p.y + 5) / T))].hole;
+  if (to - cur <= 2 && typeof escalonEn === 'function' && escalonEn(p.x, p.y + 5)) return true; // escalones de terraza: se sube andando
   return to - cur <= (inHole ? 2 : 1) && ((P.z || 0) >= 5 || P.swim > 0);
 }
 // ---------- Terreno: velocidad y agarre ----------
@@ -108,6 +109,7 @@ function swimState() {
   if ((P.z || 0) > 0.5 || _flyMove()) return 0;
   const p = S.player, tx = Math.floor(p.x / T), ty = Math.floor((p.y + 5) / T), g = GI[gnd(tx, ty)];
   if (g.liquid !== 'water' || g.walk) return 0;
+  if (typeof puenteEn === 'function' && puenteEn(p.x, p.y + 5)) return 0; // sobre un puente no se nada
   if (typeof aguaVisible === 'function') { let n = 0, k = 0; for (const [ox, oy] of [[0, 5], [-3, 4], [3, 4]]) { const v = aguaVisible(p.x + ox, p.y + oy); if (v !== null) { k++; if (v) n++; } } if (k && n < 2) return 0; } // en la orilla: solo nadas si de verdad se ve agua bajo los pies
   return g.key === 'DEEP' || !nearShore(tx, ty) ? 2 : 1;
 }
@@ -163,7 +165,7 @@ function motionPost(fromLv) {
   // paredes seguidas (escalones de varias capas o esquinas raras)
   if (!_flyMove()) for (let n = 0; n < 4; n++) { const w = paredEn(p.x, p.y + 5); if (!w || fromLv < w.up) break; const [ax, ay] = w.fuera; if (!playerFreeAt(ax, ay - 5)) break; p.x = ax; p.y = ay - 5; }
   const now = lvPoint(p.x, p.y + 5);
-  if (now < fromLv && !_flyMove()) { P.z = (P.z || 0) + LV_H * (fromLv - now); if (!(P.vz > 0)) P.vz = 0; }
+  if (now < fromLv && !_flyMove() && !(typeof escalonEn === 'function' && escalonEn(p.x, p.y + 5))) { P.z = (P.z || 0) + LV_H * (fromLv - now); if (!(P.vz > 0)) P.vz = 0; }
 }
 // Velocidad objetivo según el terreno y el agua; agarre (cuánto tarda en acelerar o frenar)
 function moveFactors() {
