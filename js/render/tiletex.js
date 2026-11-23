@@ -52,14 +52,7 @@ function paintTexDetail(c, g, t, v) {
     if (g.kelp) for (let k = 0; k < 5; k++) { c.fillStyle = 'rgba(20,56,40,.32)'; const kx = (3 + h(k) * 24) & ~1, ky = (3 + h(k + 10) * 24) & ~1; c.fillRect(kx, ky, 4, 2); c.fillRect(kx + 2, ky + 2, 4, 2); c.fillRect(kx - 2, ky + 4, 4, 2); } // sombra del bosque de algas (las algas ondulan en render/water.js)
     return;
   }
-  if (g.dot) { // mena: roca con cristales que brillan
-    stonesTex(c, h, 2, 'rgba(0,0,0,.12)');
-    for (let k = 0; k < 4; k++) {
-      const cx = 6 + h(k) * 20, cy = 6 + h(k + 9) * 20, r = 2.4 + h(k + 3) * 2.2;
-      c.beginPath(); c.moveTo(cx, cy - r); c.lineTo(cx + r, cy); c.lineTo(cx, cy + r); c.lineTo(cx - r, cy); c.closePath(); c.fillStyle = g.dot; c.fill(); c.strokeStyle = 'rgba(0,0,0,.45)'; c.lineWidth = 0.8; c.stroke();
-      c.fillStyle = 'rgba(255,255,255,.55)'; c.fillRect(cx - r * 0.4, cy - r * 0.55, r * 0.5, r * 0.35);
-    }
-  } else if (g.rock) stonesTex(c, h, 3, 'rgba(0,0,0,.16)');
+  if (g.dot || g.rock || (g.solid && !g.tree && !g.plant && !g.flora)) { rocaPx(c, g, t, v); } // roca y menas en pixel art, como el resto del juego
   else if (g.tuft) { // briznas de hierba de dos tonos y matas más oscuras
     for (let k = 0; k < 3; k++) { c.fillStyle = 'rgba(0,30,0,.10)'; c.beginPath(); c.ellipse(h(k + 50) * 32, h(k + 51) * 32, 5 + h(k) * 4, 3 + h(k + 1) * 3, 0, 0, 7); c.fill(); }
     for (let k = 0; k < 16; k++) { const bx = h(k + 60) * 30, by = 4 + h(k + 61) * 26, l = 3 + h(k + 62) * 3; c.fillStyle = k & 1 ? g.tuft + 'aa' : 'rgba(20,50,20,.35)'; c.fillRect(bx, by - l, 1, l); if (k % 3 === 0) c.fillRect(bx + 1, by - l + 1, 1, l - 1); }
@@ -71,10 +64,6 @@ function paintTexDetail(c, g, t, v) {
   if (g.speck) for (let k = 0; k < 5; k++) { c.fillStyle = g.speck + '77'; c.fillRect(h(k) * 29, h(k + 4) * 29, 2, 2); }
   if (g.crack && h(7) < 0.7) { c.strokeStyle = 'rgba(255,255,255,.45)'; c.lineWidth = 1; c.beginPath(); c.moveTo(4 + h(1) * 10, 6); c.lineTo(14, 16); c.lineTo(26, 22 + h(2) * 6); c.moveTo(14, 16); c.lineTo(10 + h(3) * 6, 28); c.stroke(); }
   if (g.band) { c.fillStyle = 'rgba(255,220,180,.14)'; c.fillRect(0, 4 + v * 6, T, 4); c.fillStyle = 'rgba(0,0,0,.08)'; c.fillRect(0, 9 + v * 6, T, 2); }
-  if (g.solid && !g.tree && !g.plant) { // relieve de la roca alta
-    const gr = c.createLinearGradient(0, 0, 0, T); gr.addColorStop(0, 'rgba(255,255,255,.18)'); gr.addColorStop(0.5, 'rgba(255,255,255,0)'); gr.addColorStop(1, 'rgba(0,0,0,.28)'); c.fillStyle = gr; c.fillRect(0, 0, T, T);
-    c.fillStyle = 'rgba(255,255,255,.18)'; c.fillRect(0, 0, T, 2); c.fillRect(0, 0, 2, T); c.fillStyle = 'rgba(0,0,0,.32)'; c.fillRect(0, T - 4, T, 4); c.fillRect(T - 2, 0, 2, T);
-  }
   if (g.hole) { c.fillStyle = 'rgba(0,0,0,.28)'; c.fillRect(2, 2, T - 4, T - 4); c.fillStyle = 'rgba(0,0,0,.25)'; c.fillRect(2, 2, T - 4, 5); }
   if (g.cobble) { for (let k = 0; k < 4; k++) { const ex = 8 + (k & 1) * 16 + (h(k) - 0.5) * 3, ey = 8 + (k >> 1) * 16; c.fillStyle = `rgba(255,255,255,${0.05 + h(k + 8) * 0.08})`; c.beginPath(); c.ellipse(ex, ey, 6.5, 5.5, 0, 0, 7); c.fill(); c.strokeStyle = 'rgba(40,38,36,.6)'; c.lineWidth = 1.2; c.stroke(); c.fillStyle = 'rgba(255,255,255,.2)'; c.fillRect(ex - 3, ey - 4, 4, 1); } }
   if (g.planks) { c.fillStyle = 'rgba(60,36,16,.45)'; for (let k = 1; k < 4; k++) c.fillRect(0, k * 8, T, 1); c.fillRect(4 + v * 5, 0, 1, T); for (let k = 0; k < 4; k++) { c.fillStyle = 'rgba(60,36,16,.25)'; c.fillRect(h(k) * 28, k * 8 + 3, 4, 1); c.fillStyle = 'rgba(30,20,10,.6)'; c.fillRect(2 + (k & 1) * 26, k * 8 + 3, 1, 1); } }
@@ -82,6 +71,36 @@ function paintTexDetail(c, g, t, v) {
   if (g.pit) for (let k = 0; k < 2; k++) { c.fillStyle = 'rgba(15,10,8,.75)'; c.beginPath(); c.ellipse(8 + h(k) * 16, 8 + h(k + 4) * 16, 6, 4, h(k + 7) * 3, 0, 7); c.fill(); c.fillStyle = 'rgba(120,140,90,.35)'; c.fillRect(6 + h(k) * 16, 6 + h(k + 4) * 16, 3, 1); }
   if (g.vent) { circ(c, 16, 16, 9, '#5b5638', '#2a2818'); circ(c, 16, 16, 4, '#1a1a12'); }
   if (g.vent2) { circ(c, 16, 16, 11, 'rgba(232,224,74,.18)'); circ(c, 16, 16, 8, '#2a2622', '#1a1612'); circ(c, 16, 16, 4, '#e8e04a'); }
+}
+// Roca vista desde arriba, en píxeles: piedras irregulares (celdas) con junta oscura, canto de luz arriba a la
+// izquierda, sombra abajo a la derecha y tono propio cada una. Las menas llevan pepitas de mineral de píxeles con
+// brillo y sombra (sin curvas suavizadas ni marcos de baldosa).
+function rocaPx(c, g, t, v) {
+  const img = c.getImageData(0, 0, T, T), u = new Uint32Array(img.data.buffer), N = 4 + ((th(t, v, 90) * 3) | 0), P = [];
+  for (let k = 0; k < N; k++) P.push(th(t, v, 100 + k) * T, th(t, v, 120 + k) * T, 0.94 + th(t, v, 140 + k) * 0.12);
+  const cell = new Int8Array(T * T), d12 = new Float32Array(T * T);
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) { let a = 1e9, b = 1e9, ia = 0;
+    for (let k = 0; k < N; k++) { let dx = Math.abs(x - P[k * 3]), dy = Math.abs(y - P[k * 3 + 1]) * 1.25; dx = Math.min(dx, T - dx); dy = Math.min(dy, T * 1.25 - dy); const d = Math.sqrt(dx * dx + dy * dy); if (d < a) { b = a; a = d; ia = k; } else if (d < b) b = d; }
+    cell[y * T + x] = ia; d12[y * T + x] = b - a; }
+  const mul = (i, f) => { const q = u[i]; u[i] = (0xff000000 | Math.min(255, ((q >>> 16) & 255) * f) << 16 | Math.min(255, ((q >>> 8) & 255) * f) << 8 | Math.min(255, (q & 255) * f)) >>> 0; };
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) { const i = y * T + x, e = d12[i];
+    if (e < 0.9) { mul(i, ihash(x + v * 5, y + t) > 0.25 ? 0.72 : 0.84); continue; } /* junta a trozos */                                          // junta
+    const iu = ((y + T - 1) % T) * T + x, il = y * T + (x + T - 1) % T, id = ((y + 1) % T) * T + x, ir = y * T + (x + 1) % T;
+    let f = P[cell[i] * 3 + 2];
+    if (d12[iu] < 0.9 || d12[il] < 0.9) f *= 1.1; else if (d12[id] < 0.9 || d12[ir] < 0.9) f *= 0.9; // canto de luz / sombra
+    if (ihash(x * 7 + v, y * 13 + t) > 0.965) f *= 0.8;                                // poros
+    mul(i, f); }
+  if (g.dot) { const m = g.dot.match(/\w\w/g).map(hh => parseInt(hh, 16)), px = (x, y, f) => { x = ((x % T) + T) % T; y = ((y % T) + T) % T; u[y * T + x] = (0xff000000 | Math.min(255, m[2] * f) << 16 | Math.min(255, m[1] * f) << 8 | Math.min(255, m[0] * f)) >>> 0; };
+    for (let i = 0; i < T * T; i++) { const q = u[i]; u[i] = (0xff000000 | ((((q >>> 16) & 255) * 0.9 + m[2] * 0.1) << 16) | ((((q >>> 8) & 255) * 0.9 + m[1] * 0.1) << 8) | ((q & 255) * 0.9 + m[0] * 0.1)) >>> 0; } // la roca toma un poco el tono del mineral
+    const nP = 3 + ((th(t, v, 160) * 2) | 0);
+    for (let k = 0; k < nP; k++) { const cx = (4 + th(t, v, 170 + k) * 22) | 0, cy = (4 + th(t, v, 180 + k) * 22) | 0, R = 2 + th(t, v, 190 + k) * 1.6, cel = [];
+      for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) { const dd = Math.hypot(dx, dy * 1.15) + (ihash(cx * 9 + dx, cy * 7 + dy + v) - 0.5) * 1.4; if (dd < R) cel.push(dx, dy); } // pepita irregular
+      const has = (dx, dy) => { for (let q = 0; q < cel.length; q += 2) if (cel[q] === dx && cel[q + 1] === dy) return true; return false; };
+      for (let q = 0; q < cel.length; q += 2) for (const [ox, oy] of [[1, 1], [0, 1], [1, 0], [-1, 0], [0, -1]]) if (!has(cel[q] + ox, cel[q + 1] + oy)) mul((((cy + cel[q + 1] + oy) % T + T) % T) * T + (((cx + cel[q] + ox) % T + T) % T), ox + oy > 0 ? 0.5 : 0.72); // contorno y sombra
+      for (let q = 0; q < cel.length; q += 2) { const dx = cel[q], dy = cel[q + 1], lit = !has(dx - 1, dy) || !has(dx, dy - 1), dark = !has(dx + 1, dy) || !has(dx, dy + 1); px(cx + dx, cy + dy, lit ? 1.2 : dark ? 0.72 : 0.95); }
+      px(cx - 1, cy - 1, 1.6); }
+  }
+  c.putImageData(img, 0, 0);
 }
 // Piedras con volumen (luz arriba a la izquierda) y grietas
 function stonesTex(c, h, n, crack) {
@@ -115,7 +134,7 @@ function blendEdges(u, W, x0, y0) {
     const gx = x0 + tx, gy = y0 + ty, t = baseTile(gnd(gx, gy)); if (!blendable(t)) continue;
     const pt = blPrio(t); let any = false;
     for (let d = 0; d < 8; d++) { const b = baseTile(gnd(gx + BL_DX[d], gy + BL_DY[d]));
-      srcs[d] = b !== t && blendable(b) && blPrio(b) > pt && !(GI[b].liquid && GI[t].liquid) ? b : -1; if (srcs[d] >= 0) any = true; }
+      srcs[d] = b !== t && blendable(b) && blPrio(b) > pt && !(GI[b].liquid && GI[t].liquid) && (typeof lvV !== 'function' || GI[b].liquid || GI[t].liquid || lvV(gx + BL_DX[d], gy + BL_DY[d]) === lvV(gx, gy)) ? b : -1; /* entre capas de distinta altura no se mezcla: la pared las separa */ if (srcs[d] >= 0) any = true; }
     if (!any) continue;
     _blQ.fill(0); _blS.fill(-1);
     for (let d = 0; d < 8; d++) { if (srcs[d] < 0) continue;

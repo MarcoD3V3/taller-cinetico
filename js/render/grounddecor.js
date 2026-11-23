@@ -129,7 +129,16 @@ function gdAdj(o) {
   }
   return o;
 }
-function gdAt0(tx, ty) { return gdAdj(gdAt00(tx, ty)); }
+function gdBase(o, tx, ty) { // lo que crece en una casilla con pared sale desde el pie de la pared, nunca de la pared
+  if (!o || typeof paredEn !== 'function') return o;
+  const out = [];
+  for (const q of o.group || [o]) { let bx = q.px + q.w / 2, by = q.py - 1;
+    for (let n = 0; n < 4; n++) { const w = paredEn(bx, by); if (!w) break; [bx, by] = w.fuera; by += 2; }
+    if (Math.floor(bx / T) !== tx || Math.floor(by / T) !== ty || paredEn(bx, by)) continue; // no cabe al pie: no sale
+    q.px = bx - q.w / 2; q.py = by + 1; out.push(q); }
+  if (!out.length) return null; if (o.group) { out.sort((a, b) => a.py - b.py); out[0].group = out; } return out[0];
+}
+function gdAt0(tx, ty) { return gdBase(gdAdj(gdAt00(tx, ty)), tx, ty); }
 // ---------- Playas: la arena junto al mar o a un agua grande lleva su propia flora y cosas (dunas, cactus, maderas, cocos…) ----------
 const GD_PLAYA = [0.2, { pasto_playa: 3, flora_playa: 2.6, cactus_playa: 0.7, playa: 3.2, concha: 1.6, piedra: 0.8, pluma: 0.3 }];
 const GD_PLAYA_PATCH = [['pasto_playa'], ['flora_playa', 'cactus_playa', 'pasto_playa']];

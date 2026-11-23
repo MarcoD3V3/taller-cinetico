@@ -49,6 +49,7 @@ function updatePlayer(fdt) {
   const a = Math.min(1, mf.grip * JUG('agarre', 1) * fdt); // agarre: lo rápido que arranca y frena (motor)
   P.mvx = (P.mvx || 0) + (tvx - (P.mvx || 0)) * a; P.mvy = (P.mvy || 0) + (tvy - (P.mvy || 0)) * a;
   if (!want && Math.hypot(P.mvx, P.mvy) < 4) P.mvx = P.mvy = 0;
+  if (typeof window !== 'undefined') window._dtMov = fdt;
   const ox = p.x, oy = p.y, fromLv = lvPoint(p.x, p.y + 5), dx = P.mvx * fdt, dy = P.mvy * fdt;
   // Si ya estás dentro de algo sólido (partida antigua), puedes salir en cualquier dirección
   const stuck = !playerFree(p.x, p.y);
