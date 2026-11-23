@@ -197,6 +197,25 @@ function wfxBuild(u, W, x0, y0) {
           let b = 0; while (b < th.length && Dd >= th[b]) b++; kk = pal * 8 + b; } }
       if (kk !== runK) { if (runK >= 0) { let e = shade.get(runK); if (e === undefined) { const col = bandCol(runK >> 3, runK & 7); e = col ? { col, p: new Path2D() } : null; shade.set(runK, e); } if (e) e.p.rect(runS * 2, ly * 2, (lx - runS) * 2, 2); } runK = kk; runS = lx; }
     } }
+  // Orillas del agua tranquila con profundidad (siguiendo la forma real de la orilla, bloque a bloque):
+  //  · arriba: se ve la pared de tierra de la orilla (la luz viene de arriba) y debajo su sombra, que se va aclarando;
+  //  · izquierda: sombra algo más corta; derecha y abajo: un borde oscuro fino. Así el agua se ve hundida por todos lados.
+  //  El final de cada sombra varía columna a columna (sin rayas rectas). En el mar con olas no se pone.
+  const orilla = new Map(), oriC = (key, col) => { let e = orilla.get(key); if (!e) { e = { col, p: new Path2D() }; orilla.set(key, e); } return e.p; };
+  const W8 = (gx, gy) => wat[gy * NG + gx];
+  for (let by = 0; by < NB; by++) for (let bx = 0; bx < NB; bx++) { if (bm[by * NB + bx] !== 2) continue;
+    const gx = bx + MB, gy = by + MB, dist = (dx, dy, mx) => { for (let n = 1; n <= mx; n++) { const v = W8(gx + dx * n, gy + dy * n); if (!v) return n; } return 99; };
+    const jN = (ihash(x0 * 8 + bx, 9137) * 2) | 0, jW = (ihash(y0 * 8 + by, 7331) * 2) | 0;
+    const nN = dist(0, -1, 6), nW = dist(-1, 0, 4), nE = dist(1, 0, 2), nS = dist(0, 1, 2), nNW = Math.min(dist(-1, -1, 3), 99);
+    if (nN === 1 && !(bx > 0 && by > 0 && false)) { oriC('pared', 'rgba(52,38,26,.78)').rect(bx * 4, by * 4, 4, 3); oriC('paredB', 'rgba(20,14,10,.55)').rect(bx * 4, by * 4 + 3, 4, 1); } // pared de la orilla
+    let a = 0;
+    if (nN <= 5 + jN) a = Math.max(a, [0, 0, 0.42, 0.3, 0.2, 0.11, 0.05][Math.min(6, nN)]);
+    if (nW <= 3 + jW) a = Math.max(a, [0, 0.3, 0.19, 0.1, 0.05][Math.min(4, nW)]);
+    if (nNW <= 2) a = Math.max(a, [0, 0.26, 0.12, 0][nNW]);
+    if (nE <= 2) a = Math.max(a, [0, 0.2, 0.08][nE]);
+    if (nS <= 2) a = Math.max(a, [0, 0.16, 0.06][nS]);
+    if (a > 0.02 && !(nN === 1)) { const q = Math.round(a * 20); oriC('s' + q, `rgba(3,12,28,${(q / 20).toFixed(2)})`).rect(bx * 4, by * 4, 4, 4); }
+  }
   // Playas: donde hay mucha arena junta. En algunos tramos de playa (zonas que cambian despacio por el mundo)
   // llegan olas grandes: revientan fuerte, levantan espuma y el agua sube mucho más por la arena.
   const arenaT = new Float32Array(R * R); for (let ty = 0; ty < R; ty++) for (let tx = 0; tx < R; tx++) { const g = GI[baseTile(gnd(x0 - M + tx, y0 - M + ty))]; arenaT[ty * R + tx] = /SAND/.test(g.key || '') ? 1 : 0; }
@@ -258,35 +277,21 @@ function wfxBuild(u, W, x0, y0) {
   for (let i = 0; i < nC; i++) { const c = pickIn(calmTiles, 0.8, 570 + i); if (c) fish.push({ x: c[0], y: c[1], r: 10 + hash2(x0, y0, 580 + i) * 14, w: 0.07 + hash2(x0, y0, 590 + i) * 0.06, s: hash2(x0, y0, 600 + i) * 6.28, n: 1, small: 0 }); }
   if (AGUA.d.size > 90) AGUA.d.delete(AGUA.d.keys().next().value);
   let full = !anyC && !shoreS.length && !wetS.length; if (full) for (let i = 0; i < NB * NB; i++) if (bm[i] !== 1) { full = false; break; }
-  AGUA.d.set(key, { seaP, calmP, cdq, shade: [...shade.values()].filter(Boolean), swellS: Int16Array.from(swellS), shoreS: Int16Array.from(shoreS), wetS: Int16Array.from(wetS), shoreC: Int16Array.from(shoreC), wetC: Int16Array.from(wetC), life, fish, emit, sea: anyS, calm: anyC, ph: hash2(x0, y0, 777), fullSea: full });
+  AGUA.d.set(key, { seaP, calmP, cdq, shade: [...shade.values()].filter(Boolean), orilla: [...orilla.values()], bm, swellS: Int16Array.from(swellS), shoreS: Int16Array.from(shoreS), wetS: Int16Array.from(wetS), shoreC: Int16Array.from(shoreC), wetC: Int16Array.from(wetC), life, fish, emit, sea: anyS, calm: anyC, ph: hash2(x0, y0, 777), fullSea: full });
+}
+// ¿Se VE agua en este punto? (la orilla dibujada se mete en las casillas de agua: aquí se mira el bloque de 4 px)
+// Devuelve true/false, o null si ese trozo aún no tiene datos (entonces vale la casilla)
+function aguaVisible(px, py) {
+  const tx = Math.floor(px / T), ty = Math.floor(py / T), cx = Math.floor(tx / CH), cy = Math.floor(ty / CH), d = AGUA.d.get(chunkKey(cx, cy));
+  if (!d || !d.bm) return null; const lx = Math.floor((px - cx * CH * T) / 4), ly = Math.floor((py - cy * CH * T) / 4);
+  return !!d.bm[ly * WFX_NB + lx];
 }
 // tras volcar los píxeles del trozo: capas de color de la profundidad (una por banda)
 function wfxPaint(c, x0, y0) {
   const d = AGUA.d.get(chunkKey(x0 / CH, y0 / CH)); if (!d || !d.shade) return;
   for (const e of d.shade) { c.fillStyle = e.col; c.fill(e.p); }
   d.shade = null;
-  wfxSombraOrilla(c, x0, y0);
-}
-// Agua tranquila (lagos, charcas, ríos quietos): la orilla y las paredes proyectan sombra sobre el agua. La luz viene
-// de arriba a la izquierda, así que la sombra cae desde la orilla de arriba y la de la izquierda; más larga si la
-// orilla es más alta. El borde es de píxeles e irregular (no una franja recta). En el mar con olas no se pone.
-function wfxSombraOrilla(c, x0, y0) {
-  const esAgua = (x, y) => { const g = GI[baseTile(gnd(x, y))]; return g.liquid === 'water'; };
-  for (let ty = 0; ty < CH; ty++) for (let tx = 0; tx < CH; tx++) {
-    const gx = x0 + tx, gy = y0 + ty; if (!esAgua(gx, gy) || wfxCuerpo(gx, gy) !== 2) continue;
-    const lv = lvAt(gx, gy), px0 = tx * T, py0 = ty * T;
-    const alto = (x, y) => esAgua(x, y) ? -1 : Math.max(1, lvAt(x, y) - lv + 1); // cuánto tapa la orilla
-    const hN = alto(gx, gy - 1), hW = alto(gx - 1, gy), hNW = alto(gx - 1, gy - 1);
-    if (hN < 0 && hW < 0 && hNW < 0) continue;
-    for (let y = 0; y < T; y += 2) for (let x = 0; x < T; x += 2) {
-      const wx = gx * T + x, wy = gy * T + y, j = (ihash(wx >> 2, wy >> 3) - 0.5) * 3; let a = 0;
-      if (hN > 0) { const L = 11 + hN * 5 + j; if (y < L) a = Math.max(a, 0.5 * (1 - y / L) + 0.08); }
-      if (hW > 0) { const L = 7 + hW * 4 + j; if (x < L) a = Math.max(a, 0.38 * (1 - x / L) + 0.06); }
-      if (hNW > 0 && hN < 0 && hW < 0) { const L = 9 + hNW * 4 + j; const dd = Math.hypot(x, y); if (dd < L) a = Math.max(a, 0.38 * (1 - dd / L)); }
-      if (a <= 0.02) continue; a = Math.round(a * 12) / 12; // tonos escalonados, como pixel art
-      c.fillStyle = `rgba(4,14,30,${a.toFixed(3)})`; c.fillRect(px0 + x, py0 + y, 2, 2);
-    }
-  }
+  if (d.orilla) { for (const e of d.orilla) { c.fillStyle = e.col; c.fill(e.p); } d.orilla = null; } // profundidad de las orillas del agua tranquila
 }
 { const f0 = blendEdges; blendEdges = (u, W, x0, y0) => { f0(u, W, x0, y0); try { wfxBuild(u, W, x0, y0); } catch (e) { console.warn('agua', e); } }; }
 

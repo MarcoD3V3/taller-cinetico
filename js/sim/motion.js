@@ -42,6 +42,8 @@ function setLvMod(x, y, v) { (S.lvmod || (S.lvmod = {}))[x + ',' + y] = v; onTil
 // paintCliffs (mismo azar, mismos anchos y altos), para cualquier altura y cualquier combinación de capas.
 // Devuelve la pared más alta en ese punto: up (nivel de arriba), fuera (punto al pie, fuera de la pared) y
 // arriba (dónde quedas si trepas saltando).
+// Ancho de la pared de una esquina a la altura y (0 arriba): se estrecha en curva hasta el pie, en píxeles enteros
+function anchoEsq(w, y, h) { const t = Math.min(1, Math.max(0, y / Math.max(1, h))); return Math.round(w * Math.sqrt(Math.max(0, 1 - t * t * t))); }
 function paredEn(px, py) {
   const tx = Math.floor(px / T), ty = Math.floor(py / T), x = px - tx * T, y = py - ty * T, wx = Math.floor(px), wy = Math.floor(py), l = lvAt(tx, ty);
   const nivel = (ax, ay) => esRocaM(ax, ay) ? -99 : lvAt(ax, ay); // la roca lleva su pared dentro (y no se pisa)
@@ -53,8 +55,8 @@ function paredEn(px, py) {
     if (hi > l) { const w = Math.min(7, 3 + (hi - l) * 2) - ((ihash(wy >> 2, tx * 17 + side) * 3) | 0); if (k < w) pon(hi, [edge - side * (w + 0.6), py], [edge + side * 1.5, py]); } // lateral
     else if (up <= l) { const dg = nivel(tx + side, ty - 1); if (dg > l) { // esquina: la pared lateral de la diagonal baja por aquí
       const fh = Math.min(T, faceH(dg - l)), w = Math.min(7, 3 + (dg - l) * 2) - ((ihash(wy >> 2, tx * 17 + side) * 3) | 0);
-      const hxc = Math.min(fh, fh + jit) - (k >= w - 2 ? (k - (w - 2)) * 2 : 0);
-      if (y < hxc && k < w) pon(dg, [px, ty * T + hxc + 0.6], [edge + side * 1.5, ty * T - 0.6]); } }
+      const hxc = Math.min(fh, fh + jit);
+      if (y < hxc && k < anchoEsq(w, y, hxc)) pon(dg, [px, ty * T + hxc + 0.6], [edge + side * 1.5, ty * T - 0.6]); } }
   }
   return best;
 }
@@ -101,6 +103,7 @@ function swimState() {
   if ((P.z || 0) > 0.5 || _flyMove()) return 0;
   const p = S.player, tx = Math.floor(p.x / T), ty = Math.floor((p.y + 5) / T), g = GI[gnd(tx, ty)];
   if (g.liquid !== 'water' || g.walk) return 0;
+  if (typeof aguaVisible === 'function') { let n = 0, k = 0; for (const [ox, oy] of [[0, 5], [-3, 4], [3, 4]]) { const v = aguaVisible(p.x + ox, p.y + oy); if (v !== null) { k++; if (v) n++; } } if (k && n < 2) return 0; } // en la orilla: solo nadas si de verdad se ve agua bajo los pies
   return g.key === 'DEEP' || !nearShore(tx, ty) ? 2 : 1;
 }
 // Ondas en el agua (al nadar, al caer, el corcho de la caña…)
@@ -164,9 +167,14 @@ function moveFactors() {
   return { mul, grip, slip: gi.slip };
 }
 // ---------- Dibujo: ondas ----------
-function drawRipples(ctx) {
-  for (const r of RIPPLES) { const k = 1 - r.t / r.t0; ctx.globalAlpha = (1 - k) * 0.55; ctx.strokeStyle = '#e0f4ff'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(r.x, r.y, r.r * (0.4 + k), r.r * (0.4 + k) * 0.38, 0, 0, 7); ctx.stroke(); }
-  ctx.globalAlpha = 1;
+function drawRipples(ctx) { // ondas de píxeles: anillo a trozos que se abre y se rompe al apagarse (como el resto del pixel art)
+  const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
+  for (const r of RIPPLES) { const k = 1 - r.t / r.t0, rx = r.r * (0.4 + k), ry = Math.max(1.5, rx * 0.38), cx = Math.round(r.x), cy = Math.round(r.y), n = Math.max(10, Math.round(rx * 2.2)), seed = (r.x * 7 + r.y * 13) | 0;
+    for (let q = 0; q < n; q++) { if (ihash(q + seed, (k * 6) | 0) < k * 0.55) continue; // se va rompiendo
+      const a = q / n * Math.PI * 2, x = cx + Math.round(Math.cos(a) * rx), y = cy + Math.round(Math.sin(a) * ry), front = Math.sin(a) > 0;
+      ctx.fillStyle = front ? `rgba(235,248,255,${((1 - k) * 0.8).toFixed(2)})` : `rgba(190,225,255,${((1 - k) * 0.5).toFixed(2)})`; ctx.fillRect(x, y, front ? 2 : 1, 1); // delante más clara y gruesa
+      if (front && k < 0.5) { ctx.fillStyle = `rgba(10,40,80,${((1 - k) * 0.25).toFixed(2)})`; ctx.fillRect(x, y + 1, 2, 1); } } }
+  ctx.globalAlpha = 1; ctx.imageSmoothingEnabled = sm;
 }
 // ---------- Dibujo: acantilados en el suelo de cada trozo ----------
 // Sobre los píxeles ya compuestos (ImageData): pared de roca con estratos bajo cada terraza,
@@ -218,7 +226,7 @@ function paintCliffs(u, W, x0, y0) {
     // Terrazas altas un poco más claras (se lee la altura de un vistazo)
     // Cuanto más alta la capa, más luz (también en la montaña): la altura se lee de un vistazo
     // (el agua es plana: no se aclara por terraza; si no, en lagos y costas salían recuadros de otro tono)
-    if (l && !rk0 && !GI[gnd(gx, gy)].liquid) { const f = Math.max(0.6, Math.min(1.24, 1 + l * 0.034)); for (let y = 0; y < T; y++) { let i = (by + y) * W + bx; for (let x = 0; x < T; x++, i++) { const v = u[i]; u[i] = (0xff000000 | Math.min(255, ((v >> 16) & 255) * f) << 16 | Math.min(255, ((v >> 8) & 255) * f) << 8 | Math.min(255, (v & 255) * f)) >>> 0; } } }
+    if (false && l && !rk0 && !GI[gnd(gx, gy)].liquid) { /* (sin aclarar por capas: dejaba cuadros rectos; la altura la dan las paredes y sombras) */ const f = Math.max(0.6, Math.min(1.24, 1 + l * 0.034)); for (let y = 0; y < T; y++) { let i = (by + y) * W + bx; for (let x = 0; x < T; x++, i++) { const v = u[i]; u[i] = (0xff000000 | Math.min(255, ((v >> 16) & 255) * f) << 16 | Math.min(255, ((v >> 8) & 255) * f) << 8 | Math.min(255, (v & 255) * f)) >>> 0; } } }
     // Paredes laterales: franja de roca irregular en el lado bajo (la de la izquierda en sombra,
     // la de la derecha iluminada) y canto claro en la terraza alta
     const meLiq = GI[gnd(gx, gy)].liquid;
@@ -290,16 +298,16 @@ function paintCliffs(u, W, x0, y0) {
         const wy = gy * T + y, w = wmax - ((ihash(wy >> 2, gx * 17 + side) * 3) | 0);
         for (let k = 0; k < T; k++) {
           const x = side < 0 ? k : T - 1 - k, wx = gx * T + x, i = (by + y) * W + bx + x;
-          const hxc = Math.min(fh, fh + (((ihash(wx >> 2, gy * 5 + 1) * 5) | 0) - 2)) - (k >= w - 2 ? (k - (w - 2)) * 2 : 0); // borde de abajo irregular y esquina redondeada (no cortada en recto)
-          if (y < hxc && k < w) { // pared lateral, con el canto de hierba arriba como la pared de delante
+          const hxc = Math.min(fh, fh + (((ihash(wx >> 2, gy * 5 + 1) * 5) | 0) - 2)), wE = anchoEsq(w, y, hxc); // la pared de la esquina se curva hacia abajo (redondeada, sin canto recto)
+          if (y < hxc && k < wE) { // pared lateral, con el canto de hierba arriba como la pared de delante
             const lip = 2 + ((ihash(wx >> 1, gy * 7 + 3) * 3) | 0);
             /* sin canto de hierba aquí: en la esquina quedaba como una raya verde flotando (la curva de arriba ya lo resuelve) */
             /* bajo la esquina solo hay pared: sin canto de hierba vertical (hacía una cruz con el canto de la pared de delante) */
             const f = texPared(wx, Math.max(0, y - 3), 0.3 + 0.5 * (y / Math.max(1, hxc)), stonyC, gy, dg - l >= 2) * sh * (k === w - 1 ? 0.6 : 1) * (y > hxc - 3 ? 0.85 : 1); u[i] = px32(rk[0] * f, rk[1] * f, rk[2] * f); continue; }
           // sombra junto a la pared y en cuña bajo la esquina (la luz viene de arriba a la izquierda: a la derecha se alarga)
-          const dy = y - Math.max(0, hxc), reach = dy < 0 ? w + 3 : side < 0 ? w + Math.round((SLc - dy) * 0.85) : w + Math.max(0, 3 - dy);
+          const dy = y - Math.max(0, hxc), reach = dy < 0 ? wE + 3 : side < 0 ? wE + Math.round((SLc - dy) * 0.85) : wE + Math.max(0, 3 - dy);
           if (k >= reach) break; if (dy >= SLc) continue;
-          const t = Math.min(1, Math.max(0, dy < 0 ? (k - w) / 3 : Math.max((k - w) / Math.max(1, reach - w), dy / SLc)));
+          const t = Math.min(1, Math.max(0, dy < 0 ? (k - wE) / 3 : Math.max((k - wE) / Math.max(1, reach - wE), dy / SLc)));
           u[i] = scale(u[i], 0.56 + 0.44 * t * t);
         }
       }
@@ -322,8 +330,10 @@ function paintCliffs(u, W, x0, y0) {
         if (rkUp && y >= hx && y - hx < 5 && ihash(wx * 3 + 1, gy * 7 + y) > 0.93) { const f = 0.75 + ihash(wx, y) * 0.4; u[i] = px32(rock[0] * f, rock[1] * f, rock[2] * f); continue; } // piedritas caídas
         if (y >= hx) { const SLx = SL + ((ihash(wx >> 1, gy * 19 + 4) * 5) | 0) - 2, t = Math.min(1, (y - hx) / SLx), d = (ihash(wx, gy * T + y) - 0.5) * 0.08; u[i] = scale(u[i], y === hx ? (rkUp ? 0.55 : 0.45) : Math.min(1, 0.6 + 0.4 * Math.pow(t, 1.4) + (t > 0.45 ? d : 0))); continue; } // sombra al pie: suave, con el final irregular (sin corte recto) // sombra al pie (suave y más larga si la pared es alta)
         if (wet) { const col = ihash(wx >> 1, gy * 7 + 2), t = y / Math.max(1, hx), hi = col > 0.78, f = 0.88 + col * 0.18 + t * 0.12; u[i] = hi ? px32(205 + 40 * t, 228 + 22 * t, 255) : px32((96 + 70 * t) * f, (150 + 60 * t) * f, (205 + 30 * t) * f); continue; }
-        if (y < lipH) { const f = y === 0 ? 1.18 : y === lipH - 1 ? 0.62 : 0.92; u[i] = px32(top[0] * f, top[1] * f, top[2] * f); continue; }
-        const k = (y - lipH) / Math.max(1, hx - lipH), f = texPared(wx, y - lipH, k, stonyUp, gy, dH >= 2) * (y === lipH ? 0.8 : 1);
+        const enCurva = (finR && x > T - 7) || (finL && x < 6); // bajo la esquina redondeada de arriba el canto sigue la curva (no llega recto a la punta)
+        const lipX = enCurva ? Math.max(0, lipH - Math.round((finR ? x - (T - 7) : 6 - x) * 0.7)) : lipH;
+        if (y < lipX) { const f = y === 0 ? 1.18 : y === lipX - 1 ? 0.62 : 0.92; u[i] = px32(top[0] * f, top[1] * f, top[2] * f); continue; }
+        const k = Math.max(0, y - lipH) / Math.max(1, hx - lipH), f = texPared(wx, Math.max(0, y - lipH), k, stonyUp, gy, dH >= 2) * (y === lipX ? 0.8 : 1);
         const ao = y > hx - 4 ? 0.82 + (hx - y) * 0.045 : 1; // oclusión: la base de la pared, más oscura
         u[i] = px32(rock[0] * f * esq * ao, rock[1] * f * esq * ao, rock[2] * f * esq * ao);
       }
@@ -335,7 +345,7 @@ function paintCliffs(u, W, x0, y0) {
 function paintCliffsLo(c, x0, y0) {
   for (let ty = 0; ty < CH; ty++) for (let tx = 0; tx < CH; tx++) {
     const gx = x0 + tx, gy = y0 + ty, l = lvV(gx, gy), up = lvV(gx, gy - 1);
-    if (l && !GI[gnd(gx, gy)].liquid) { c.fillStyle = l > 0 ? `rgba(255,255,255,${l * 0.04})` : `rgba(0,0,0,${Math.min(0.45, -l * 0.12)})`; c.fillRect(tx * T, ty * T, T, T); }
+    if (false && l && !GI[gnd(gx, gy)].liquid) { c.fillStyle = l > 0 ? `rgba(255,255,255,${l * 0.04})` : `rgba(0,0,0,${Math.min(0.45, -l * 0.12)})`; c.fillRect(tx * T, ty * T, T, T); }
     if (up > l && !(GI[gnd(gx, gy - 1)].liquid && GI[gnd(gx, gy)].liquid)) { const fh = faceH(up - l); c.fillStyle = GI[gnd(gx, gy - 1)].liquid === 'water' ? '#a8d0f0' : '#5a4a3a'; c.fillRect(tx * T, ty * T, T, fh); c.fillStyle = 'rgba(0,0,0,.25)'; c.fillRect(tx * T, ty * T + fh, T, 5); }
   }
 }

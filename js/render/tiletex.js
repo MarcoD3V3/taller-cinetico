@@ -141,12 +141,12 @@ function blendEdges(u, W, x0, y0) {
       const dx = BL_DX[d], dy = BL_DY[d];
       /* en una esquina solo si los dos lados no son ya de ese mismo suelo (si no, se pintaría doble) */
       if (d >= 4 && (srcs[dx > 0 ? 0 : 2] === srcs[d] || srcs[dy > 0 ? 1 : 3] === srcs[d])) continue;
-      const E = d < 4 ? 3.2 : 2.6; /* ancho de la franja, en bloques */
+      const liqT = !!GI[t].liquid && !GI[srcs[d]].liquid, E = (d < 4 ? 3.2 : 2.6) + (liqT ? 1.5 : 0); /* ancho de la franja, en bloques (en las orillas, más: el agua no sale en cuadrados) */
       for (let by = 0; by < BL_NB; by++) for (let bx = 0; bx < BL_NB; bx++) {
         const ex = dx > 0 ? BL_NB - 1 - bx : dx < 0 ? bx : -1, ey = dy > 0 ? BL_NB - 1 - by : dy < 0 ? by : -1;
         const dist = d < 4 ? (ex >= 0 ? ex : ey) : Math.hypot(ex, ey); if (dist >= E) continue;
-        const al = dx ? gy * BL_NB + by : gx * BL_NB + bx, a2 = al >> 1, sd = (d & 3) * 7919 + 77, fr = (al & 1) / 2;
-        const wob = (ihash(a2, sd) + (ihash(a2 + 1, sd) - ihash(a2, sd)) * fr - 0.5) * 1.6;
+        const al = dx ? gy * BL_NB + by : gx * BL_NB + bx, sh = liqT ? 2 : 1, a2 = al >> sh, sd = (d & 3) * 7919 + 77, fr = (al & ((1 << sh) - 1)) / (1 << sh);
+        const wob = (ihash(a2, sd) + (ihash(a2 + 1, sd) - ihash(a2, sd)) * fr - 0.5) * (liqT ? 3.2 : 1.6) + (liqT ? (ihash(al >> 3, sd + 5) - 0.5) * 1.6 : 0); // orillas onduladas
         const p = 1 - (dist + 0.5 + wob) / E; if (p <= 0) continue;
         const k = by * BL_NB + bx; if (p > _blQ[k]) { _blQ[k] = p; _blS[k] = d; } }
     }
