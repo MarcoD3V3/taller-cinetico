@@ -55,7 +55,7 @@ function foeSprite(D) {
   const ol = 'rgba(0,0,0,.55)', eye = D.el === 'fire' ? '#ffd040' : D.el === 'frost' ? '#bff0ff' : D.undead ? '#7af0ff' : '#ff3a2a';
   const body = (x, y, w, h, col) => { c.beginPath(); c.ellipse(x, y, w, h, 0, 0, 7); c.fillStyle = col; c.fill(); c.strokeStyle = ol; c.lineWidth = 1; c.stroke(); };
   const lighter = tintMix(D.c, '#ffffff', 0.25), darker = tintMix(D.c, '#000000', 0.3);
-  if (D.shape !== 'fly' && D.shape !== 'ghost') { c.fillStyle = 'rgba(0,0,0,.28)'; c.beginPath(); c.ellipse(1, R * 0.75, R * 0.85, R * 0.3, 0, 0, 7); c.fill(); }
+  if (D.shape !== 'fly' && D.shape !== 'ghost') sombraPx(c, 1, R * 0.75, R * 0.85, Math.max(1, R * 0.3), 0.42); // sombra de píxeles
   switch (D.shape) {
     case 'hum': case 'skel': {
       const sk = D.shape === 'skel', col = sk ? D.c : D.c;
@@ -129,7 +129,7 @@ function drawCombat(ctx, k, ox, oy, x0, y0, x1, y1) {
     else { ctx.globalAlpha = Math.min(1, h.t) * (h.kind === 'hole' ? 0.85 : 0.45); ctx.fillStyle = h.c; ctx.beginPath(); ctx.arc(h.x, h.y, h.r * (h.kind === 'hole' ? 0.5 + 0.1 * Math.sin(S.time * 8) : 1), 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
   }
   // Mascotas y NPC
-  for (const pt of S.pets || []) { if (pt.ride || !inView(pt.x, pt.y, 30)) continue; const spr = animalSprite(pt.sp), s = spr.size; ctx.save(); ctx.translate(pt.x, pt.y + Math.sin(pt.ph || 0) * 1); if ((pt.face || 1) < 0) ctx.scale(-1, 1); ctx.drawImage(spr.f[0], -s / 2, s / 2 - spr.h, s, spr.h); ctx.restore(); ctx.font = '9px system-ui'; ctx.textAlign = 'center'; ctx.fillStyle = pt.mode === 'stay' ? '#aaa' : '#ff6a8a'; ctx.fillText(pt.mode === 'stay' ? '■' : '❤', pt.x, pt.y - SPECIES[pt.sp].s - 6); if (pt.hp < pt.mhp) hpBar(ctx, pt.x, pt.y - SPECIES[pt.sp].s - 3, 18, pt.hp / pt.mhp, '#7fd07a'); }
+  for (const pt of S.pets || []) { if (pt.ride || !inView(pt.x, pt.y, 30)) continue; const spr = animalSprite(pt.sp), s = spr.size; sombraPx(ctx, pt.x, pt.y + s / 2 - 1, s * 0.4, Math.max(1, s * 0.13), 0.4); ctx.save(); ctx.translate(pt.x, pt.y + Math.sin(pt.ph || 0) * 1); if ((pt.face || 1) < 0) ctx.scale(-1, 1); ctx.drawImage(spr.f[0], -s / 2, s / 2 - spr.h, s, spr.h); ctx.restore(); ctx.font = '9px system-ui'; ctx.textAlign = 'center'; ctx.fillStyle = pt.mode === 'stay' ? '#aaa' : '#ff6a8a'; ctx.fillText(pt.mode === 'stay' ? '■' : '❤', pt.x, pt.y - SPECIES[pt.sp].s - 6); if (pt.hp < pt.mhp) hpBar(ctx, pt.x, pt.y - SPECIES[pt.sp].s - 3, 18, pt.hp / pt.mhp, '#7fd07a'); }
   for (const s of SUMMONS) { const spr = animalSprite(s.sp), z = spr.size; ctx.globalAlpha = 0.7; ctx.save(); ctx.translate(s.x, s.y); if ((s.face || 1) < 0) ctx.scale(-1, 1); ctx.drawImage(spr.f[0], -z / 2, z / 2 - spr.h, z, spr.h); ctx.restore(); ctx.globalAlpha = 1; }
   for (const n of S.npcs || []) { if (!inView(n.x, n.y, 20)) continue; drawNpc(ctx, n); }
   // Enemigos
@@ -160,7 +160,11 @@ function drawCombat(ctx, k, ox, oy, x0, y0, x1, y1) {
     if (f.ghost) continue;
     if (f.ring) { ctx.globalAlpha = Math.min(1, f.t * 2.5); ctx.strokeStyle = f.c; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(f.x, f.y, f.ring * (1.1 - f.t), 0, 7); ctx.stroke(); ctx.globalAlpha = 1; }
     else if (f.bolt) { ctx.strokeStyle = f.c; ctx.lineWidth = f.wide || 2.5; ctx.globalAlpha = Math.min(1, f.t * 5); ctx.beginPath(); ctx.moveTo(f.x, f.y); const n = f.wide ? 1 : 5; for (let i = 1; i <= n; i++) { const t = i / n; ctx.lineTo(f.x + (f.x2 - f.x) * t + (i < n ? (Math.random() - 0.5) * 14 : 0), f.y + (f.y2 - f.y) * t + (i < n ? (Math.random() - 0.5) * 14 : 0)); } ctx.stroke(); ctx.globalAlpha = 1; }
-    else if (f.txt) { ctx.font = f.big ? `bold 16px ${OPT.pixFont ? '"Taller Pixel",' : ''}"Chakra Petch",system-ui` : `bold 11px ${OPT.pixFont ? '"Taller Pixel",' : ''}system-ui`; ctx.textAlign = 'center'; ctx.globalAlpha = Math.min(1, f.t * 2); ctx.fillStyle = '#000'; ctx.fillText(f.txt, f.x + 1, f.y + 1); ctx.fillStyle = f.c; ctx.fillText(f.txt, f.x, f.y); ctx.globalAlpha = 1; }
+    else if (f.txt) { if (f._t0 === undefined) f._t0 = f.t; const kk = Math.min(1, (f._t0 - f.t) / 0.14), sc = 1.45 - 0.45 * kk, X = Math.round(f.x), Y = Math.round(f.y);
+      const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false; ctx.save(); ctx.translate(X, Y); ctx.scale(sc, sc);
+      ctx.font = f.big ? 'bold 14px "Taller Pixel","Chakra Petch",monospace' : 'bold 10px "Taller Pixel","Chakra Petch",monospace'; ctx.textAlign = 'center'; ctx.globalAlpha = Math.min(1, f.t * 2.5);
+      ctx.fillStyle = '#140c10'; for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [1, 1]]) ctx.fillText(f.txt, dx, dy); // contorno de píxel
+      ctx.fillStyle = f.c; ctx.fillText(f.txt, 0, 0); ctx.restore(); ctx.globalAlpha = 1; ctx.imageSmoothingEnabled = sm; } // números que saltan, en pixel art
   }
   // Radio de las protecciones: al llevarlas en la mano o al apuntar a una
   { const sel = selectedBlock(), hb = at(mouse.tx, mouse.ty), wk = sel && WARD_DEF[sel] ? sel : hb && WARD_DEF[hb.type] ? hb.type : null;

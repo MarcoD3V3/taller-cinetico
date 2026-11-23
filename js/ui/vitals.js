@@ -117,6 +117,9 @@ $('mChar').addEventListener('click', e => {
 $('bRespawn').onclick = respawn;
 // ---------- Partículas al romper ----------
 const BURSTS = [];
-function burst(tx, ty, rgb) { const col = Array.isArray(rgb) ? `rgb(${rgb[0] | 0},${rgb[1] | 0},${rgb[2] | 0})` : rgb; for (let i = 0; i < 7; i++) BURSTS.push({ x: (tx + 0.5) * T, y: (ty + 0.5) * T, vx: (Math.random() - 0.5) * 90, vy: (Math.random() - 0.5) * 90 - 20, t: 0.45, c: col }); if (BURSTS.length > 120) BURSTS.splice(0, BURSTS.length - 120); }
-function tickBursts(dt) { for (let i = BURSTS.length - 1; i >= 0; i--) { const b = BURSTS[i]; b.t -= dt; if (b.t <= 0) { BURSTS.splice(i, 1); continue; } b.x += b.vx * dt; b.y += b.vy * dt; b.vy += 160 * dt; } }
-function drawBursts(ctx) { for (const b of BURSTS) { ctx.globalAlpha = Math.min(1, b.t * 3); ctx.fillStyle = b.c; ctx.fillRect(b.x - 2, b.y - 2, 4, 4); } ctx.globalAlpha = 1; }
+function burst(tx, ty, rgb, rgb2) { const cc = v => Array.isArray(v) ? `rgb(${v[0] | 0},${v[1] | 0},${v[2] | 0})` : v, col = cc(rgb), col2 = rgb2 ? cc(rgb2) : null;
+  for (let i = 0; i < 10; i++) { const ore = col2 && i % 3 === 0; BURSTS.push({ x: (tx + 0.5) * T + (Math.random() - 0.5) * 10, y: (ty + 0.5) * T + (Math.random() - 0.5) * 10, vx: (Math.random() - 0.5) * 110, vy: -30 - Math.random() * 80, t: 0.45 + Math.random() * 0.25, c: ore ? col2 : col, s: ore || Math.random() < 0.4 ? 3 : 2, g: 1 }); }
+  for (let i = 0; i < 4; i++) BURSTS.push({ x: (tx + 0.5) * T + (Math.random() - 0.5) * 16, y: (ty + 0.8) * T, vx: (Math.random() - 0.5) * 40, vy: -8 - Math.random() * 14, t: 0.5, c: 'rgba(210,200,180,.55)', s: 2, g: 0.15 }); // polvo
+  if (BURSTS.length > 160) BURSTS.splice(0, BURSTS.length - 160); }
+function tickBursts(dt) { for (let i = BURSTS.length - 1; i >= 0; i--) { const b = BURSTS[i]; b.t -= dt; if (b.t <= 0) { BURSTS.splice(i, 1); continue; } b.x += b.vx * dt; b.y += b.vy * dt; b.vy += 260 * (b.g ?? 1) * dt; b.vx *= 1 - Math.min(1, dt * 2); } }
+function drawBursts(ctx) { const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false; for (const b of BURSTS) { const sz = b.s || 3, X = Math.round(b.x - sz / 2), Y = Math.round(b.y - sz / 2); ctx.globalAlpha = Math.min(1, b.t * 3); ctx.fillStyle = b.c; ctx.fillRect(X, Y, sz, sz); if (sz > 2) { ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(X, Y + sz - 1, sz, 1); ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(X, Y, 1, 1); } } ctx.globalAlpha = 1; ctx.imageSmoothingEnabled = sm; } // trozos de píxeles con luz y sombra

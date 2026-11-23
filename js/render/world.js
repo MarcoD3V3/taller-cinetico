@@ -227,11 +227,12 @@ function render(fdt) {
     const lk = k / 4 / dpr;
     const light = (wx, wy, r) => { const sx = (ox / dpr + wx * z) / 4, sy = (oy / dpr + wy * z) / 4, rs = r * T * z / 4; if (sx + rs < 0 || sy + rs < 0 || sx - rs > dw || sy - rs > dh) return; darkX.drawImage(glowSprite, sx - rs, sy - rs, rs * 2, rs * 2); };
     { const h = heldId(); light(p.x, p.y, Math.max(h === 'lightWand' ? 12 : h === 'lantern' ? 8 : buff('night') ? 9 : 3, typeof kitLight === 'function' ? kitLight() : 0)); }
-    for (const b of L.light) if (litOf(b)) light(b.x * T + 16, b.y * T + 16, typeof lightOf === 'function' ? lightOf(b) : BD[b.type].light);
+    const parp = b => 1 + Math.sin(now / 95 + b.x * 7.1) * 0.045 + Math.sin(now / 41 + b.y * 3.3) * 0.03; // las llamas parpadean un poco
+    for (const b of L.light) if (litOf(b)) light(b.x * T + 16, b.y * T + 16, (typeof lightOf === 'function' ? lightOf(b) : BD[b.type].light) * parp(b));
     for (let cy = Math.floor(y0 / CH); cy <= Math.floor(y1 / CH); cy++) for (let cx = Math.floor(x0 / CH); cx <= Math.floor(x1 / CH); cx++) { const ls = tileLights.get(chunkKey(cx, cy)); if (ls) for (let i = 0; i < ls.length; i += 3) light(ls[i] * T + 16, ls[i + 1] * T + 16, ls[i + 2]); }
-    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.imageSmoothingEnabled = true; ctx.drawImage(darkC, 0, 0, cv.width, cv.height);
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.imageSmoothingEnabled = false; ctx.drawImage(darkC, 0, 0, cv.width, cv.height); // la luz y la sombra en píxeles grandes, con escalones
     ctx.setTransform(k, 0, 0, k, ox, oy); ctx.globalCompositeOperation = 'lighter';
-    for (const b of L.light) if (litOf(b)) { const r = (typeof lightOf === 'function' ? lightOf(b) : BD[b.type].light) * T * 0.8; const x = b.x * T + 16, y = b.y * T + 16; if (x > (x0 - 8) * T && x < (x1 + 8) * T && y > (y0 - 8) * T && y < (y1 + 8) * T) ctx.drawImage(warmGlow, x - r, y - r, r * 2, r * 2); }
+    for (const b of L.light) if (litOf(b)) { const r = (typeof lightOf === 'function' ? lightOf(b) : BD[b.type].light) * T * 0.8 * parp(b); const x = b.x * T + 16, y = b.y * T + 16; if (x > (x0 - 8) * T && x < (x1 + 8) * T && y > (y0 - 8) * T && y < (y1 + 8) * T) ctx.drawImage(warmGlow, x - r, y - r, r * 2, r * 2); }
     ctx.globalCompositeOperation = 'source-over';
   }
   drawWeatherScreen(ctx, fdt || 0); // lluvia, nieve, niebla, tinte de escena (render/fx.js)

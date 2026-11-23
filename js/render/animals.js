@@ -332,7 +332,7 @@ function drawAnimals(c, k, ox, oy, x0, y0, x1, y1) {
     const sp = SPECIES[a.sp], spr = animalSprite(a.sp), vs = animVS(sp), w = spr.size * vs, h = spr.h * vs, feet = sp.s * 0.6 * vs;
     const bob = a.rest ? 0 : Math.sin(a.ph) * (sp.hop ? 3 : 0.6), fr = a.rest && !sp.fly ? 0 : (Math.floor(a.ph * 1.3) & 1);
     c.setTransform(k * a.face, 0, 0, k, ox + a.x * k, oy + (a.y - (sp.fly ? 8 : 0) - Math.abs(bob)) * k);
-    if (!sp.fly && !sp.aq) { c.fillStyle = 'rgba(0,0,0,.28)'; c.beginPath(); c.ellipse(0, feet, sp.s * 0.95 * vs, sp.s * 0.3 * vs, 0, 0, 7); c.fill(); }
+    if (!sp.fly && !sp.aq) sombraPx(c, 0, feet, sp.s * 0.95 * vs, Math.max(1, sp.s * 0.3 * vs), 0.42); // sombra de píxeles
     c.drawImage(spr.f[fr], -w / 2, feet - spr.gy * vs, w, h);
   }
   c.imageSmoothingEnabled = sm;

@@ -199,7 +199,7 @@ function updateMining(fdt) {
     }
     if (give(gi.drop) > 0) { toastErr('Inventario lleno'); return; }
     const ex = gi.extra; if (ex && Math.random() < ex[1]) invAdd(ex[0], 1);
-    burst(tx, ty, gi.tree ? hexRGB(gi.tree.a) : gi.c);
+    burst(tx, ty, gi.tree ? hexRGB(gi.tree.a) : gi.c, gi.dot ? hexRGB(gi.dot) : null); // trocitos del color del mineral
     if (gi.hp && !gi.solid && !gi.tree && !gi.plant && !gi.liquid && !gi.built) setDepth(tx, ty, depthAt(tx, ty) + 1);
     // Roca más alta que tu capa: se rebaja una capa por golpe (sigue siendo roca) hasta llegar a la tuya;
     // en tu capa se rompe y queda el suelo del túnel una capa por debajo
