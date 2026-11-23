@@ -238,17 +238,17 @@ function paintCliffs(u, W, x0, y0) {
     const meLiq = GI[gnd(gx, gy)].liquid;
     for (const [side, hi] of [[-1, lf], [1, rt]]) {
       if (hi <= l || (meLiq && GI[gnd(gx + side, gy)].liquid)) continue; // agua junto a agua: misma superficie
-      const rkS = esRocaM(gx + side, gy), wmax = rkS ? 0 : Math.min(7, 3 + (hi - l) * 2), rk = rockOf(gnd(gx + side, gy), rawLv(gx + side, gy) > LV_FOOT), sh = side < 0 ? 0.72 : 0.95;
+      const rkS = esRocaM(gx + side, gy), wmax = rkS ? 0 : Math.min(7, 3 + (hi - l) * 2), rk = colParedDe(gx + side, gy).rock, sh = side < 0 ? 0.86 : 0.98; // mismo color que la pared de delante
       const ug2 = GI[gnd(gx + side, gy)], topS = ug2.flora ? GI[ug2.u >= 0 ? ug2.u : G.GRASS].c : (ug2.c || [110, 140, 80]), stonyS = rawLv(gx + side, gy) > LV_FOOT || !!ug2.rock || !!ug2.dot || !!(ug2.solid && !ug2.tree), altoS = hi - l >= 2;
       for (let y = 0; y < T; y++) {
         const wy = gy * T + y, w = rkS ? 0 : anchoLado(wmax - ((ihash(wy >> 2, gx * 17 + side) * 3) | 0), y, lvV(gx + side, gy - 1) <= l || esRocaM(gx + side, gy - 1));
         const lipW = 1 + ((ihash(wy >> 1, gx * 29 + side) * 2) | 0); // canto de la terraza visto de lado (hierba, tierra…)
         for (let k = 0; k < w; k++) { const x = side < 0 ? k : T - 1 - k, i = (by + y) * W + bx + x;
           if (k < lipW) { const f = k === lipW - 1 ? 0.66 : 1.02; u[i] = px32(topS[0] * f, topS[1] * f, topS[2] * f); continue; }
-          const f = texPared(gx * T + x, wy, 0.3 + 0.35 * (k / w), stonyS, 0, altoS) * sh * (k === w - 1 ? 0.62 : 1); // misma textura que la pared de delante, continua entre casillas
+          const f = texPared(gx * T + x, wy, 0.25 + 0.3 * (k / w), stonyS, 0, altoS) * sh * (k === w - 1 ? 0.8 : 1); // misma textura que la pared de delante, continua entre casillas
           u[i] = px32(rk[0] * f, rk[1] * f, rk[2] * f); }
         // sombra suave junto a la pared
-        const sw = 3 + Math.min(4, (hi - l) * 2); for (let k = w; k < w + sw && k < T; k++) { const x = side < 0 ? k : T - 1 - k, i = (by + y) * W + bx + x, t = (k - w) / sw; u[i] = scale(u[i], 0.66 + 0.34 * t * t); } // sombra más ancha cuanto más alta la pared
+        const sw = 3 + Math.min(4, (hi - l) * 2); for (let k = w; k < w + sw && k < T; k++) { const x = side < 0 ? k : T - 1 - k, i = (by + y) * W + bx + x, t = (k - w) / sw; u[i] = scale(u[i], 0.74 + 0.26 * t * t); } // sombra más ancha cuanto más alta la pared
       }
     }
     if (rk0) { const dnL = esRocaM(gx, gy + 1) ? l : lvV(gx, gy + 1);
@@ -288,7 +288,7 @@ function paintCliffs(u, W, x0, y0) {
             const x = side < 0 ? xx : T - 1 - xx, i = (by + yy) * W + bx + x;
             if (dd < R - 0.4) { u[i] = scale(u[i], 1.14); continue; } u[i] = scale(srcN[yy * T + x], 0.9); } } } }
     if (!rk0 && !meLiq) { const dnV = esRocaM(gx, gy + 1) ? 99 : lvV(gx, gy + 1);
-      if (dnV < l) for (const side of [-1, 1]) { const sv = side < 0 ? lf : rt; if (sv >= l || esRocaM(gx + side, gy)) continue;
+      if (false && dnV < l) for (const side of [-1, 1]) { const sv = side < 0 ? lf : rt; if (sv >= l || esRocaM(gx + side, gy)) continue; /* (quitado: hacía doble curva con la pared de la esquina y salían trocitos) */
         const R = 6, g0 = GI[gnd(gx, gy)], topc = g0.flora ? GI[g0.u >= 0 ? g0.u : G.GRASS].c : (g0.c || [110, 140, 80]), rkc = rockOf(gnd(gx, gy), rawLv(gx, gy) > LV_FOOT), stony = rawLv(gx, gy) > LV_FOOT || !!g0.rock || !!g0.dot;
         for (let yy = 0; yy < R; yy++) for (let xx = 0; xx < R; xx++) { const dx = R - 0.5 - xx, dy = R - 0.5 - yy, dd = Math.hypot(dx, dy); // xx,yy: desde la esquina hacia dentro; dd: distancia al centro de la curva
           if (dd < R - 1.6) continue; const x = side < 0 ? xx : T - 1 - xx, y = T - 1 - yy, i = (by + y) * W + bx + x;
@@ -304,7 +304,7 @@ function paintCliffs(u, W, x0, y0) {
           for (let y = 0; y < SLc; y++) { const wv = side < 0 ? Math.round((SLc - y) * 0.85) : Math.max(0, 4 - y); // a la derecha de la roca la sombra se alarga en diagonal
             for (let k = 0; k < wv; k++) { const x = side < 0 ? k : T - 1 - k, i = (by + y) * W + bx + x, t = Math.max(k / Math.max(1, wv), y / SLc); u[i] = scale(u[i], 0.56 + 0.44 * t * t); } } }
         continue; }
-      const fh = Math.min(T, faceH(dg - l)), wmax = Math.min(7, 3 + (dg - l) * 2), rk = rockOf(gnd(gx + side, gy - 1), rawLv(gx + side, gy - 1) > LV_FOOT), sh = side < 0 ? 0.72 : 0.95;
+      const fh = Math.min(T, faceH(dg - l)), wmax = Math.min(7, 3 + (dg - l) * 2), rk = colParedDe(gx + side, gy - 1).rock, sh = side < 0 ? 0.86 : 0.98;
       const ugd = GI[gnd(gx + side, gy - 1)], stonyC = rawLv(gx + side, gy - 1) > LV_FOOT || !!ugd.rock || !!ugd.dot || !!(ugd.solid && !ugd.tree), topc = ugd.flora ? GI[ugd.u >= 0 ? ugd.u : G.GRASS].c : (ugd.c || [110, 140, 80]), SLc = 6 + Math.min(3, dg - l) * 3;
       for (let y = 0; y < fh + SLc + 2 && y < T; y++) {
         const wy = gy * T + y, w = wmax - ((ihash(wy >> 2, gx * 17 + side) * 3) | 0);
