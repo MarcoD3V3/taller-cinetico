@@ -6,7 +6,7 @@
 //   · huellas del personaje en arena, nieve, barro y ceniza, que se van borrando.
 //  Es solo dibujo: no cambia la partida ni se guarda.
 // =====================================================================================
-const AMB = { hojas: [], luces: [], huellas: [], vuelan: [], chispas: [], ult: null, tH: 0, tL: 0, paso: 0, rompe: null };
+const AMB = { hojas: [], luces: [], huellas: [], vuelan: [], chispas: [], gotas: [], ult: null, tH: 0, tL: 0, paso: 0, rompe: null, hum: 0, nieve: 0, cantos: null, cantosK: '' };
 const AMB_MAX_HOJAS = 46, AMB_MAX_LUCES = 26, AMB_MAX_HUELLAS = 140;
 const ambRGB = h => { if (Array.isArray(h)) return h; const m = String(h || '').match(/\w\w/g); return m && m.length >= 3 ? m.slice(0, 3).map(v => parseInt(v, 16)) : [90, 140, 60]; };
 const ambCol = (c, f, a) => `rgba(${Math.min(255, c[0] * f) | 0},${Math.min(255, c[1] * f) | 0},${Math.min(255, c[2] * f) | 0},${a.toFixed(3)})`;
@@ -53,6 +53,16 @@ function ambTick(dt, x0, y0, x1, y1) {
       AMB.ult = { x: p.x, y: p.y, lado }; if (AMB.huellas.length > AMB_MAX_HUELLAS) AMB.huellas.shift(); } }
     else AMB.ult = null; }
   for (let i = AMB.huellas.length - 1; i >= 0; i--) { const h = AMB.huellas[i]; h.t += dt; if (h.t > h.vida) AMB.huellas.splice(i, 1); }
+  // clima que se ve en el suelo: humedad (sube con la lluvia, se seca despacio) y nieve acumulada (se derrite despacio)
+  if (typeof WX !== 'undefined') { const ty = WX.type, I = WX.int || 0, cueva = WX.cave > 0.5;
+    const llueve = !cueva && (ty === 'rain' || ty === 'storm') ? I * (ty === 'storm' ? 1.3 : 1) : 0, nieva = !cueva && (ty === 'snow' || ty === 'blizzard') ? I : 0;
+    AMB.hum = Math.max(0, Math.min(1, AMB.hum + (llueve ? llueve * dt / 25 : -dt / (ty === 'heat' ? 25 : 90))));
+    AMB.nieve = Math.max(0, Math.min(1, AMB.nieve + (nieva ? nieva * dt / 60 : -dt / (ty === 'heat' ? 30 : 160))));
+    // gotas que salpican en el suelo y en el agua
+    if (llueve > 0.05) { const n = Math.round(llueve * 6 * Math.min(2, (x1 - x0) / 30)); for (let q = 0; q < n; q++) { const tx = x0 + Math.random() * (x1 - x0 + 1), ty2 = y0 + Math.random() * (y1 - y0 + 1), g = GI[gnd(Math.floor(tx), Math.floor(ty2))];
+      if (!g || g.solid) continue; AMB.gotas.push({ x: tx * T, y: ty2 * T, t: 0, agua: g.liquid === 'water' }); } }
+    for (let i = AMB.gotas.length - 1; i >= 0; i--) if ((AMB.gotas[i].t += dt) > 0.32) AMB.gotas.splice(i, 1);
+    if (AMB.gotas.length > 220) AMB.gotas.splice(0, AMB.gotas.length - 220); }
   // pasos: un sonido corto según el suelo que pisas (más seguidos si corres)
   if (typeof pmove !== 'undefined' && pmove.moving && !enAire && OPT.pasos !== false) { AMB.paso = (AMB.paso || 0) - dt;
     if (AMB.paso <= 0) { AMB.paso = pmove.sprint ? 0.24 : 0.34; ambPaso(P.swim > 0 ? 'agua' : ambTipoPaso(gnd(Math.floor(p.x / T), Math.floor((p.y + 8) / T)), Math.floor(p.x / T), Math.floor((p.y + 8) / T))); } }
@@ -72,6 +82,28 @@ function ambHuellas(ctx) {
     if (hor) ctx.fillRect(X - 1, Y, 3, 2); else ctx.fillRect(X, Y - 1, 2, 3);                           // la pisada
     ctx.fillStyle = h.tipo === 'nieve' ? `rgba(255,255,255,${(a * 0.9).toFixed(3)})` : `rgba(255,240,210,${(a * 0.4).toFixed(3)})`;
     if (hor) ctx.fillRect(X - 1, Y - 1, 3, 1); else ctx.fillRect(X - 1, Y - 1, 1, 3); }                // borde levantado con luz
+  ctx.imageSmoothingEnabled = sm;
+}
+// Clima en el suelo (bajo personajes y objetos)
+function ambClimaSuelo(ctx, x0, y0, x1, y1) {
+  const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
+  if (AMB.hum > 0.02) { // suelo mojado: más oscuro y con brillos de píxel que titilan
+    ctx.fillStyle = `rgba(10,22,40,${(AMB.hum * 0.16).toFixed(3)})`; ctx.fillRect(x0 * T, y0 * T, (x1 - x0 + 1) * T, (y1 - y0 + 1) * T);
+    const n = Math.round(AMB.hum * 40), tt = (performance.now() / 260) | 0; ctx.fillStyle = `rgba(220,235,255,${(AMB.hum * 0.5).toFixed(3)})`;
+    for (let q = 0; q < n; q++) { const hx = ihash(q * 31 + tt, 7) , hy = ihash(q * 17 + tt, 11), tx = Math.floor(x0 + hx * (x1 - x0 + 1)), ty = Math.floor(y0 + hy * (y1 - y0 + 1)), g = GI[gnd(tx, ty)]; if (!g || g.solid || g.liquid) continue;
+      ctx.fillRect(Math.round(tx * T + ihash(q, tt) * T), Math.round(ty * T + ihash(tt, q) * T), 1, 1); } }
+  for (const d of AMB.gotas) { const k = d.t / 0.32, X = Math.round(d.x), Y = Math.round(d.y), a = (1 - k) * 0.75; // salpicadura de píxeles
+    if (d.agua) { const r = 1 + Math.round(k * 4); ctx.fillStyle = `rgba(220,240,255,${a.toFixed(2)})`; ctx.fillRect(X - r, Y, 1, 1); ctx.fillRect(X + r, Y, 1, 1); ctx.fillRect(X, Y - Math.ceil(r / 2), 1, 1); ctx.fillRect(X, Y + Math.ceil(r / 2), 1, 1); }
+    else { ctx.fillStyle = `rgba(200,220,255,${a.toFixed(2)})`; const h = Math.round((1 - k) * 3); ctx.fillRect(X - 1 - Math.round(k * 2), Y - h, 1, 1); ctx.fillRect(X + 1 + Math.round(k * 2), Y - h, 1, 1); if (k < 0.3) ctx.fillRect(X, Y, 1, 1); } }
+  if (AMB.nieve > 0.03 && typeof lvV === 'function') { // nieve acumulada en los cantos de las terrazas y encima de la roca
+    const key = x0 + ',' + y0 + ',' + x1 + ',' + y1;
+    if (AMB.cantosK !== key) { AMB.cantosK = key; const L = []; for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) { const l = lvV(tx, ty), dn = lvV(tx, ty + 1), g = GI[gnd(tx, ty)]; if (g.liquid) continue;
+      if (dn < l) L.push(0, tx, ty); if (esRocaM(tx, ty)) L.push(1, tx, ty); } AMB.cantos = L; }
+    const L = AMB.cantos || [], nv = AMB.nieve;
+    for (let i = 0; i < L.length; i += 3) { const tx = L[i + 1], ty = L[i + 2];
+      if (L[i] === 0) { const y = (ty + 1) * T, sigL = lvV(tx - 1, ty + 1) < lvV(tx - 1, ty), sigR = lvV(tx + 1, ty + 1) < lvV(tx + 1, ty); for (let x = 0; x < T; x++) { let h = Math.round((1 + ihash(tx * T + x >> 1, ty * 3) * 2) * nv); if (!sigL && x < 5) h = Math.min(h, x >> 1); if (!sigR && x > T - 6) h = Math.min(h, (T - 1 - x) >> 1); if (!h) continue; // en las puntas la nieve se afina (sigue la curva) // capa en el canto, con borde irregular
+          ctx.fillStyle = 'rgba(244,248,255,.95)'; ctx.fillRect(tx * T + x, y - h + 1, 1, h); ctx.fillStyle = 'rgba(170,190,220,.7)'; ctx.fillRect(tx * T + x, y + 1, 1, 1); } }
+      else { const n = Math.round(nv * 26); ctx.fillStyle = 'rgba(240,246,255,.9)'; for (let q = 0; q < n; q++) ctx.fillRect(tx * T + ((ihash(tx * 7 + q, ty) * T) | 0), ty * T + ((ihash(ty * 5 + q, tx) * (T - 10)) | 0), 2, 1); } } }
   ctx.imageSmoothingEnabled = sm;
 }
 // hojas y luciérnagas: por encima del mundo (las luciérnagas, también por encima de la oscuridad)
@@ -95,7 +127,7 @@ function ambEncima(ctx, k, ox, oy) {
   ctx.imageSmoothingEnabled = sm;
 }
 // Enganches: las huellas van con la decoración del suelo; hojas y luciérnagas, al final del fotograma
-if (typeof drawGroundDecor === 'function') { const d0 = drawGroundDecor; drawGroundDecor = (ctx, k, ox, oy, x0, y0, x1, y1) => { ambHuellas(ctx); return d0(ctx, k, ox, oy, x0, y0, x1, y1); }; }
+if (typeof drawGroundDecor === 'function') { const d0 = drawGroundDecor; drawGroundDecor = (ctx, k, ox, oy, x0, y0, x1, y1) => { if (OPT.ambiente !== false) { try { ambClimaSuelo(ctx, x0, y0, x1, y1); } catch (e) { console.warn(e); } ambHuellas(ctx); } return d0(ctx, k, ox, oy, x0, y0, x1, y1); }; }
 { const r0 = render; render = fdt => { const r = r0(fdt); try { if (S && S.player && cw > 2 && ch > 2 && OPT.ambiente !== false) {
     const z = view.z, k = z * dpr, ox = Math.round(cw / 2 * dpr - view.x * k), oy = Math.round(ch / 2 * dpr - view.y * k);
     const x0 = Math.floor((view.x - cw / 2 / z) / T) - 1, x1 = Math.ceil((view.x + cw / 2 / z) / T) + 1, y0 = Math.floor((view.y - ch / 2 / z) / T) - 1, y1 = Math.ceil((view.y + ch / 2 / z) / T) + 1;
