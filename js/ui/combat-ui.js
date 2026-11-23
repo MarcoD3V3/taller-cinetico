@@ -36,8 +36,8 @@ function drawPlayer(ctx) {
   if (hc !== null) { ctx.restore(); sombraPx(ctx, x, hc, 11, 2, 0.32); }
   if (swm) { ctx.restore(); ctx.globalAlpha = 1;
     // Superficie alrededor del cuerpo: anillo claro y brillo que se mueve con el oleaje
-    const t = performance.now() / 400; anilloAguaPx(ctx, x, wl, 11 + Math.round(Math.sin(t) * 0.8), 4, t); // anillo de píxeles
-    if (moving) { ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.beginPath(); const ca2 = Math.cos(pmove.ang), sa2 = Math.sin(pmove.ang); ctx.moveTo(x - ca2 * 10 - sa2 * 6, wl - sa2 * 3 + ca2 * 2); ctx.lineTo(x - ca2 * 18, wl - sa2 * 6); ctx.lineTo(x - ca2 * 10 + sa2 * 6, wl - sa2 * 3 - ca2 * 2); ctx.stroke(); }
+    const t = performance.now() / 400; void t; // sin anillo ni flecha de dirección: solo las ondas y salpicaduras
+    /* (sin estela en forma de flecha) */
   }
   ctx.globalAlpha = 1;
   drawFishing(ctx, x, y - z);
