@@ -368,8 +368,13 @@ function paintRocaRedonda(u, W, x0, y0) {
   for (let ty = 0; ty < CH; ty++) for (let tx = 0; tx < CH; tx++) {
     const gx = x0 + tx, gy = y0 + ty; if (!esRocaM(gx, gy)) continue;
     const eN = !esRocaM(gx, gy - 1) && !GI[gnd(gx, gy - 1)].liquid, eS = !esRocaM(gx, gy + 1) && !GI[gnd(gx, gy + 1)].liquid, eW = !esRocaM(gx - 1, gy) && !GI[gnd(gx - 1, gy)].liquid, eE = !esRocaM(gx + 1, gy) && !GI[gnd(gx + 1, gy)].liquid;
+    const bajo = typeof layerOf === 'function' && layerOf(gy) > 0, bx = tx * T, by = ty * T;
+    if (bajo) { // en las cuevas, la parte de arriba de la roca es casi negra (el techo) y solo el borde tiene luz, como en Core Keeper
+      const cara = eS ? Math.min(T - 4, faceH(Math.max(1, lvV(gx, gy) - lvV(gx, gy + 1)))) + 2 : 0; // la pared de delante se queda con su luz
+      for (let y = 0; y < T - cara; y++) for (let x = 0; x < T; x++) { const d = Math.min(eN ? y : 99, eW ? x : 99, eE ? T - 1 - x : 99, eS ? T - cara - 1 - y : 99) + (ihash(gx * T + x >> 1, gy * T + y >> 1) - 0.5) * 2.5;
+        const f = d < 2 ? 1 : d < 6 ? 0.75 - (d - 2) * 0.1 : 0.24 + ihash(gx * T + x, gy * T + y) * 0.05; if (f < 1) { const i = (by + y) * W + bx + x; u[i] = sc(u[i], f); } } }
     if (!eN && !eS && !eW && !eE) continue;
-    const bx = tx * T, by = ty * T; cut.fill(0);
+    cut.fill(0);
     const prof = (a, s) => { const v = ihash((a >> 2) + s * 131, s); const v2 = ihash(((a >> 2) + 1) + s * 131, s), f = (a & 3) / 4; return 2 + Math.round((v + (v2 - v) * f) * 4.4); }; // 2..6 px, suave a lo largo del borde
     const R = 11;
     for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) { const wx = gx * T + x, wy = gy * T + y; let c = 0;
