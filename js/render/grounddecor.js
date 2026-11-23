@@ -177,7 +177,7 @@ function gdHacer(tx, ty, d) {
   const py = tall ? ty * T + 27 : ty * T + 4 + h + hash2(tx, ty, 75) * Math.max(0, T - 8 - h);
   const swayAmp = GD_SWAY[cat] && hash2(tx, ty, 92) < GD_SWAY[cat][1] ? GD_SWAY[cat][0] : 0;
   // todo lo que se levanta del suelo (no lo plano) se ordena con el personaje por su base: delante o detrás según dónde estés
-  const up = tall || (!GD_FLAT.has(cat) && h >= 8);
+  const up = tall || !GD_FLAT.has(cat); // todo lo que se levanta (aunque sea pequeño, como una flor) se ordena por su base: delante o detrás de lo demás según dónde esté
   return { cat, im, px, py, w, h, tall, up, sw: swayAmp, seed: hash2(tx, ty, 93), flip: hash2(tx, ty, 76) < 0.5 && cat !== 'chatarra' };
 }
 // Lo visible del suelo se reúne UNA vez por fotograma (antes se miraba cada casilla tres veces: suelo, árboles de detrás y de delante)
