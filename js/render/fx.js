@@ -88,7 +88,7 @@ function drawWeatherScreen(ctx, dt) {
   if (/swamp|bog|marsh/i.test(key)) tint = 'rgba(80,110,50,.10)'; else if (/desert|dune|mesa|badland/i.test(key)) tint = 'rgba(255,190,90,.08)'; else if (/snow|tundra|ice|frozen/i.test(key)) tint = 'rgba(160,200,255,.09)'; else if (/volcan|ash|magma/i.test(key)) tint = 'rgba(255,70,30,.09)'; else if (/mushroom|fung|crystal/i.test(key)) tint = 'rgba(170,110,255,.08)';
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   if (tint && !cave) { ctx.fillStyle = tint; ctx.fillRect(0, 0, W, H); }
-  if (day > 0.15 && day < 0.55 && !cave) { ctx.fillStyle = `rgba(255,140,70,${(0.55 - Math.abs(day - 0.35) * 2.7) * 0.14})`; ctx.fillRect(0, 0, W, H); }
+  if (!cave && !S.alwaysDay && OPT.coloresDia !== false) luzDelDia(ctx, W, H); // amanecer dorado, día limpio, atardecer naranja, noche azul
   if (cave) return;
   // Partículas de clima
   const want = { rain: 140, storm: 240, snow: 90, blizzard: 220, sandstorm: 160, ashfall: 80, spores: 50 }[type] || 0, n = Math.floor(want * I * (W / 1400));
@@ -119,3 +119,21 @@ let _fxOn = false;
 { const h0 = hurt; hurt = (t, part, mult, cause) => { h0(t, part, mult, cause); if (S && survOn()) { const p = S.player; fxBurst(p.x, p.y - 10, t === 'burn' ? 8 : 6, { col: t === 'burn' ? '#ff9a4a' : t === 'bruise' || t === 'cramp' ? '#c8a8ff' : '#c8241e', sp: 70, life: 0.5, size: 2, grav: 160, up: 30 }); } }; }
 { const u0 = survUse; survUse = s => { const id = s && s.id, f = id && ITEMS[id].food, r = u0(s); if (r && f && S) { const p = S.player; fxBurst(p.x, p.y - 14, 6, { col: f.w > (f.f || 0) ? '#8ac8ff' : ITEMS[id].c || '#d8a060', sp: 30, life: 0.5, size: 1.6, grav: 120 }); if (f.hp || f.buff) fxBurst(p.x, p.y - 10, 10, { col: '#7ae07a', sp: 40, life: 0.8, glow: 1, shape: 'star', up: 25 }); } return r; }; }
 { const a0 = applyProc; applyProc = (id, part, wi, q) => { const r = a0(id, part, wi, q); if (r && S) { const p = S.player; fxBurst(p.x, p.y - 10, 14, { col: '#7ae07a', sp: 45, life: 0.9, glow: 1, shape: 'star', up: 25 }); } return r; }; }
+
+// ---------- Colores del día ----------
+// La luz cambia de color con la hora: amanecer rosado y dorado, mediodía limpio (un poco cálido), atardecer naranja
+// intenso que tira a rojo y morado, y noche azulada. Se pinta encima del mundo con mezclas suaves (multiplicar para
+// teñir las sombras, «screen» para el brillo del sol bajo), sin tocar la interfaz. En cuevas no hay sol.
+function luzDelDia(ctx, W, H) {
+  const dl = S.gen.dayLen || DAY_LEN, ph = (S.time % dl) / dl, campana = (c, a) => Math.max(0, 1 - Math.abs(ph - c) / a);
+  const amanecer = campana(0.235, 0.11), atardecer = campana(0.765, 0.11), noche = 1 - daylight(), medio = campana(0.5, 0.16);
+  const capa = (op, col, a) => { if (a < 0.004) return; ctx.globalCompositeOperation = op; ctx.fillStyle = `rgba(${col},${a.toFixed(3)})`; ctx.fillRect(0, 0, W, H); };
+  capa('multiply', '255,196,170', amanecer * 0.36);   // sombras rosadas
+  capa('screen', '255,190,110', amanecer * 0.16);     // brillo dorado del sol bajo
+  capa('multiply', '255,165,110', atardecer * 0.46);  // todo más naranja
+  capa('screen', '255,120,60', atardecer * 0.15);     // resplandor rojizo
+  capa('multiply', '190,150,230', Math.max(0, atardecer - 0.6) * 0.5); // al final del atardecer, morado
+  capa('multiply', '150,175,255', Math.pow(noche, 1.6) * 0.42);      // noche azulada (además de la oscuridad)
+  capa('screen', '255,250,230', medio * 0.035);       // mediodía claro y limpio
+  ctx.globalCompositeOperation = 'source-over';
+}
