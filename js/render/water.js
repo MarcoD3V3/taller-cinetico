@@ -286,6 +286,8 @@ function aguaVisible(px, py) {
   if (!d || !d.bm) return null; const lx = Math.floor((px - cx * CH * T) / 4), ly = Math.floor((py - cy * CH * T) / 4);
   return !!d.bm[ly * WFX_NB + lx];
 }
+// Marea: dos veces al día el mar sube más por la arena (1 = normal, hasta 1,6 en pleamar)
+function mareaF() { if (!S || !S.gen) return 1; const dl = S.gen.dayLen || DAY_LEN, ph = (S.time % dl) / dl; return 1 + 0.3 * (1 + Math.sin(ph * Math.PI * 4)); }
 // tras volcar los píxeles del trozo: capas de color de la profundidad (una por banda)
 function wfxPaint(c, x0, y0) {
   const d = AGUA.d.get(chunkKey(x0 / CH, y0 / CH)); if (!d || !d.shade) return;
@@ -351,7 +353,7 @@ function wfxTop(c, X, Y, d, t) {
   }
   a = d.wetS;
   for (let i = 0; i < a.length; i += 5) {
-    const lx = a[i], ly = a[i + 1], wd = a[i + 2] / 4, s = phase(a[i + 3]), g = tam(a[i + 3], a[i + 4]), sube = 2.6 + 6.2 * g; // con ola grande el agua sube mucho más por la arena
+    const lx = a[i], ly = a[i + 1], wd = a[i + 2] / 4, s = phase(a[i + 3]), g = tam(a[i + 3], a[i + 4]), sube = (2.6 + 6.2 * g) * mareaF(); // con la marea alta el agua sube más por la playa // con ola grande el agua sube mucho más por la arena
     const reach = s < 0.5 ? 0 : s < 0.62 ? (s - 0.5) / 0.12 * sube : sube * (1 - (s - 0.62) / 0.38) + 0.6 * ((s - 0.62) / 0.38);
     if (wd <= reach + 0.2) P(lx, ly, s < 0.66 && Math.abs(wd - reach) < 0.7 && ihash(lx + tk5, ly * 3) > 0.25 ? C_FOAM : wd < 1.2 ? C_WET2 : C_WET);
     else if (wd < 1.1) P(lx, ly, C_WET);
