@@ -279,7 +279,7 @@ function paintCliffs(u, W, x0, y0) {
           if (y < hxc && k < w) { // pared lateral, con el canto de hierba arriba como la pared de delante
             const lip = 2 + ((ihash(wx >> 1, gy * 7 + 3) * 3) | 0);
             if (y < lip) { const f = y === 0 ? 1.15 : y === lip - 1 ? 0.62 : 0.9; u[i] = px32(topc[0] * f, topc[1] * f, topc[2] * f); continue; }
-            const lipW = 1 + ((ihash(wy >> 1, gx * 29 + side) * 2) | 0); if (k < lipW) { const f = k === lipW - 1 ? 0.66 : 1.02; u[i] = px32(topc[0] * f, topc[1] * f, topc[2] * f); continue; }
+            /* bajo la esquina solo hay pared: sin canto de hierba vertical (hacía una cruz con el canto de la pared de delante) */
             const f = texPared(wx, Math.max(0, y - 3), 0.3 + 0.5 * (y / Math.max(1, hxc)), stonyC, gy, dg - l >= 2) * sh * (k === w - 1 ? 0.6 : 1) * (y > hxc - 3 ? 0.85 : 1); u[i] = px32(rk[0] * f, rk[1] * f, rk[2] * f); continue; }
           // sombra junto a la pared y en cuña bajo la esquina (la luz viene de arriba a la izquierda: a la derecha se alarga)
           const dy = y - Math.max(0, hxc), reach = dy < 0 ? w + 3 : side < 0 ? w + Math.round((SLc - dy) * 0.85) : w + Math.max(0, 3 - dy);
