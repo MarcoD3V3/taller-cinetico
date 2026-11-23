@@ -38,7 +38,10 @@ function passable(x, y, who) {
   if (!gi.tree && gi.solid && !ghost && !flier) {
     // Vista 2,5D: la roca es un bloque una capa más alto; por detrás (su borde de arriba, lo que mide una capa) se
     // puede meter un poco y la roca tapa los pies (drawFrontTiles). No si arriba sigue la roca (el interior del monte).
-    if (!(o && o.proj) && !gi.flora && !gi.liquid && y - ty * T < 14) { const ga = GI[gnd(tx, ty - 1)]; if (!(ga.solid && !ga.tree)) return true; }
+    if (!(o && o.proj) && !gi.flora && !gi.liquid && y - ty * T < 14) { const ga = GI[gnd(tx, ty - 1)]; if (!(ga.solid && !ga.tree)) {
+      // solo entrando por detrás (desde arriba): junto a un lado descubierto de la roca no se puede (si no, te colabas por el costado y la roca te tapaba)
+      const lx = x - tx * T, roc = (ax, ay) => { const gg = GI[gnd(ax, ay)]; return gg.solid && !gg.tree; };
+      if (!((lx < 7 && !roc(tx - 1, ty)) || (lx > T - 7 && !roc(tx + 1, ty)))) return true; } }
     return false;
   }
   const b = c.b && c.b[i]; if (!b) return true;
