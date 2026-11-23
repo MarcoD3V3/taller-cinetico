@@ -218,9 +218,13 @@ function paintCliffs(u, W, x0, y0) {
     for (const [side, hi] of [[-1, lf], [1, rt]]) {
       if (hi <= l || (meLiq && GI[gnd(gx + side, gy)].liquid)) continue; // agua junto a agua: misma superficie
       const rkS = esRocaM(gx + side, gy), wmax = rkS ? 0 : Math.min(7, 3 + (hi - l) * 2), rk = rockOf(gnd(gx + side, gy), rawLv(gx + side, gy) > LV_FOOT), sh = side < 0 ? 0.72 : 0.95;
+      const ug2 = GI[gnd(gx + side, gy)], topS = ug2.flora ? GI[ug2.u >= 0 ? ug2.u : G.GRASS].c : (ug2.c || [110, 140, 80]), stonyS = rawLv(gx + side, gy) > LV_FOOT || !!ug2.rock || !!ug2.dot || !!(ug2.solid && !ug2.tree), altoS = hi - l >= 2;
       for (let y = 0; y < T; y++) {
         const wy = gy * T + y, w = rkS ? 0 : wmax - ((ihash(wy >> 2, gx * 17 + side) * 3) | 0);
-        for (let k = 0; k < w; k++) { const x = side < 0 ? k : T - 1 - k, i = (by + y) * W + bx + x, f = sh * (k === w - 1 ? 0.6 : 1) * (((wy >> 2) & 1) ? 1.05 : 0.95);
+        const lipW = 1 + ((ihash(wy >> 1, gx * 29 + side) * 2) | 0); // canto de la terraza visto de lado (hierba, tierra…)
+        for (let k = 0; k < w; k++) { const x = side < 0 ? k : T - 1 - k, i = (by + y) * W + bx + x;
+          if (k < lipW) { const f = k === lipW - 1 ? 0.66 : 1.02; u[i] = px32(topS[0] * f, topS[1] * f, topS[2] * f); continue; }
+          const f = texPared(gx * T + x, wy, 0.3 + 0.35 * (k / w), stonyS, 0, altoS) * sh * (k === w - 1 ? 0.62 : 1); // misma textura que la pared de delante, continua entre casillas
           u[i] = px32(rk[0] * f, rk[1] * f, rk[2] * f); }
         // sombra suave junto a la pared
         const sw = 3 + Math.min(4, (hi - l) * 2); for (let k = w; k < w + sw && k < T; k++) { const x = side < 0 ? k : T - 1 - k, i = (by + y) * W + bx + x, t = (k - w) / sw; u[i] = scale(u[i], 0.66 + 0.34 * t * t); } // sombra más ancha cuanto más alta la pared
@@ -256,7 +260,7 @@ function paintCliffs(u, W, x0, y0) {
             for (let k = 0; k < wv; k++) { const x = side < 0 ? k : T - 1 - k, i = (by + y) * W + bx + x, t = Math.max(k / Math.max(1, wv), y / SLc); u[i] = scale(u[i], 0.56 + 0.44 * t * t); } } }
         continue; }
       const fh = Math.min(T, faceH(dg - l)), wmax = Math.min(7, 3 + (dg - l) * 2), rk = rockOf(gnd(gx + side, gy - 1), rawLv(gx + side, gy - 1) > LV_FOOT), sh = side < 0 ? 0.72 : 0.95;
-      const ugd = GI[gnd(gx + side, gy - 1)], topc = ugd.flora ? GI[ugd.u >= 0 ? ugd.u : G.GRASS].c : (ugd.c || [110, 140, 80]), SLc = 6 + Math.min(3, dg - l) * 3;
+      const ugd = GI[gnd(gx + side, gy - 1)], stonyC = rawLv(gx + side, gy - 1) > LV_FOOT || !!ugd.rock || !!ugd.dot || !!(ugd.solid && !ugd.tree), topc = ugd.flora ? GI[ugd.u >= 0 ? ugd.u : G.GRASS].c : (ugd.c || [110, 140, 80]), SLc = 6 + Math.min(3, dg - l) * 3;
       for (let y = 0; y < fh + SLc + 2 && y < T; y++) {
         const wy = gy * T + y, w = wmax - ((ihash(wy >> 2, gx * 17 + side) * 3) | 0);
         for (let k = 0; k < T; k++) {
@@ -265,7 +269,8 @@ function paintCliffs(u, W, x0, y0) {
           if (y < hxc && k < w) { // pared lateral, con el canto de hierba arriba como la pared de delante
             const lip = 2 + ((ihash(wx >> 1, gy * 7 + 3) * 3) | 0);
             if (y < lip) { const f = y === 0 ? 1.15 : y === lip - 1 ? 0.62 : 0.9; u[i] = px32(topc[0] * f, topc[1] * f, topc[2] * f); continue; }
-            const f = sh * (k === w - 1 ? 0.6 : 1) * (((wy >> 2) & 1) ? 1.05 : 0.95) * (y > hxc - 3 ? 0.85 : 1); u[i] = px32(rk[0] * f, rk[1] * f, rk[2] * f); continue; }
+            const lipW = 1 + ((ihash(wy >> 1, gx * 29 + side) * 2) | 0); if (k < lipW) { const f = k === lipW - 1 ? 0.66 : 1.02; u[i] = px32(topc[0] * f, topc[1] * f, topc[2] * f); continue; }
+            const f = texPared(wx, Math.max(0, y - 3), 0.3 + 0.5 * (y / Math.max(1, hxc)), stonyC, gy, dg - l >= 2) * sh * (k === w - 1 ? 0.6 : 1) * (y > hxc - 3 ? 0.85 : 1); u[i] = px32(rk[0] * f, rk[1] * f, rk[2] * f); continue; }
           // sombra junto a la pared y en cuña bajo la esquina (la luz viene de arriba a la izquierda: a la derecha se alarga)
           const dy = y - Math.max(0, hxc), reach = dy < 0 ? w + 3 : side < 0 ? w + Math.round((SLc - dy) * 0.85) : w + Math.max(0, 3 - dy);
           if (k >= reach) break; if (dy >= SLc) continue;
