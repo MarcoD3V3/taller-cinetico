@@ -19,7 +19,7 @@ function drawPlayer(ctx) {
   const by = m ? -8 : 0, x = p.x, y = p.y + by;
   drawRipples(ctx);
   for (const f of FX) if (f.ghost) { ctx.globalAlpha = f.t * 1.5; circ(ctx, f.x, f.y + by, 8, '#7ab0ff'); } ctx.globalAlpha = 1;
-  if (!swm) { const k = 1 / (1 + z / 22); ctx.fillStyle = `rgba(0,0,0,${JUG('sombraOpac', 0.3) * k})`; ctx.beginPath(); ctx.ellipse(x, p.y + 8, JUG('sombraAncho', 10) * k, JUG('sombraAlto', 4) * k, 0, 0, 7); ctx.fill(); }
+  if (!swm) { const k = 1 / (1 + z / 22); sombraPx(ctx, x, p.y + 8, JUG('sombraAncho', 10) * k, JUG('sombraAlto', 4) * k, JUG('sombraOpac', 0.3) * k); }
   // Sprite por capas (pelo, ropa y armadura incluidos); el objeto de la mano gira al atacar
   const ch = charData(), sw2 = P.swing > 0 ? (1 - P.swing / 0.2) * 2.2 - 1.1 : 0;
   if (P.hurtT > 0 && ((P.hurtT * 30) | 0) % 2) ctx.globalAlpha = 0.55;
@@ -236,3 +236,17 @@ $('mComp').addEventListener('input', e => { if (e.target.id === 'compCode' && _c
 $('mComp').addEventListener('change', e => { if (e.target.id === 'compEx' && e.target.value && _compB) { _compB.code = COMP_EX[e.target.value]; $('compCode').value = _compB.code; e.target.value = ''; } });
 $('mComp').addEventListener('keydown', e => { if (e.key === 'Tab' && e.target.id === 'compCode') { e.preventDefault(); const t = e.target, s = t.selectionStart; t.value = t.value.slice(0, s) + '  ' + t.value.slice(t.selectionEnd); t.selectionStart = t.selectionEnd = s + 2; } });
 $('bMute').onclick = () => { if (!S) return; S.mute = !S.mute; $('bMute').textContent = S.mute ? 'Sonido: no' : 'Sonido: sí'; if (S.mute) bossMusic(false); else if (BOSS) bossMusic(true, BOSS.k); };
+
+// Sombra en pixel art: una elipse hecha de filas de píxeles enteros, con el centro más oscuro, un aro más suave y el
+// borde con trama (sin curvas suavizadas). Se encoge y se aclara al saltar.
+function sombraPx(ctx, cx, cy, rx, ry, a) {
+  rx = Math.max(2, Math.round(rx)); ry = Math.max(1, Math.round(ry)); cx = Math.round(cx); cy = Math.round(cy);
+  const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
+  for (let dy = -ry; dy <= ry; dy++) { const t = dy / (ry + 0.5), half = Math.round(rx * Math.sqrt(Math.max(0, 1 - t * t))); if (half <= 0) continue;
+    const inner = Math.round(half * 0.62);
+    ctx.fillStyle = `rgba(10,6,14,${(a * 0.55).toFixed(3)})`; ctx.fillRect(cx - half, cy + dy, half * 2, 1);              // aro suave
+    if (inner > 0 && Math.abs(dy) < ry) { ctx.fillStyle = `rgba(10,6,14,${(a * 0.6).toFixed(3)})`; ctx.fillRect(cx - inner, cy + dy, inner * 2, 1); } // centro más oscuro
+    if ((dy & 1) === 0) { ctx.fillStyle = `rgba(10,6,14,${(a * 0.35).toFixed(3)})`; ctx.fillRect(cx - half - 1, cy + dy, 1, 1); ctx.fillRect(cx + half, cy + dy, 1, 1); } // borde con trama
+  }
+  ctx.imageSmoothingEnabled = sm;
+}
