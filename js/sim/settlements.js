@@ -311,7 +311,7 @@ function folkTick(dt) {
 { const d0 = drawCombat; drawCombat = (ctx, ...a) => { const r = d0(ctx, ...a); if (S && FOLK.size) { const vx0 = view.x - cw / 2 / view.z - 40, vx1 = view.x + cw / 2 / view.z + 40, vy0 = view.y - ch / 2 / view.z - 60, vy1 = view.y + ch / 2 / view.z + 60;
   const vis = []; for (const list of FOLK.values()) for (const n of list) if (n.x > vx0 && n.x < vx1 && n.y > vy0 && n.y < vy1) vis.push(n); vis.sort((p, q) => p.y - q.y);
   for (const n of vis) { const moving = n.tx !== undefined && !n.arrived, near = Math.hypot(S.player.x - n.x, S.player.y - n.y) < 4 * T, ang = near ? Math.atan2(S.player.y - n.y, S.player.x - n.x) : moving ? Math.atan2(n.ty - n.y, n.tx - n.x) : n.face > 0 ? 0 : Math.PI;
-    ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(n.x, n.y + 8, n.kid ? 6 : 9, 3.5, 0, 0, 7); ctx.fill();
+    sombraPx(ctx, n.x, n.y + 8, n.kid ? 6 : 9, 3, 0.42); // sombra de píxeles
     const swing = n.work ? (Math.sin(n.work * 7) + 1) / 2 : 0; drawAvatar(ctx, n.look, n.equip, n.x, n.y + 8, ang, n.ph || 0, moving, n.kid ? 1.15 : 1.6, n.tool, swing);
     if (near || view.z > 1.2) { ctx.font = 'bold 9px system-ui'; ctx.textAlign = 'center'; const yl = n.y - (n.kid ? 24 : 34); ctx.fillStyle = '#000'; ctx.fillText(n.label, n.x + 1, yl + 1); ctx.fillStyle = n.role === 'elder' ? '#ffd34a' : '#e8dcc0'; ctx.fillText(n.label, n.x, yl); } } } return r; }; }
 // F sobre un aldeano: comerciar (como con los vecinos de tus casas) o escuchar la historia
