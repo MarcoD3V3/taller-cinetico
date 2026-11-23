@@ -357,6 +357,36 @@ function paintCliffs(u, W, x0, y0) {
     void dn;
   }
 }
+// ---------- Roca con forma irregular y esquinas redondeadas ----------
+// Cada casilla de roca se pintaba como un cuadrado entero. En los lados que dan al suelo, el borde se recorta un poco
+// (ondulado, distinto en cada sitio) y las esquinas de fuera se redondean; lo recortado enseña el suelo de al lado
+// (con su sombra de contacto) y el borde nuevo lleva luz arriba/izquierda y sombra abajo/derecha. El choque no cambia.
+function paintRocaRedonda(u, W, x0, y0) {
+  const sc = (v, f) => (0xff000000 | Math.min(255, ((v >>> 16) & 255) * f) << 16 | Math.min(255, ((v >>> 8) & 255) * f) << 8 | Math.min(255, (v & 255) * f)) >>> 0;
+  const suelo = (x, y) => { const t = gnd(x, y), g = GI[t]; return tileTexPx(g.flora ? (g.u >= 0 ? g.u : G.GRASS) : t, (hash2(x, y, 51) * TEX_VARS) | 0); };
+  const cut = new Uint8Array(T * T);
+  for (let ty = 0; ty < CH; ty++) for (let tx = 0; tx < CH; tx++) {
+    const gx = x0 + tx, gy = y0 + ty; if (!esRocaM(gx, gy)) continue;
+    const eN = !esRocaM(gx, gy - 1) && !GI[gnd(gx, gy - 1)].liquid, eS = !esRocaM(gx, gy + 1) && !GI[gnd(gx, gy + 1)].liquid, eW = !esRocaM(gx - 1, gy) && !GI[gnd(gx - 1, gy)].liquid, eE = !esRocaM(gx + 1, gy) && !GI[gnd(gx + 1, gy)].liquid;
+    if (!eN && !eS && !eW && !eE) continue;
+    const bx = tx * T, by = ty * T; cut.fill(0);
+    const prof = (a, s) => { const v = ihash((a >> 2) + s * 131, s); const v2 = ihash(((a >> 2) + 1) + s * 131, s), f = (a & 3) / 4; return 2 + Math.round((v + (v2 - v) * f) * 4.4); }; // 2..6 px, suave a lo largo del borde
+    const R = 11;
+    for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) { const wx = gx * T + x, wy = gy * T + y; let c = 0;
+      if (eN && y < prof(wx, 11 + gy * 3)) c = 1; else if (eS && T - 1 - y < prof(wx, 13 + gy * 3) - 1) c = 2; else if (eW && x < prof(wy, 17 + gx * 3)) c = 3; else if (eE && T - 1 - x < prof(wy, 19 + gx * 3)) c = 4;
+      const rr = R + ihash(gx * 3 + (x > 15), gy * 5 + (y > 15)) * 3; // esquinas redondeadas (radio algo distinto en cada una)
+      if (!c) { const cx = x < 16 ? (eW ? rr : -1) : (eE ? T - 1 - rr : -1), cy = y < 16 ? (eN ? rr : -1) : (eS ? T - 1 - rr : -1);
+        if (cx >= 0 && cy >= 0 && ((x < 16 ? x < cx : x > cx) && (y < 16 ? y < cy : y > cy)) && Math.hypot(x - cx, y - cy) > rr) c = y < 16 ? 1 : 2; }
+      cut[y * T + x] = c; }
+    const sN = eN ? suelo(gx, gy - 1) : null, sS = eS ? suelo(gx, gy + 1) : null, sW = eW ? suelo(gx - 1, gy) : null, sE = eE ? suelo(gx + 1, gy) : null;
+    for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) { const c = cut[y * T + x]; if (!c) continue; const i = (by + y) * W + bx + x;
+      const src = c === 1 ? (sN || sW || sE || sS) : c === 2 ? (sS || sW || sE || sN) : c === 3 ? (sW || sN || sS) : (sE || sN || sS);
+      u[i] = sc(src[y * T + x], c === 2 ? 0.6 : c === 4 ? 0.72 : 0.84); } // el suelo, con la sombra de la roca (más fuerte abajo y a la derecha)
+    for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) { if (cut[y * T + x]) continue; const i = (by + y) * W + bx + x;
+      const up = y > 0 ? cut[(y - 1) * T + x] : (eN ? 1 : 0), lf = x > 0 ? cut[y * T + x - 1] : (eW ? 1 : 0), dn = y < T - 1 ? cut[(y + 1) * T + x] : 0, rt = x < T - 1 ? cut[y * T + x + 1] : 0;
+      if (up || lf) u[i] = sc(u[i], 1.16); else if (dn || rt) u[i] = sc(u[i], 0.7); } // borde nuevo con luz y sombra
+  }
+}
 // Versión simple para el zoom lejano (trozos a media o cuarta resolución)
 function paintCliffsLo(c, x0, y0) {
   for (let ty = 0; ty < CH; ty++) for (let tx = 0; tx < CH; tx++) {

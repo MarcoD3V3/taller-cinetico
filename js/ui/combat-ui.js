@@ -33,11 +33,10 @@ function drawPlayer(ctx) {
   const cut = held && (swm || hc !== null); // recortado: el cuerpo dentro del recorte y el arma entera encima
   if (cut) AV_PASS = 1; drawAvatar(...avArgs); AV_PASS = 0;
   if (cut) { if (hc !== null) ctx.restore(); if (swm) ctx.restore(); AV_PASS = 2; drawAvatar(...avArgs); AV_PASS = 0; if (swm) ctx.save(); if (hc !== null) ctx.save(); }
-  if (hc !== null) { ctx.restore(); ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(x, hc, 11, 2.2, 0, 0, 7); ctx.fill(); }
+  if (hc !== null) { ctx.restore(); sombraPx(ctx, x, hc, 11, 2, 0.32); }
   if (swm) { ctx.restore(); ctx.globalAlpha = 1;
     // Superficie alrededor del cuerpo: anillo claro y brillo que se mueve con el oleaje
-    const t = performance.now() / 400; ctx.fillStyle = 'rgba(120,180,230,.35)'; ctx.beginPath(); ctx.ellipse(x, wl, 11, 3.6, 0, 0, 7); ctx.fill();
-    ctx.strokeStyle = 'rgba(230,246,255,.75)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(x, wl, 11 + Math.sin(t) * 0.8, 3.6, 0, 0, 7); ctx.stroke();
+    const t = performance.now() / 400; anilloAguaPx(ctx, x, wl, 11 + Math.round(Math.sin(t) * 0.8), 4, t); // anillo de píxeles
     if (moving) { ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.beginPath(); const ca2 = Math.cos(pmove.ang), sa2 = Math.sin(pmove.ang); ctx.moveTo(x - ca2 * 10 - sa2 * 6, wl - sa2 * 3 + ca2 * 2); ctx.lineTo(x - ca2 * 18, wl - sa2 * 6); ctx.lineTo(x - ca2 * 10 + sa2 * 6, wl - sa2 * 3 - ca2 * 2); ctx.stroke(); }
   }
   ctx.globalAlpha = 1;
@@ -194,7 +193,7 @@ function hpBar(ctx, x, y, w, f, c, who, icono) {
 }
 function drawNpc(ctx, n) {
   const N = NPCS[n.type], L3 = npcLook(n.type), moving = n.tx !== undefined && Math.hypot(n.tx - n.x, n.ty - n.y) > 2;
-  ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(n.x, n.y + 8, 9, 4, 0, 0, 7); ctx.fill();
+  sombraPx(ctx, n.x, n.y + 8, 9, 4, 0.3);
   const near = Math.hypot(S.player.x - n.x, S.player.y - n.y) < 4 * T, a = near ? Math.atan2(S.player.y - n.y, S.player.x - n.x) : moving ? Math.atan2(n.ty - n.y, n.tx - n.x) : Math.PI / 2;
   drawAvatar(ctx, L3.look, L3.equip, n.x, n.y + 8, a, n.ph || 0, moving, 1.6);
   ctx.font = 'bold 9px system-ui'; ctx.textAlign = 'center'; ctx.fillStyle = '#000'; ctx.fillText(N.n, n.x + 1, n.y - 33); ctx.fillStyle = '#ffd34a'; ctx.fillText(N.n, n.x, n.y - 34);
@@ -248,5 +247,19 @@ function sombraPx(ctx, cx, cy, rx, ry, a) {
     if (inner > 0 && Math.abs(dy) < ry) { ctx.fillStyle = `rgba(10,6,14,${(a * 0.6).toFixed(3)})`; ctx.fillRect(cx - inner, cy + dy, inner * 2, 1); } // centro más oscuro
     if ((dy & 1) === 0) { ctx.fillStyle = `rgba(10,6,14,${(a * 0.35).toFixed(3)})`; ctx.fillRect(cx - half - 1, cy + dy, 1, 1); ctx.fillRect(cx + half, cy + dy, 1, 1); } // borde con trama
   }
+  ctx.imageSmoothingEnabled = sm;
+}
+
+// Anillo del agua alrededor del cuerpo al nadar, en píxeles: relleno claro por filas, borde de píxeles (más claro y
+// grueso delante), con brillos que giran despacio
+function anilloAguaPx(ctx, cx, cy, rx, ry, t) {
+  cx = Math.round(cx); cy = Math.round(cy); const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
+  for (let dy = -ry; dy <= ry; dy++) { const k = dy / (ry + 0.5), half = Math.round(rx * Math.sqrt(Math.max(0, 1 - k * k))); if (half <= 0) continue;
+    ctx.fillStyle = 'rgba(120,180,230,.32)'; ctx.fillRect(cx - half, cy + dy, half * 2, 1);
+    const front = dy > 0; ctx.fillStyle = front ? 'rgba(235,248,255,.85)' : 'rgba(200,230,255,.55)';
+    ctx.fillRect(cx - half - 1, cy + dy, front ? 2 : 1, 1); ctx.fillRect(cx + half - (front ? 1 : 0), cy + dy, front ? 2 : 1, 1); }
+  ctx.fillStyle = 'rgba(235,248,255,.85)'; ctx.fillRect(cx - Math.round(rx * 0.6), cy + ry, Math.round(rx * 1.2), 1);   // borde de delante
+  ctx.fillStyle = 'rgba(200,230,255,.55)'; ctx.fillRect(cx - Math.round(rx * 0.6), cy - ry, Math.round(rx * 1.2), 1);   // borde de atrás
+  ctx.fillStyle = 'rgba(255,255,255,.9)'; for (let q = 0; q < 3; q++) { const a = t * 0.7 + q * 2.1; ctx.fillRect(cx + Math.round(Math.cos(a) * rx), cy + Math.round(Math.sin(a) * ry), 1, 1); } // brillos
   ctx.imageSmoothingEnabled = sm;
 }

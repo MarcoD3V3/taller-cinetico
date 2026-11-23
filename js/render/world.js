@@ -41,7 +41,7 @@ function buildChunk(cx, cy, s = 1) {
   if (s === 1) { const W = CH * T, img = c.createImageData(W, W), u = new Uint32Array(img.data.buffer);
     for (let y = 0; y < CH; y++) for (let x = 0; x < CH; x++) { const t0 = wc.g[(((y0 + y) & CMASK) << CSH) | ((x0 + x) & CMASK)], g0 = GI[t0]; if (g0.ruin || g0.abyss) continue;
       const tv = (hash2(x0 + x, y0 + y, 51) * TEX_VARS) | 0, src = g0.kelp ? kelpTexPx(kelpUnder(x0 + x, y0 + y), tv) : tileTexPx(g0.flora ? (g0.u >= 0 ? g0.u : G.GRASS) : t0, tv); for (let r = 0; r < T; r++) u.set(src.subarray(r * T, r * T + T), (y * T + r) * W + x * T); }
-    blendEdges(u, W, x0, y0); paintCliffs(u, W, x0, y0);
+    blendEdges(u, W, x0, y0); paintCliffs(u, W, x0, y0); if (typeof paintRocaRedonda === 'function') paintRocaRedonda(u, W, x0, y0);
     c.putImageData(img, 0, 0); if (typeof wfxPaint === 'function') wfxPaint(c, x0, y0); _baseDone = true; }
   c.scale(s, s); _treeLayer = s === 1; _treeList = [];
   const lights = [];
@@ -62,7 +62,7 @@ function buildChunk(cx, cy, s = 1) {
 function drawFrontTiles(ctx) {
   const p = S.player, fy = p.y + Math.max(5, JUG('choqueCentro', 1)), px = Math.floor(p.x / T), fr = Math.floor(fy / T); // el punto con el que chocas: pegado a una roca por delante, no cuenta como «detrás»
   for (let ty = fr; ty <= fr + 2; ty++) for (let tx = px - 1; tx <= px + 1; tx++) { // también la fila de los pies: te metes por detrás del bloque
-    if (ty === fr && tx !== px) continue; // en tu misma fila, la roca de al lado está a tu COSTADO: no te tapa (solo la que pisas por detrás)
+    if (ty === fr && tx !== px && !(typeof esRocaM === 'function' && esRocaM(px, fr))) continue; // en tu fila: si estás DETRÁS de la roca (pisas su franja de atrás) también te tapan las de al lado; si solo estás a su costado, no
     const g = GI[gnd(tx, ty)]; if (!g.solid || g.tree || g.flora || g.liquid) continue;
     if (typeof fogHidden === 'function' && fogHidden(tx, ty)) continue;
     const cx = Math.floor(tx / CH), cy = Math.floor(ty / CH), c = chunks.get(chunkKey(cx, cy)); if (!c) continue;
