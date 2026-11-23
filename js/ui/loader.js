@@ -92,12 +92,43 @@ function ldAfterPaint(fn) { let done = false; const go = () => { if (done) retur
 // Arranque del juego: la pantalla ya está en el HTML; se va cuando hay menú y conexión (o a los 5 s)
 { loadShow('Taller Cinético', ['Cargando el juego', 'Preparando el menú', 'Buscando partidas en línea']);
   loadStep(1); setTimeout(() => loadStep(2), 150); const t0 = performance.now(); loadWatch(() => !!NET.kind || NET.status.startsWith('Sin') || NET.status.startsWith('No ') || performance.now() - t0 > 5000, 8000); }
+// Prepara el terreno que se va a ver ANTES de quitar la pantalla de carga: genera y dibuja los trozos alrededor del
+// personaje por tandas cortas (unos 14 ms), dejando respirar al navegador entre una y otra. Así la pantalla nunca se
+// queda congelada: la barra avanza de verdad y dice cuántos trozos faltan. Sin esto, el primer fotograma lo hacía todo
+// de golpe y parecía que el juego se había colgado.
+async function ldPrecargar(paso) {
+  if (!S || !S.player || typeof buildChunk !== 'function') return;
+  window._ldPre = true;
+  try {
+    const z = view.z || 2, hw = innerWidth / 2 / z + T * 2, hh = innerHeight / 2 / z + T * 2, W = CH * T;
+    const cx0 = Math.floor((S.player.x - hw) / W), cx1 = Math.floor((S.player.x + hw) / W), cy0 = Math.floor((S.player.y - hh) / W), cy1 = Math.floor((S.player.y + hh) / W);
+    const L = []; for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) if (!chunks.get(chunkKey(cx, cy))) L.push([cx, cy]);
+    const pcx = S.player.x / W, pcy = S.player.y / W; L.sort((a, b) => Math.hypot(a[0] + 0.5 - pcx, a[1] + 0.5 - pcy) - Math.hypot(b[0] + 0.5 - pcx, b[1] + 0.5 - pcy)); // primero lo de alrededor
+    const n = L.length; let i = 0;
+    loadStep(paso, `Generando el terreno · 0 de ${n} zonas`);
+    while (i < n) {
+      const t0 = performance.now();
+      while (i < n && performance.now() - t0 < 14) { const [cx, cy] = L[i++]; try { if (!chunks.get(chunkKey(cx, cy))) buildChunk(cx, cy, 1); } catch (e) { console.warn(e); } }
+      loadStep(paso, `Generando el terreno · ${i} de ${n} zonas`); loadProgress(i / Math.max(1, n), Math.round(i / Math.max(1, n) * 100) + ' %');
+      await new Promise(r => setTimeout(r, 0)); // deja pintar la pantalla de carga
+    }
+  } finally { window._ldPre = false; }
+}
 // Abrir o crear un mundo
 { const w0 = worldAction; worldAction = (act, btn) => { const k = act.split(':')[0];
   if (k === 'play' || k === 'create') {
     const name = k === 'play' ? ((worldIndex().find(w => w.id === act.split(':')[1]) || {}).name || 'Mundo') : (($('cwName') || {}).value || 'Mundo nuevo');
-    loadShow(k === 'play' ? 'Abriendo ' + name : 'Creando ' + name, k === 'play' ? ['Leyendo la partida guardada', 'Generando el terreno', 'Colocando tus máquinas'] : ['Generando el terreno', 'Buscando un buen sitio para empezar', 'Preparando tu equipo']);
-    ldAfterPaint(() => { loadStep(1); ldAfterPaint(() => { try { w0(act, btn); } catch (e) { loadFail('No se pudo abrir: ' + e.message); return; } loadStep(2); setTimeout(() => ui.open === 'title' && !S ? loadFail('No se pudo abrir el mundo.') : loadDone(), 120); }); });
+    loadShow(k === 'play' ? 'Abriendo ' + name : 'Creando ' + name, k === 'play' ? ['Leyendo la partida guardada', 'Generando el terreno', 'Colocando tus máquinas', 'Listo para jugar'] : ['Creando el mundo', 'Generando el terreno', 'Preparando tu equipo', 'Listo para jugar']);
+    ldAfterPaint(() => { window._ldPre = true; let ok = true;
+      try { w0(act, btn); } catch (e) { window._ldPre = false; loadFail('No se pudo abrir: ' + e.message); return; }
+      if (ui.open === 'title' && !S) { window._ldPre = false; loadFail('No se pudo abrir el mundo.'); return; }
+      (async () => {
+        try { await ldPrecargar(1); } catch (e) { console.warn(e); ok = false; }
+        loadStep(2); await new Promise(r => setTimeout(r, 30));
+        loadStep(3); await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); // un fotograma del juego ya dibujado detrás
+        loadDone(ok ? '' : 'Parte del terreno se terminará de dibujar al moverte');
+      })();
+    });
     return;
   }
   return w0(act, btn); }; }

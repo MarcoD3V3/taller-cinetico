@@ -181,6 +181,13 @@ function lvV(x, y) { const l = lvAt(x, y), g = GI[gnd(x, y)]; return g.solid && 
 // Textura de una pared: devuelve el factor de luz de un píxel. wx: x del mundo; wy: alto dentro de la pared (0 arriba);
 // k: 0 arriba → 1 abajo. Roca: piedras de tamaños distintos con canto de luz arriba, junta oscura y tono propio.
 // Tierra: capas onduladas, grumos, piedritas y raíces que cuelgan del canto.
+// Pared de roca hecha con la MISMA textura que su cara de arriba (la misma piedra, vista de lado): se toma el píxel
+// de la textura del bloque, más oscuro hacia abajo y con cornisas de luz cada pocas filas
+function paredRocaPx(t, gx, gy, x, yy, k, alto) {
+  const tv = (hash2(gx, gy, 51) * TEX_VARS) | 0, src = tileTexPx(t, tv), q = src[(((yy * 1 + 9) % T + T) % T) * T + x];
+  const row = (yy + ((ihash(x >> 3, gy * 7) * 2) | 0)) % 7, f = (0.8 - k * 0.28) * (alto ? 0.88 : 1) * (row === 0 ? 1.14 : row === 6 ? 0.8 : 1);
+  return (0xff000000 | Math.min(255, ((q >>> 16) & 255) * f) << 16 | Math.min(255, ((q >>> 8) & 255) * f) << 8 | Math.min(255, (q & 255) * f)) >>> 0;
+}
 function texPared(wx, wy, k, stony, gy, alto) {
   // alto: pared de 2 capas o más (no se sube de un salto): más oscura y con grietas verticales, para que se lea
   let f = (1.16 - k * 0.42) * (alto ? 0.86 : 1) * (0.95 + ihash(wx >> 1, gy * 97) * 0.1); // vetas verticales: se lee como pared, no como suelo
@@ -240,8 +247,8 @@ function paintCliffs(u, W, x0, y0) {
           for (let y = y0f; y < T; y++) { const i = (by + y) * W + bx + x, yy = y - y0f;
             if (cuelga && yy >= 1 && yy < 1 + cuelga) { const f = 0.8 - (yy - 1) * 0.1; u[i] = px32(mc[0] * f, mc[1] * f, mc[2] * f); continue; } // musgo que cuelga
             if (yy < 2) { const f = yy === 0 ? 1.16 : 0.66; u[i] = px32(top[0] * f, top[1] * f, top[2] * f); continue; } // canto de arriba
-            const k = (y - y0f) / Math.max(1, T - y0f), f = texPared(wx, y - y0f, k, true, gy, l - dnL >= 2) * (y > T - 4 ? 0.78 + (T - 1 - y) * 0.06 : 1) * esq;
-            u[i] = px32(rock[0] * f, rock[1] * f, rock[2] * f); } }
+            const k = (y - y0f) / Math.max(1, T - y0f), q = paredRocaPx(gnd(gx, gy), gx, gy, x, y - y0f, k, l - dnL >= 2);
+            u[i] = scale(q, (y > T - 4 ? 0.78 + (T - 1 - y) * 0.06 : 1) * esq); } }
         const gd = GI[gnd(gx, gy)]; if (gd.dot) { // la mena asoma también por la pared: pepitas gruesas con contorno
           const m = gd.dot.match(/\w\w/g).map(hh => parseInt(hh, 16)), y0w = Math.max(4, T - fhR + 3), nP = 1 + ((ihash(gx, gy * 3 + 1) * 2) | 0);
           for (let k = 0; k < nP; k++) { const cx = 4 + ((ihash(gx * 5 + k, gy) * (T - 9)) | 0), cy = y0w + 1 + ((ihash(gx, gy * 5 + k) * Math.max(1, T - 3 - y0w - 3)) | 0);
@@ -255,8 +262,8 @@ function paintCliffs(u, W, x0, y0) {
       const rock = rockOf(gnd(gx, gy), true), sh = side < 0 ? 0.92 : 0.66, wm = Math.min(6, 3 + (l - nl));
       for (let y = 0; y < T; y++) { const wy = gy * T + y, w = wm - ((ihash(wy >> 2, gx * 17 + side) * 2) | 0);
         for (let k = 0; k < w; k++) { const x = side < 0 ? k : T - 1 - k, i = (by + y) * W + bx + x;
-          const f = k === w - 1 ? 1.18 : texPared(gx * T + x, wy, 0.35, true, 0, l - nl >= 2) * sh * (k === 0 ? 0.8 : 1); // canto de luz junto a la cara de arriba
-          u[i] = px32(rock[0] * f, rock[1] * f, rock[2] * f); } } }
+          if (k === w - 1) { u[i] = scale(u[i], 1.16); continue; } // canto de luz junto a la cara de arriba
+          u[i] = scale(paredRocaPx(gnd(gx, gy), gx, gy, x, y, 0.3, l - nl >= 2), sh * (k === 0 ? 0.8 : 1)); } } }
     /* (los cantos laterales los pone la franja de la pared de al lado, con su hierba: aquí no van líneas rectas que hacían cruces) */
     // Esquinas redondeadas: en las esquinas de delante de una terraza (abajo a la izquierda o a la derecha, donde se
     // juntan su pared de delante y la lateral) la cara de arriba se curva y deja ver la pared por la esquina
@@ -286,7 +293,7 @@ function paintCliffs(u, W, x0, y0) {
           const hxc = Math.min(fh, fh + (((ihash(wx >> 2, gy * 5 + 1) * 5) | 0) - 2)) - (k >= w - 2 ? (k - (w - 2)) * 2 : 0); // borde de abajo irregular y esquina redondeada (no cortada en recto)
           if (y < hxc && k < w) { // pared lateral, con el canto de hierba arriba como la pared de delante
             const lip = 2 + ((ihash(wx >> 1, gy * 7 + 3) * 3) | 0);
-            if (y < lip) { const f = y === 0 ? 1.15 : y === lip - 1 ? 0.62 : 0.9; u[i] = px32(topc[0] * f, topc[1] * f, topc[2] * f); continue; }
+            /* sin canto de hierba aquí: en la esquina quedaba como una raya verde flotando (la curva de arriba ya lo resuelve) */
             /* bajo la esquina solo hay pared: sin canto de hierba vertical (hacía una cruz con el canto de la pared de delante) */
             const f = texPared(wx, Math.max(0, y - 3), 0.3 + 0.5 * (y / Math.max(1, hxc)), stonyC, gy, dg - l >= 2) * sh * (k === w - 1 ? 0.6 : 1) * (y > hxc - 3 ? 0.85 : 1); u[i] = px32(rk[0] * f, rk[1] * f, rk[2] * f); continue; }
           // sombra junto a la pared y en cuña bajo la esquina (la luz viene de arriba a la izquierda: a la derecha se alarga)
