@@ -93,10 +93,10 @@ function rocaPx(c, g, t, v) {
   if (g.dot) { const m = g.dot.match(/\w\w/g).map(hh => parseInt(hh, 16)), px = (x, y, f) => { x = ((x % T) + T) % T; y = ((y % T) + T) % T; u[y * T + x] = (0xff000000 | Math.min(255, m[2] * f) << 16 | Math.min(255, m[1] * f) << 8 | Math.min(255, m[0] * f)) >>> 0; };
     for (let i = 0; i < T * T; i++) { const q = u[i]; u[i] = (0xff000000 | ((((q >>> 16) & 255) * 0.9 + m[2] * 0.1) << 16) | ((((q >>> 8) & 255) * 0.9 + m[1] * 0.1) << 8) | ((q & 255) * 0.9 + m[0] * 0.1)) >>> 0; } // la roca toma un poco el tono del mineral
     const nP = 3 + ((th(t, v, 160) * 2) | 0);
-    for (let k = 0; k < nP; k++) { const cx = (4 + th(t, v, 170 + k) * 22) | 0, cy = (4 + th(t, v, 180 + k) * 22) | 0, R = 2 + th(t, v, 190 + k) * 1.6, cel = [];
+    for (let k = 0; k < nP; k++) { const cx = (4 + th(t, v, 170 + k) * 22) | 0, cy = (4 + th(t, v, 180 + k) * 22) | 0, R = 2.4 + th(t, v, 190 + k) * 1.4, cel = [];
       for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) { const dd = Math.hypot(dx, dy * 1.15) + (ihash(cx * 9 + dx, cy * 7 + dy + v) - 0.5) * 1.4; if (dd < R) cel.push(dx, dy); } // pepita irregular
       const has = (dx, dy) => { for (let q = 0; q < cel.length; q += 2) if (cel[q] === dx && cel[q + 1] === dy) return true; return false; };
-      for (let q = 0; q < cel.length; q += 2) for (const [ox, oy] of [[1, 1], [0, 1], [1, 0], [-1, 0], [0, -1]]) if (!has(cel[q] + ox, cel[q + 1] + oy)) mul((((cy + cel[q + 1] + oy) % T + T) % T) * T + (((cx + cel[q] + ox) % T + T) % T), ox + oy > 0 ? 0.5 : 0.72); // contorno y sombra
+      for (let q = 0; q < cel.length; q += 2) for (const [ox, oy] of [[1, 1], [0, 1], [1, 0], [-1, 0], [0, -1]]) if (!has(cel[q] + ox, cel[q + 1] + oy)) mul((((cy + cel[q + 1] + oy) % T + T) % T) * T + (((cx + cel[q] + ox) % T + T) % T), ox + oy > 0 ? 0.38 : 0.6); // contorno oscuro y sombra
       for (let q = 0; q < cel.length; q += 2) { const dx = cel[q], dy = cel[q + 1], lit = !has(dx - 1, dy) || !has(dx, dy - 1), dark = !has(dx + 1, dy) || !has(dx, dy + 1); px(cx + dx, cy + dy, lit ? 1.2 : dark ? 0.72 : 0.95); }
       px(cx - 1, cy - 1, 1.6); }
   }
@@ -127,7 +127,7 @@ const _bw = new Float32Array(T), _bk = new Float32Array(T * T), _bb = new Float3
    agua, la hierba en la arena…), con una franja dentada de bloques de 4×4 píxeles. Así no salen dos
    transiciones pegadas, una en cada casilla. */
 const blPrio = t => { const g = GI[t]; return g.solid ? 3 + t / 1e4 : g.liquid ? 0 : /SAND|GRAVEL/.test(g.key || '') ? 1 + t / 1e4 : 2 + t / 1e4; };
-const BL_BLK = 4, BL_NB = T / BL_BLK, _blQ = new Float32Array(BL_NB * BL_NB), _blS = new Int8Array(BL_NB * BL_NB);
+const BL_BLK = 4, BL_NB = T / BL_BLK, _blQ = new Float32Array(BL_NB * BL_NB), _blS = new Int8Array(BL_NB * BL_NB), _blC = new Int8Array(BL_NB * BL_NB);
 function blendEdges(u, W, x0, y0) {
   const srcs = new Array(8);
   for (let ty = 0; ty < CH; ty++) for (let tx = 0; tx < CH; tx++) {
@@ -150,11 +150,19 @@ function blendEdges(u, W, x0, y0) {
         const p = 1 - (dist + 0.5 + wob) / E; if (p <= 0) continue;
         const k = by * BL_NB + bx; if (p > _blQ[k]) { _blQ[k] = p; _blS[k] = d; } }
     }
+    _blC.fill(-1);
     for (let k = 0; k < BL_NB * BL_NB; k++) { const d = _blS[k]; if (d < 0) continue; const bx = k % BL_NB, by = (k / BL_NB) | 0;
       /* bloque entero o nada: borde pixelado y nítido */
-      if (ihash(gx * BL_NB + bx, gy * BL_NB + by + 99991) > _blQ[k] * 1.35) continue;
+      if (ihash(gx * BL_NB + bx, gy * BL_NB + by + 99991) > _blQ[k] * 1.35) continue; _blC[k] = d;
       const sb = GI[srcs[d]].dot ? G.STONE : srcs[d], src = tileTexPx(sb, (hash2(gx + BL_DX[d], gy + BL_DY[d], 51) * TEX_VARS) | 0);
       for (let py = by * BL_BLK; py < by * BL_BLK + BL_BLK; py++) { const r = (ty * T + py) * W + tx * T; for (let px = bx * BL_BLK; px < bx * BL_BLK + BL_BLK; px++) u[r + px] = src[py * T + px]; } }
+    // Contorno de píxel en el borde del suelo que entra (como capas de suelo con relieve): sombra abajo/derecha, luz arriba/izquierda
+    const sc = (i, f) => { const q = u[i]; u[i] = (0xff000000 | Math.min(255, ((q >>> 16) & 255) * f) << 16 | Math.min(255, ((q >>> 8) & 255) * f) << 8 | Math.min(255, (q & 255) * f)) >>> 0; };
+    for (let k = 0; k < BL_NB * BL_NB; k++) { if (_blC[k] < 0) continue; const bx = k % BL_NB, by = (k / BL_NB) | 0, x0p = tx * T + bx * BL_BLK, y0p = ty * T + by * BL_BLK;
+      if (by < BL_NB - 1 && _blC[k + BL_NB] < 0) for (let q = 0; q < BL_BLK; q++) { sc((y0p + BL_BLK - 1) * W + x0p + q, 0.68); sc((y0p + BL_BLK) * W + x0p + q, 0.85); } // borde de abajo y su sombra
+      if (bx < BL_NB - 1 && _blC[k + 1] < 0) for (let q = 0; q < BL_BLK; q++) sc((y0p + q) * W + x0p + BL_BLK - 1, 0.76);
+      if (by > 0 && _blC[k - BL_NB] < 0) for (let q = 0; q < BL_BLK; q++) sc(y0p * W + x0p + q, 1.12);
+      if (bx > 0 && _blC[k - 1] < 0) for (let q = 0; q < BL_BLK; q++) sc((y0p + q) * W + x0p, 1.08); }
   }
 }
 // Bordes entre casillas distintas (sin generar chunks nuevos: solo mira los ya cargados)

@@ -241,7 +241,15 @@ function paintCliffs(u, W, x0, y0) {
             if (cuelga && yy >= 1 && yy < 1 + cuelga) { const f = 0.8 - (yy - 1) * 0.1; u[i] = px32(mc[0] * f, mc[1] * f, mc[2] * f); continue; } // musgo que cuelga
             if (yy < 2) { const f = yy === 0 ? 1.16 : 0.66; u[i] = px32(top[0] * f, top[1] * f, top[2] * f); continue; } // canto de arriba
             const k = (y - y0f) / Math.max(1, T - y0f), f = texPared(wx, y - y0f, k, true, gy, l - dnL >= 2) * (y > T - 4 ? 0.78 + (T - 1 - y) * 0.06 : 1) * esq;
-            u[i] = px32(rock[0] * f, rock[1] * f, rock[2] * f); } } } }
+            u[i] = px32(rock[0] * f, rock[1] * f, rock[2] * f); } }
+        const gd = GI[gnd(gx, gy)]; if (gd.dot) { // la mena asoma también por la pared: pepitas gruesas con contorno
+          const m = gd.dot.match(/\w\w/g).map(hh => parseInt(hh, 16)), y0w = Math.max(4, T - fhR + 3), nP = 1 + ((ihash(gx, gy * 3 + 1) * 2) | 0);
+          for (let k = 0; k < nP; k++) { const cx = 4 + ((ihash(gx * 5 + k, gy) * (T - 9)) | 0), cy = y0w + 1 + ((ihash(gx, gy * 5 + k) * Math.max(1, T - 3 - y0w - 3)) | 0);
+            const cel = [[0, 0], [1, 0], [-1, 1], [0, 1], [1, 1], [2, 1], [0, 2], [1, 2]].filter((_, q) => q < 4 || ihash(gx + q, gy + k) > 0.3);
+            const has = (dx, dy) => cel.some(c => c[0] === dx && c[1] === dy);
+            for (const [dx, dy] of cel) for (const [ox, oy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1]]) if (!has(dx + ox, dy + oy)) { const xx = cx + dx + ox, yy = cy + dy + oy; if (xx >= 0 && xx < T && yy >= y0w && yy < T) { const i = (by + yy) * W + bx + xx; u[i] = scale(u[i], 0.45); } }
+            for (const [dx, dy] of cel) { const xx = cx + dx, yy = cy + dy; if (xx < 0 || xx >= T || yy >= T) continue; const lit = !has(dx - 1, dy) || !has(dx, dy - 1), f = lit ? 1.25 : (!has(dx + 1, dy) || !has(dx, dy + 1)) ? 0.7 : 0.95; u[(by + yy) * W + bx + xx] = px32(m[0] * f, m[1] * f, m[2] * f); }
+            if (cx >= 0 && cy < T) u[(by + cy) * W + bx + cx] = px32(Math.min(255, m[0] * 1.6 + 30), Math.min(255, m[1] * 1.6 + 30), Math.min(255, m[2] * 1.6 + 30)); } } } }
     if (l > up) { const iL = l > lf ? 4 : 0, iR = l > rt ? 4 : 0; for (let x = iL; x < T - iR; x++) { u[by * W + bx + x] = scale(u[by * W + bx + x], 1.22); u[(by + 1) * W + bx + x] = scale(u[(by + 1) * W + bx + x], 1.1); } } // canto de atrás con luz (sin llegar a las esquinas: no hace cruces)
     if (rk0) for (const side of [-1, 1]) { const nl = esRocaM(gx + side, gy) ? l : lvV(gx + side, gy); if (nl >= l) continue;
       const rock = rockOf(gnd(gx, gy), true), sh = side < 0 ? 0.92 : 0.66, wm = Math.min(6, 3 + (l - nl));

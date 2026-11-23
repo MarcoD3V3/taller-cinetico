@@ -146,7 +146,7 @@ function drawCombat(ctx, k, ox, oy, x0, y0, x1, y1) {
     if (f.frz > 0) { ctx.strokeStyle = '#bff0ff'; ctx.lineWidth = 2; ctx.strokeRect(f.x - D.s, f.y - D.s, D.s * 2, D.s * 2); }
     if (f.tele > 0 || f.fuse > 0) { ctx.strokeStyle = '#ff3a2a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(f.x, f.y, D.s + 4 + Math.sin(S.time * 30) * 2, 0, 7); ctx.stroke(); }
     if (f.shieldT > 0) { ctx.strokeStyle = 'rgba(200,168,255,.8)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(f.x, f.y, D.s * 1.3, 0, 7); ctx.stroke(); }
-    if (!f.boss && f.hp < f.mhp) hpBar(ctx, f.x, f.y - D.s - 6, Math.max(18, D.s * 1.6), f.hp / f.mhp, D.elite ? '#ffd34a' : '#e05050');
+    if (!f.boss) hpBar(ctx, f.x, f.y - D.s - 8, Math.max(20, D.s * 1.6), f.hp / f.mhp, D.elite ? '#ffd34a' : '#e04848', f, true); // barra de vida siempre sobre la cabeza
     if (D.elite && !f.boss) { ctx.font = 'bold 8px system-ui'; ctx.textAlign = 'center'; ctx.fillStyle = '#ffd34a'; ctx.fillText('★', f.x, f.y - D.s - 10); }
   }
   // Proyectiles
@@ -172,7 +172,26 @@ function drawCombat(ctx, k, ox, oy, x0, y0, x1, y1) {
   if (L.turret) for (const b of L.turret) { if (b.aim === undefined) continue; ctx.strokeStyle = '#2a3a4a'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(b.x * T + 16, b.y * T + 16); ctx.lineTo(b.x * T + 16 + Math.cos(b.aim) * 13, b.y * T + 16 + Math.sin(b.aim) * 13); ctx.stroke(); }
 }
 // Barra de vida flotante (pets y enemigos). Nombre propio para no tapar `bar` de render/blocks.js.
-function hpBar(ctx, x, y, w, f, c) { ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(x - w / 2, y, w, 3); ctx.fillStyle = c; ctx.fillRect(x - w / 2, y, w * clamp(f, 0, 1), 3); }
+// Barra de vida en pixel art: marco oscuro, fondo, relleno con brillo arriba y sombra abajo, el daño recién recibido
+// se queda un momento en claro y baja despacio, y (en enemigos) un corazoncito de píxeles a la izquierda
+const _hpTrail = new WeakMap();
+function hpBar(ctx, x, y, w, f, c, who, icono) {
+  f = clamp(f, 0, 1); w = Math.round(w); const x0 = Math.round(x - w / 2), y0 = Math.round(y), h = 4;
+  let tr = f; if (who) { const o = _hpTrail.get(who); tr = o === undefined || o < f ? f : Math.max(f, o - 0.012); _hpTrail.set(who, tr); }
+  const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
+  ctx.fillStyle = '#140c10'; ctx.fillRect(x0 - 1, y0 - 1, w + 2, h + 2);                 // marco
+  ctx.fillStyle = '#3a2228'; ctx.fillRect(x0, y0, w, h);                                  // fondo
+  const fw = Math.round(w * f), tw = Math.round(w * tr);
+  if (tw > fw) { ctx.fillStyle = '#f4e6c8'; ctx.fillRect(x0 + fw, y0, tw - fw, h); }      // daño que se va
+  if (fw > 0) { ctx.fillStyle = c; ctx.fillRect(x0, y0, fw, h);
+    ctx.fillStyle = 'rgba(255,255,255,.38)'; ctx.fillRect(x0, y0, fw, 1);                 // brillo
+    ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(x0, y0 + h - 1, fw, 1); }              // sombra
+  ctx.fillStyle = 'rgba(0,0,0,.35)'; for (let q = 5; q < w; q += 5) ctx.fillRect(x0 + q, y0 + 1, 1, h - 2); // marcas cada tramo
+  if (icono) { const hx = x0 - 7, hy = y0 - 1; ctx.fillStyle = '#140c10'; ctx.fillRect(hx - 1, hy, 7, 6);  // corazón de píxeles
+    ctx.fillStyle = c; ctx.fillRect(hx, hy + 1, 2, 2); ctx.fillRect(hx + 3, hy + 1, 2, 2); ctx.fillRect(hx, hy + 2, 5, 1); ctx.fillRect(hx + 1, hy + 3, 3, 1); ctx.fillRect(hx + 2, hy + 4, 1, 1);
+    ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.fillRect(hx, hy + 1, 1, 1); }
+  ctx.imageSmoothingEnabled = sm;
+}
 function drawNpc(ctx, n) {
   const N = NPCS[n.type], L3 = npcLook(n.type), moving = n.tx !== undefined && Math.hypot(n.tx - n.x, n.ty - n.y) > 2;
   ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(n.x, n.y + 8, 9, 4, 0, 0, 7); ctx.fill();

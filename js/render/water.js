@@ -265,6 +265,28 @@ function wfxPaint(c, x0, y0) {
   const d = AGUA.d.get(chunkKey(x0 / CH, y0 / CH)); if (!d || !d.shade) return;
   for (const e of d.shade) { c.fillStyle = e.col; c.fill(e.p); }
   d.shade = null;
+  wfxSombraOrilla(c, x0, y0);
+}
+// Agua tranquila (lagos, charcas, ríos quietos): la orilla y las paredes proyectan sombra sobre el agua. La luz viene
+// de arriba a la izquierda, así que la sombra cae desde la orilla de arriba y la de la izquierda; más larga si la
+// orilla es más alta. El borde es de píxeles e irregular (no una franja recta). En el mar con olas no se pone.
+function wfxSombraOrilla(c, x0, y0) {
+  const esAgua = (x, y) => { const g = GI[baseTile(gnd(x, y))]; return g.liquid === 'water'; };
+  for (let ty = 0; ty < CH; ty++) for (let tx = 0; tx < CH; tx++) {
+    const gx = x0 + tx, gy = y0 + ty; if (!esAgua(gx, gy) || wfxCuerpo(gx, gy) !== 2) continue;
+    const lv = lvAt(gx, gy), px0 = tx * T, py0 = ty * T;
+    const alto = (x, y) => esAgua(x, y) ? -1 : Math.max(1, lvAt(x, y) - lv + 1); // cuánto tapa la orilla
+    const hN = alto(gx, gy - 1), hW = alto(gx - 1, gy), hNW = alto(gx - 1, gy - 1);
+    if (hN < 0 && hW < 0 && hNW < 0) continue;
+    for (let y = 0; y < T; y += 2) for (let x = 0; x < T; x += 2) {
+      const wx = gx * T + x, wy = gy * T + y, j = (ihash(wx >> 2, wy >> 3) - 0.5) * 3; let a = 0;
+      if (hN > 0) { const L = 11 + hN * 5 + j; if (y < L) a = Math.max(a, 0.5 * (1 - y / L) + 0.08); }
+      if (hW > 0) { const L = 7 + hW * 4 + j; if (x < L) a = Math.max(a, 0.38 * (1 - x / L) + 0.06); }
+      if (hNW > 0 && hN < 0 && hW < 0) { const L = 9 + hNW * 4 + j; const dd = Math.hypot(x, y); if (dd < L) a = Math.max(a, 0.38 * (1 - dd / L)); }
+      if (a <= 0.02) continue; a = Math.round(a * 12) / 12; // tonos escalonados, como pixel art
+      c.fillStyle = `rgba(4,14,30,${a.toFixed(3)})`; c.fillRect(px0 + x, py0 + y, 2, 2);
+    }
+  }
 }
 { const f0 = blendEdges; blendEdges = (u, W, x0, y0) => { f0(u, W, x0, y0); try { wfxBuild(u, W, x0, y0); } catch (e) { console.warn('agua', e); } }; }
 
