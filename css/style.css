@@ -2328,3 +2328,13 @@ body.hudmin { --hud: rgba(14, 15, 17, .74); }
 @keyframes invDropPulse { 50% { box-shadow: 0 0 14px rgba(255,176,74,.45); } }
 /* Con una ventana abierta (inventario, mapa…) los mensajes del chat no se dibujan encima; al escribir sí se ve */
 body:has(.modal:not([hidden])) #chat:not(.open) { opacity: 0; transition: opacity .15s; }
+/* ---------- Barra del jefe en pixel art: marco de píxeles (esquinas en escalón), tramos, brillo y sombra, y el daño que se va apagando ---------- */
+#bossBar .bbn { font-family: "Taller Pixel", var(--display); text-shadow: 2px 0 0 #140c10, -2px 0 0 #140c10, 0 2px 0 #140c10, 0 -2px 0 #140c10, 2px 2px 0 #140c10; image-rendering: pixelated; }
+#bossBar .bbb { border: 0; border-radius: 0; height: 16px; background: #2a1418; image-rendering: pixelated;
+  box-shadow: 0 -3px 0 0 #140c10, 0 3px 0 0 #140c10, -3px 0 0 0 #140c10, 3px 0 0 0 #140c10, 0 -6px 0 -3px #140c10, 0 6px 0 -3px #140c10, 0 0 0 3px #5a1a1a inset, 0 0 22px rgba(255,40,20,.3); }
+#bossBar .bbb i { position: relative; z-index: 2; transition: width .12s steps(4); background: #d82a2a;
+  background-image: linear-gradient(#ff8a6a 0 3px, #e8402e 3px 9px, #b01e1e 9px 13px, #7a1010 13px 16px), repeating-linear-gradient(90deg, transparent 0 14px, rgba(0,0,0,.28) 14px 16px); background-blend-mode: normal, multiply; }
+#bossBar .bbb b.bbt { position: absolute; z-index: 1; top: 0; bottom: 0; left: 0; background: #f4e6c8; }
+#bossBar .bbb span { z-index: 3; width: 2px; background: #140c10; }
+#bossBar.shield .bbb i { background-image: linear-gradient(#e8d8ff 0 3px, #b090f0 3px 9px, #7a5ad0 9px 13px, #4a3090 13px 16px); }
+@media (max-width: 700px) { #bossBar .bbb { height: 10px; } #bossBar .bbb i { background-image: linear-gradient(#ff8a6a 0 2px, #e8402e 2px 6px, #b01e1e 6px 8px, #7a1010 8px 10px); } }
