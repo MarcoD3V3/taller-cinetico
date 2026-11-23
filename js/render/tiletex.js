@@ -165,7 +165,7 @@ function tileEdges(c, x, y, t, px, py) {
     const n = gnd(x + DX[d], y + DY[d]); if (n === t) continue; const gn = GI[n];
     // d: 0 este, 1 sur, 2 oeste, 3 norte (como DX/DY)
     const band = (w, col) => { c.fillStyle = col; if (d === 0) c.fillRect(px + T - w, py, w, T); else if (d === 1) c.fillRect(px, py + T - w, T, w); else if (d === 2) c.fillRect(px, py, w, T); else c.fillRect(px, py, T, w); };
-    if (!g.solid && gn.solid && !gn.flora) { band(4, 'rgba(0,0,0,.12)'); band(2, 'rgba(0,0,0,.12)'); }      // sombra junto a la roca alta
+    /* la sombra junto a la roca la pone paintCliffs (con la forma de la pared): aquí no, que salía una franja recta */
 
   }
 }

@@ -242,13 +242,23 @@ function paintCliffs(u, W, x0, y0) {
             if (yy < 2) { const f = yy === 0 ? 1.16 : 0.66; u[i] = px32(top[0] * f, top[1] * f, top[2] * f); continue; } // canto de arriba
             const k = (y - y0f) / Math.max(1, T - y0f), f = texPared(wx, y - y0f, k, true, gy, l - dnL >= 2) * (y > T - 4 ? 0.78 + (T - 1 - y) * 0.06 : 1) * esq;
             u[i] = px32(rock[0] * f, rock[1] * f, rock[2] * f); } } } }
-    if (l > up) for (let x = 0; x < T; x++) { u[by * W + bx + x] = scale(u[by * W + bx + x], 1.25); u[(by + 1) * W + bx + x] = scale(u[(by + 1) * W + bx + x], 1.12); } // canto iluminado
+    if (l > up) { const iL = l > lf ? 4 : 0, iR = l > rt ? 4 : 0; for (let x = iL; x < T - iR; x++) { u[by * W + bx + x] = scale(u[by * W + bx + x], 1.22); u[(by + 1) * W + bx + x] = scale(u[(by + 1) * W + bx + x], 1.1); } } // canto de atrás con luz (sin llegar a las esquinas: no hace cruces)
     if (rk0) for (const side of [-1, 1]) { const nl = esRocaM(gx + side, gy) ? l : lvV(gx + side, gy); if (nl >= l) continue;
-      const rock = rockOf(gnd(gx, gy), true), sh = side < 0 ? 1.0 : 0.62, wm = Math.min(5, 2 + (l - nl));
+      const rock = rockOf(gnd(gx, gy), true), sh = side < 0 ? 0.92 : 0.66, wm = Math.min(6, 3 + (l - nl));
       for (let y = 0; y < T; y++) { const wy = gy * T + y, w = wm - ((ihash(wy >> 2, gx * 17 + side) * 2) | 0);
-        for (let k = 0; k < w; k++) { const x = side < 0 ? k : T - 1 - k, i = (by + y) * W + bx + x, f = sh * (k === 0 ? 0.75 : 1) * (((wy >> 2) & 1) ? 1.05 : 0.95); u[i] = px32(rock[0] * f, rock[1] * f, rock[2] * f); } } }
-    if (l > lf) for (let y = 0; y < T; y++) u[(by + y) * W + bx] = scale(u[(by + y) * W + bx], 1.2);
-    if (l > rt) for (let y = 0; y < T; y++) u[(by + y) * W + bx + T - 1] = scale(u[(by + y) * W + bx + T - 1], 0.8);
+        for (let k = 0; k < w; k++) { const x = side < 0 ? k : T - 1 - k, i = (by + y) * W + bx + x;
+          const f = k === w - 1 ? 1.18 : texPared(gx * T + x, wy, 0.35, true, 0, l - nl >= 2) * sh * (k === 0 ? 0.8 : 1); // canto de luz junto a la cara de arriba
+          u[i] = px32(rock[0] * f, rock[1] * f, rock[2] * f); } } }
+    /* (los cantos laterales los pone la franja de la pared de al lado, con su hierba: aquí no van líneas rectas que hacían cruces) */
+    // Esquinas redondeadas: en las esquinas de delante de una terraza (abajo a la izquierda o a la derecha, donde se
+    // juntan su pared de delante y la lateral) la cara de arriba se curva y deja ver la pared por la esquina
+    if (!rk0 && !meLiq) { const dnV = esRocaM(gx, gy + 1) ? 99 : lvV(gx, gy + 1);
+      if (dnV < l) for (const side of [-1, 1]) { const sv = side < 0 ? lf : rt; if (sv >= l || esRocaM(gx + side, gy)) continue;
+        const R = 6, g0 = GI[gnd(gx, gy)], topc = g0.flora ? GI[g0.u >= 0 ? g0.u : G.GRASS].c : (g0.c || [110, 140, 80]), rkc = rockOf(gnd(gx, gy), rawLv(gx, gy) > LV_FOOT), stony = rawLv(gx, gy) > LV_FOOT || !!g0.rock || !!g0.dot;
+        for (let yy = 0; yy < R; yy++) for (let xx = 0; xx < R; xx++) { const dx = R - 0.5 - xx, dy = R - 0.5 - yy, dd = Math.hypot(dx, dy); // xx,yy: desde la esquina hacia dentro; dd: distancia al centro de la curva
+          if (dd < R - 1.6) continue; const x = side < 0 ? xx : T - 1 - xx, y = T - 1 - yy, i = (by + y) * W + bx + x;
+          if (dd < R - 0.4) { const f = dd < R - 1 ? 0.95 : 0.66; u[i] = px32(topc[0] * f, topc[1] * f, topc[2] * f); continue; } // canto curvo
+          const f = texPared(gx * T + x, gy * T + y, 0.25, stony, 0, false) * (side < 0 ? 0.85 : 0.72); u[i] = px32(rkc[0] * f, rkc[1] * f, rkc[2] * f); void dx; void dy; } } }
     /* Esquina exterior: la pared lateral de la terraza de la diagonal de arriba baja también por esta casilla
        (tanto como su pared frontal); si no, en la esquina quedaba un hueco sin textura */
     if (up <= l) for (const side of [-1, 1]) {
@@ -291,11 +301,11 @@ function paintCliffs(u, W, x0, y0) {
     for (let x = 0; x < T; x++) {
       const wx = gx * T + x; let hx = rkUp ? 0 : fh + (((ihash(wx >> 2, gy * 5 + 1) * 5) | 0) - 2), lipH = 2 + ((ihash(wx >> 1, gy * 7 + 3) * 4) | 0);
       const esq = finL && x < 3 ? 1.22 - x * 0.06 : finR && x > T - 4 ? 0.62 + (T - 1 - x) * 0.1 : 1; // canto de la esquina: luz a la izquierda, sombra a la derecha
-      for (let y = 0; y < Math.min(T, hx + SL); y++) {
+      for (let y = 0; y < Math.min(T, hx + SL + 3); y++) {
         const i = (by + y) * W + bx + x;
         if (wet && y >= hx) { const fz = 1 - (y - hx) / 7, b = ihash(wx >> 2, gy * 3 + ((y - hx) >> 1)) > 0.45; if (b) u[i] = px32(225 + 25 * fz, 238 + 14 * fz, 255); continue; } // espuma al pie
         if (rkUp && y >= hx && y - hx < 5 && ihash(wx * 3 + 1, gy * 7 + y) > 0.93) { const f = 0.75 + ihash(wx, y) * 0.4; u[i] = px32(rock[0] * f, rock[1] * f, rock[2] * f); continue; } // piedritas caídas
-        if (y >= hx) { const t = (y - hx) / SL, d = ihash(wx, gy * T + y) * 0.06; u[i] = scale(u[i], y === hx ? 0.42 : Math.min(1, 0.56 + 0.44 * t * t + (t > 0.6 ? d : 0))); continue; } // sombra al pie (suave y más larga si la pared es alta)
+        if (y >= hx) { const SLx = SL + ((ihash(wx >> 1, gy * 19 + 4) * 5) | 0) - 2, t = Math.min(1, (y - hx) / SLx), d = (ihash(wx, gy * T + y) - 0.5) * 0.08; u[i] = scale(u[i], y === hx ? (rkUp ? 0.55 : 0.45) : Math.min(1, 0.6 + 0.4 * Math.pow(t, 1.4) + (t > 0.45 ? d : 0))); continue; } // sombra al pie: suave, con el final irregular (sin corte recto) // sombra al pie (suave y más larga si la pared es alta)
         if (wet) { const col = ihash(wx >> 1, gy * 7 + 2), t = y / Math.max(1, hx), hi = col > 0.78, f = 0.88 + col * 0.18 + t * 0.12; u[i] = hi ? px32(205 + 40 * t, 228 + 22 * t, 255) : px32((96 + 70 * t) * f, (150 + 60 * t) * f, (205 + 30 * t) * f); continue; }
         if (y < lipH) { const f = y === 0 ? 1.18 : y === lipH - 1 ? 0.62 : 0.92; u[i] = px32(top[0] * f, top[1] * f, top[2] * f); continue; }
         const k = (y - lipH) / Math.max(1, hx - lipH), f = texPared(wx, y - lipH, k, stonyUp, gy, dH >= 2) * (y === lipH ? 0.8 : 1);
