@@ -63,7 +63,10 @@ function paredEn(px, py) {
   return best;
 }
 // Nivel en un punto (la pared cuenta como el suelo de abajo: desde arriba, pisarla es caerse)
-function lvPoint(px, py) { return lvAt(Math.floor(px / T), Math.floor(py / T)); }
+function lvPoint(px, py) { // sobre la roca maciza no se está de pie: si el punto cae en ella, cuenta el suelo de al lado (delante o detrás)
+  const tx = Math.floor(px / T); let ty = Math.floor(py / T);
+  if (esRocaM(tx, ty)) { const t2 = Math.floor((py + 8) / T); if (!esRocaM(tx, t2)) ty = t2; else if (!esRocaM(tx, ty - 1)) ty = ty - 1; }
+  return lvAt(tx, ty); }
 const playerFreeAt = (x, y) => passable(x - JUG('choqueAncho', 5), y + JUG('choquePie', 5), 'player') && passable(x + JUG('choqueAncho', 5), y + JUG('choquePie', 5), 'player') && passable(x, y + JUG('choqueCentro', 1), 'player');
 const _flyMove = () => hasFlag('phoenixWings') || mountFly();
 // ---------- Pies libres: colisión + alturas ----------

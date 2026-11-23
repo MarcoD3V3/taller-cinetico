@@ -60,7 +60,7 @@ function buildChunk(cx, cy, s = 1) {
 // Perspectiva: las casillas de roca y mena que están por debajo de los pies del jugador se vuelven
 // a pintar encima de él (copiándolas del trozo ya dibujado), así queda detrás de ellas
 function drawFrontTiles(ctx) {
-  const p = S.player, fy = p.y + 5 - (P.z || 0) * 0, px = Math.floor(p.x / T), fr = Math.floor(fy / T);
+  const p = S.player, fy = p.y + Math.max(5, JUG('choqueCentro', 1)), px = Math.floor(p.x / T), fr = Math.floor(fy / T); // el punto con el que chocas: pegado a una roca por delante, no cuenta como «detrás»
   for (let ty = fr; ty <= fr + 2; ty++) for (let tx = px - 1; tx <= px + 1; tx++) { // también la fila de los pies: te metes por detrás del bloque
     if (ty === fr && tx !== px) continue; // en tu misma fila, la roca de al lado está a tu COSTADO: no te tapa (solo la que pisas por detrás)
     const g = GI[gnd(tx, ty)]; if (!g.solid || g.tree || g.flora || g.liquid) continue;
