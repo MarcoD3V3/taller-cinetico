@@ -30,6 +30,12 @@ function drawPlayer(ctx) {
   const hc = !swm && !m && typeof holeCut === 'function' ? holeCut(x, p.y) : null;
   if (hc !== null) { ctx.save(); ctx.beginPath(); ctx.rect(x - 60, y - 120, 120, 240); for (const r of hc) ctx.rect(r[0], r[1], r[2], r[3]); ctx.clip('evenodd'); } // se ve todo menos lo que queda dentro de esas casillas
   const avArgs = [ctx, ch.look, S.equip, x, y + 8 - z + (swm === 2 ? 9 + bob : swm ? 2 : 0), fa, air ? 1.2 : P.walk, (moving || air) && !m, JUG('escala', 1.6), held, sw2];
+  // Reflejo en el agua tranquila: el personaje del revés, recortado a los píxeles de agua que tiene justo delante, ondulando
+  if (!swm && !m && OPT.reflejos !== false && typeof aguaVisible === 'function' && typeof wfxCuerpo === 'function') { const fy = Math.round(p.y + 9); let hay = false;
+    for (let dy = 3; dy <= 30 && !hay; dy += 3) { const v = aguaVisible(x, fy + dy); if (v) { const tx = Math.floor(x / T), ty = Math.floor((fy + dy) / T); hay = wfxCuerpo(tx, ty) === 2; } }
+    if (hay) { ctx.save(); ctx.beginPath(); for (let by = Math.floor(fy / 4) * 4; by < fy + 56; by += 4) for (let bx = Math.floor((x - 22) / 4) * 4; bx < x + 22; bx += 4) if (aguaVisible(bx + 2, by + 2)) ctx.rect(bx, by, 4, 4);
+      ctx.clip(); const tt = performance.now() / 1000; ctx.translate(Math.round(Math.sin(tt * 2.1) * 0.8), 2 * fy + 1); ctx.scale(1, -1); ctx.globalAlpha = 0.26 + Math.sin(tt * 1.3) * 0.03;
+      drawAvatar(...avArgs); ctx.restore(); ctx.globalAlpha = 1; } }
   const cut = held && (swm || hc !== null); // recortado: el cuerpo dentro del recorte y el arma entera encima
   if (cut) AV_PASS = 1; drawAvatar(...avArgs); AV_PASS = 0;
   if (cut) { if (hc !== null) ctx.restore(); if (swm) ctx.restore(); AV_PASS = 2; drawAvatar(...avArgs); AV_PASS = 0; if (swm) ctx.save(); if (hc !== null) ctx.save(); }
