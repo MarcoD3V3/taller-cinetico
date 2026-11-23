@@ -43,6 +43,8 @@ function setLvMod(x, y, v) { (S.lvmod || (S.lvmod = {}))[x + ',' + y] = v; onTil
 // Devuelve la pared más alta en ese punto: up (nivel de arriba), fuera (punto al pie, fuera de la pared) y
 // arriba (dónde quedas si trepas saltando).
 // Ancho de la pared de una esquina a la altura y (0 arriba): se estrecha en curva hasta el pie, en píxeles enteros
+// Ancho de una pared lateral a la altura y: si la terraza termina justo encima, empieza en curva (esquina de atrás)
+function anchoLado(w, y, acaba) { if (!acaba || y >= 7) return w; const t = 1 - y / 7; return Math.round(w * Math.sqrt(Math.max(0, 1 - t * t))); }
 function anchoEsq(w, y, h) { const t = Math.min(1, Math.max(0, y / Math.max(1, h))); return Math.round(w * Math.sqrt(Math.max(0, 1 - t * t * t))); }
 function paredEn(px, py) {
   const tx = Math.floor(px / T), ty = Math.floor(py / T), x = px - tx * T, y = py - ty * T, wx = Math.floor(px), wy = Math.floor(py), l = lvAt(tx, ty);
@@ -52,7 +54,7 @@ function paredEn(px, py) {
   if (up > l) { const hx = faceH(up - l) + jit; if (y < hx) pon(up, [px, ty * T + hx + 0.6], [px, ty * T - 0.6]); } // pared de delante
   for (const side of [-1, 1]) {
     const k = side < 0 ? x : T - 1 - x, edge = side < 0 ? tx * T : (tx + 1) * T, hi = nivel(tx + side, ty);
-    if (hi > l) { const w = Math.min(7, 3 + (hi - l) * 2) - ((ihash(wy >> 2, tx * 17 + side) * 3) | 0); if (k < w) pon(hi, [edge - side * (w + 0.6), py], [edge + side * 1.5, py]); } // lateral
+    if (hi > l) { const w = anchoLado(Math.min(7, 3 + (hi - l) * 2) - ((ihash(wy >> 2, tx * 17 + side) * 3) | 0), y, nivel(tx + side, ty - 1) <= l); if (k < w) pon(hi, [edge - side * (w + 0.6), py], [edge + side * 1.5, py]); } // lateral
     else if (up <= l) { const dg = nivel(tx + side, ty - 1); if (dg > l) { // esquina: la pared lateral de la diagonal baja por aquí
       const fh = Math.min(T, faceH(dg - l)), w = Math.min(7, 3 + (dg - l) * 2) - ((ihash(wy >> 2, tx * 17 + side) * 3) | 0);
       const hxc = Math.min(fh, fh + jit);
@@ -214,6 +216,10 @@ function texPared(wx, wy, k, stony, gy, alto) {
   }
   return f;
 }
+// Color de la pared bajo la casilla (x, y): el del suelo de debajo de las plantas (no el de la planta), así no cambia
+// de golpe de una casilla a otra por una flor o una mata
+function colParedDe(x, y) { const t = gnd(x, y), g = GI[t], b = g.flora ? (g.u >= 0 ? g.u : G.GRASS) : t; return { rock: rockOf(b, rawLv(x, y) > LV_FOOT), top: GI[b].c || [110, 140, 80] }; }
+const mezC = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
 function paintCliffs(u, W, x0, y0) {
   // La roca y las menas sueltas son un bloque: una capa por encima del suelo en el que están. Así tienen las
   // mismas paredes, cantos y sombras que las terrazas (misma forma, otra textura). La roca de la montaña ya
@@ -235,7 +241,7 @@ function paintCliffs(u, W, x0, y0) {
       const rkS = esRocaM(gx + side, gy), wmax = rkS ? 0 : Math.min(7, 3 + (hi - l) * 2), rk = rockOf(gnd(gx + side, gy), rawLv(gx + side, gy) > LV_FOOT), sh = side < 0 ? 0.72 : 0.95;
       const ug2 = GI[gnd(gx + side, gy)], topS = ug2.flora ? GI[ug2.u >= 0 ? ug2.u : G.GRASS].c : (ug2.c || [110, 140, 80]), stonyS = rawLv(gx + side, gy) > LV_FOOT || !!ug2.rock || !!ug2.dot || !!(ug2.solid && !ug2.tree), altoS = hi - l >= 2;
       for (let y = 0; y < T; y++) {
-        const wy = gy * T + y, w = rkS ? 0 : wmax - ((ihash(wy >> 2, gx * 17 + side) * 3) | 0);
+        const wy = gy * T + y, w = rkS ? 0 : anchoLado(wmax - ((ihash(wy >> 2, gx * 17 + side) * 3) | 0), y, lvV(gx + side, gy - 1) <= l || esRocaM(gx + side, gy - 1));
         const lipW = 1 + ((ihash(wy >> 1, gx * 29 + side) * 2) | 0); // canto de la terraza visto de lado (hierba, tierra…)
         for (let k = 0; k < w; k++) { const x = side < 0 ? k : T - 1 - k, i = (by + y) * W + bx + x;
           if (k < lipW) { const f = k === lipW - 1 ? 0.66 : 1.02; u[i] = px32(topS[0] * f, topS[1] * f, topS[2] * f); continue; }
@@ -275,6 +281,12 @@ function paintCliffs(u, W, x0, y0) {
     /* (los cantos laterales los pone la franja de la pared de al lado, con su hierba: aquí no van líneas rectas que hacían cruces) */
     // Esquinas redondeadas: en las esquinas de delante de una terraza (abajo a la izquierda o a la derecha, donde se
     // juntan su pared de delante y la lateral) la cara de arriba se curva y deja ver la pared por la esquina
+    if (!rk0 && !meLiq) { const upV2 = esRocaM(gx, gy - 1) ? 99 : lvV(gx, gy - 1); // esquinas de atrás: la cara de arriba también se curva y deja ver el suelo de detrás
+      if (upV2 < l && !GI[gnd(gx, gy - 1)].liquid) { const tN = gnd(gx, gy - 1), gN = GI[tN], srcN = tileTexPx(gN.flora ? (gN.u >= 0 ? gN.u : G.GRASS) : tN, (hash2(gx, gy - 1, 51) * TEX_VARS) | 0);
+        for (const side of [-1, 1]) { const sv = side < 0 ? lf : rt; if (sv >= l || esRocaM(gx + side, gy)) continue; const R = 5;
+          for (let yy = 0; yy < R; yy++) for (let xx = 0; xx < R; xx++) { const dd = Math.hypot(R - 0.5 - xx, R - 0.5 - yy); if (dd < R - 1.4) continue;
+            const x = side < 0 ? xx : T - 1 - xx, i = (by + yy) * W + bx + x;
+            if (dd < R - 0.4) { u[i] = scale(u[i], 1.14); continue; } u[i] = scale(srcN[yy * T + x], 0.9); } } } }
     if (!rk0 && !meLiq) { const dnV = esRocaM(gx, gy + 1) ? 99 : lvV(gx, gy + 1);
       if (dnV < l) for (const side of [-1, 1]) { const sv = side < 0 ? lf : rt; if (sv >= l || esRocaM(gx + side, gy)) continue;
         const R = 6, g0 = GI[gnd(gx, gy)], topc = g0.flora ? GI[g0.u >= 0 ? g0.u : G.GRASS].c : (g0.c || [110, 140, 80]), rkc = rockOf(gnd(gx, gy), rawLv(gx, gy) > LV_FOOT), stony = rawLv(gx, gy) > LV_FOOT || !!g0.rock || !!g0.dot;
@@ -317,18 +329,19 @@ function paintCliffs(u, W, x0, y0) {
     // (luz desde arriba), borde inferior irregular, sombra y cascada si arriba hay agua
     const rkUp = esRocaM(gx, gy - 1), fh = rkUp ? 0 : faceH(up - l), ut = gnd(gx, gy - 1), ug = GI[ut], wet = ug.liquid === 'water';
     if (ug.liquid && meLiq) continue; // agua sobre agua: el agua se iguala, no hay salto
-    const top = ug.flora ? GI[ug.u >= 0 ? ug.u : G.GRASS].c : (ug.c || [110, 140, 80]), c0 = ug.c || [110, 100, 80];
-    const rock = rockOf(ut, rawLv(gx, gy - 1) > LV_FOOT), stonyUp = rawLv(gx, gy - 1) > LV_FOOT || !!ug.rock || !!ug.dot || !!(ug.solid && !ug.tree);
+    const cp0 = colParedDe(gx, gy - 1), cpL = colParedDe(gx - 1, gy - 1), cpR = colParedDe(gx + 1, gy - 1), top0 = cp0.top, c0 = ug.c || [110, 100, 80];
+    const rock0 = cp0.rock, stonyUp = rawLv(gx, gy - 1) > LV_FOOT || !!ug.rock || !!ug.dot || !!(ug.solid && !ug.tree);
     const dH = up - l, SL = 6 + Math.min(3, dH) * 3; // largo de la sombra al pie: cuanto más alta la pared, más larga
     const finL = lvV(gx - 1, gy - 1) <= lvV(gx - 1, gy) || esRocaM(gx - 1, gy), finR = lvV(gx + 1, gy - 1) <= lvV(gx + 1, gy) || esRocaM(gx + 1, gy); // ¿acaba aquí la pared? (esquina)
     for (let x = 0; x < T; x++) {
+      const mL = x < 10 ? (10 - x) / 20 : 0, mR = x > T - 11 ? (x - (T - 11)) / 20 : 0, rock = mL ? mezC(rock0, cpL.rock, mL) : mR ? mezC(rock0, cpR.rock, mR) : rock0, top = mL ? mezC(top0, cpL.top, mL) : mR ? mezC(top0, cpR.top, mR) : top0;
       const wx = gx * T + x; let hx = rkUp ? 0 : fh + (((ihash(wx >> 2, gy * 5 + 1) * 5) | 0) - 2), lipH = 2 + ((ihash(wx >> 1, gy * 7 + 3) * 4) | 0);
       const esq = finL && x < 3 ? 1.22 - x * 0.06 : finR && x > T - 4 ? 0.62 + (T - 1 - x) * 0.1 : 1; // canto de la esquina: luz a la izquierda, sombra a la derecha
       for (let y = 0; y < Math.min(T, hx + SL + 3); y++) {
         const i = (by + y) * W + bx + x;
         if (wet && y >= hx) { const fz = 1 - (y - hx) / 7, b = ihash(wx >> 2, gy * 3 + ((y - hx) >> 1)) > 0.45; if (b) u[i] = px32(225 + 25 * fz, 238 + 14 * fz, 255); continue; } // espuma al pie
         if (rkUp && y >= hx && y - hx < 5 && ihash(wx * 3 + 1, gy * 7 + y) > 0.93) { const f = 0.75 + ihash(wx, y) * 0.4; u[i] = px32(rock[0] * f, rock[1] * f, rock[2] * f); continue; } // piedritas caídas
-        if (y >= hx) { const SLx = SL + ((ihash(wx >> 1, gy * 19 + 4) * 5) | 0) - 2, t = Math.min(1, (y - hx) / SLx), d = (ihash(wx, gy * T + y) - 0.5) * 0.08; u[i] = scale(u[i], y === hx ? (rkUp ? 0.55 : 0.45) : Math.min(1, 0.6 + 0.4 * Math.pow(t, 1.4) + (t > 0.45 ? d : 0))); continue; } // sombra al pie: suave, con el final irregular (sin corte recto) // sombra al pie (suave y más larga si la pared es alta)
+        if (y >= hx) { const SLx = Math.max(2, SL + ((ihash(wx >> 1, gy * 19 + 4) * 5) | 0) - 2 - (finL && x < 8 ? (8 - x) : 0)), t = Math.min(1, (y - hx) / SLx), d = (ihash(wx, gy * T + y) - 0.5) * 0.08; u[i] = scale(u[i], y === hx ? (rkUp ? 0.55 : 0.45) : Math.min(1, 0.6 + 0.4 * Math.pow(t, 1.4) + (t > 0.45 ? d : 0))); continue; } // sombra al pie: suave, con el final irregular (sin corte recto) // sombra al pie (suave y más larga si la pared es alta)
         if (wet) { const col = ihash(wx >> 1, gy * 7 + 2), t = y / Math.max(1, hx), hi = col > 0.78, f = 0.88 + col * 0.18 + t * 0.12; u[i] = hi ? px32(205 + 40 * t, 228 + 22 * t, 255) : px32((96 + 70 * t) * f, (150 + 60 * t) * f, (205 + 30 * t) * f); continue; }
         const enCurva = (finR && x > T - 7) || (finL && x < 6); // bajo la esquina redondeada de arriba el canto sigue la curva (no llega recto a la punta)
         const lipX = enCurva ? Math.max(0, lipH - Math.round((finR ? x - (T - 7) : 6 - x) * 0.7)) : lipH;

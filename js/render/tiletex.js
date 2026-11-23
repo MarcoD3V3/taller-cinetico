@@ -27,7 +27,7 @@ function kelpTexPx(under, v) { const k = under * TEX_VARS + v; let p = _kelpPx.g
 function paintTexBase(c, g, t, v) {
   // En los líquidos cada casilla debe empalmar con la de al lado: sin cambio de tono por variante ni degradado
   // por casilla (si no, un lago se ve como un tablero de cuadros)
-  const img = c.createImageData(T, T), d = img.data, base = g.c, jit = g.liquid ? 0 : (th(t, v, 1) - 0.5) * 12;
+  const img = c.createImageData(T, T), d = img.data, base = g.c, jit = 0; /* sin cambio de tono por variante: si no, el suelo se ve a cuadros */
   const amp = g.liquid ? (g.glow ? 18 : 5) : g.key && /SNOW|ICE|SALT/.test(g.key) ? 5 : g.tuft ? 11 : g.rock || g.dot ? 13 : /SAND/.test(g.key || '') ? 7 : 9;
   for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
     const big = hash2((x >> 3) + v * 5, (y >> 3) + t, 9) - 0.5, fine = hash2(x + v * 37, y + t * 11, 4) - 0.5;
