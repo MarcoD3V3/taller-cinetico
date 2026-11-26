@@ -177,6 +177,14 @@ function hexRGB(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5)
 const BIOMES = [], BI_ = {};
 function BI(key, o) { BI_[key] = BIOMES.length; o.key = key; BIOMES.push(o); }
 const STD_ORES = [['IRON', 30], ['COPPER', 18], ['COAL', 16], ['ZINC', 16], ['RED', 12], ['TIN', 10], ['LEAD', 6]];
+// Rareza de cada mena en la superficie (0 común … 3 legendaria): decide a qué profundidad de la montaña sale.
+// La redstone es de cuevas: en la superficie solo aparece muy adentro de las montañas.
+const ORE_TIER = { COAL: 0, IRON: 0, COPPER: 0, TIN: 0, ZINC: 0, SULFUR: 0, SALTPETER: 0, LEAD: 1, SILVER: 1, NICKEL: 1, ALUMINUM: 1, QUARTZ: 1, OBSIDIAN: 1, CRYSTAL: 1,
+  RED: 2, GOLD: 2, TITANIUM: 2, TUNGSTEN: 2, COBALT: 2, CHROMIUM: 2, LITHIUM: 2, PLATINUM: 3, URANIUM: 3, MITHRIL: 3, ADAMANTITE: 3, ARCANITE: 3, STARSILVER: 3 };
+const RAR_TIER = { común: 0, poco_común: 1, raro: 2, legendario: 3 };
+function oreTierOf(gi) { const k = GI[gi] && GI[gi].key; if (!k) return 1; if (ORE_TIER[k] !== undefined) return ORE_TIER[k];
+  if (k.startsWith('M_') && typeof MINERALS !== 'undefined') { const m = MINERALS.find(q => 'M_' + q[0].toUpperCase() === k); if (m) return RAR_TIER[m[5]] ?? 1; } return 1; }
+function oreTiers(B) { if (B._ott && B._ottSrc === B.oreT) return B._ott; const out = [0, 1, 2, 3].map(t => { const list = B.oreT.filter(([gi]) => oreTierOf(gi) <= t); return { list, sum: list.reduce((a, o) => a + o[1], 0) }; }); B._ott = out; B._ottSrc = B.oreT; return out; }
 // Océanos
 BI('frozenOcean', { n: 'Océano helado', ocean: 1, g: 'COLDWATER', alt: [['ICE', 0.56]], fauna: [['fish', 2], ['penguin', 1], ['polarbear', 0.3], ['seal', 1]], fd: 4, mc: '#a8cce4', river: 'ICE' });
 BI('coldOcean', { n: 'Océano frío', ocean: 1, g: 'COLDWATER', wet: [['KELP', 0.03]], fauna: [['fish', 3], ['seal', 0.5]], fd: 4, mc: '#2f5a88' });
@@ -425,8 +433,11 @@ function tileAt(x, y, P, cl, bio) {
     const vs = 5 * (P.veins || 1), o = fbm(x / vs, y / vs, s + 300);
     // Canteras (zonas planas de la montaña, ver sim/motion.js): más vetas para picar en línea recta
     if (o > P.ores - (vnoise(x / 150, y / 150, s + 1234) > 0.62 ? 0.07 : 0)) {
-      const q = vnoise(x / 11, y / 11, s + 400) * B.oreSum; let acc = 0;
-      for (const [t, w] of B.oreT) { acc += w; if (q < acc) return t; }
+      // En la superficie, cuanto más rara es la mena, más adentro de la montaña está: en el borde y en los
+      // islotes de roca pequeños no hay menas; las comunes salen pronto y las legendarias solo en el corazón
+      const sup = Math.abs(y) < 40000, d = e - stoneAt, tier = !sup ? 3 : d < 0.035 ? -1 : d < 0.07 ? 0 : d < 0.11 ? 1 : d < 0.15 ? 2 : 3;
+      if (tier >= 0) { const L = oreTiers(B)[tier]; if (L.sum > 0) { const q = vnoise(x / 11, y / 11, s + 400) * L.sum; let acc = 0;
+        for (const [t, w] of L.list) { acc += w; if (q < acc) return t; } } }
     }
     // Franja baja de la montaña: roca lisa que se puede pisar
     return e < stoneAt + 0.05 ? (FLAT_ROCK[B.rockI] ?? B.rockI) : B.rockI;
