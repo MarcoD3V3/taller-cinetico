@@ -8,11 +8,11 @@ const SLIDERS = [
   { k: 'water', n: 'Nivel del agua', min: 0.2, max: 0.5, step: 0.01 },
   { k: 'sand', n: 'Playas y arena', min: 0, max: 0.15, step: 0.005 },
   { k: 'mountain', n: 'Montañas', min: 0.5, max: 0.78, step: 0.01, inv: 1 },
-  { k: 'ores', n: 'Menas en las montañas', min: 0.45, max: 0.75, step: 0.01, inv: 1 },
+  { k: 'ores', n: 'Menas en las montañas', min: 0.6, max: 0.75, step: 0.01, inv: 1, lab: a => a > 0.9 ? 'Normal (máximo)' : a > 0.5 ? 'Algo menos' : a > 0.2 ? 'Pocas' : 'Muy pocas' },
   { k: 'forest', n: 'Bosques', min: 0.45, max: 0.8, step: 0.01, inv: 1 },
-  { k: 'oil', n: 'Petróleo', min: 0.55, max: 0.9, step: 0.01, inv: 1 },
-  { k: 'gas', n: 'Géiseres de gas', min: 0, max: 0.005, step: 0.0002 },
-  { k: 'veins', n: 'Tamaño de las vetas', min: 0.6, max: 1.8, step: 0.05, lab: a => a < .25 ? 'Finas' : a < .6 ? 'Normales' : 'Enormes' },
+  { k: 'oil', n: 'Petróleo', min: 0.7, max: 0.9, step: 0.01, inv: 1, lab: a => a > 0.9 ? 'Normal (máximo)' : a > 0.5 ? 'Algo menos' : a > 0.2 ? 'Poco' : 'Casi nada' },
+  { k: 'gas', n: 'Géiseres de gas', min: 0, max: 0.0012, step: 0.0001, lab: a => a > 0.9 ? 'Normal (máximo)' : a > 0.5 ? 'Algunos' : a > 0.15 ? 'Pocos' : 'Casi ninguno' },
+  { k: 'veins', n: 'Tamaño de las vetas', min: 0.6, max: 1, step: 0.05, lab: a => a > 0.9 ? 'Normales (máximo)' : a > 0.4 ? 'Algo finas' : 'Finas' },
   { k: 'lakes', n: 'Lagos', min: -0.08, max: 0.1, step: 0.005 },
   { k: 'flora', n: 'Plantas y hierbas', min: 0.3, max: 2, step: 0.05 },
 ];
@@ -29,14 +29,16 @@ const SLIDERS2 = [
 const ALL_SL = SLIDERS.concat(SLIDERS2);
 // Pestañas del creador de mundos (todo cabe sin desplazarse)
 const CW_TABS = [['gen', '🌍 General'], ['ter', '⛰ Terreno'], ['cli', '🌦 Clima y mundo'], ['play', '⚔ Partida']];
+const PRESET_D = { normal: ['🌍', 'De todo un poco: el mundo de siempre.'], islands: ['🏝', 'Muchas islas pequeñas y mucho mar: barcos desde el principio.'], continents: ['🗺', 'Grandes masas de tierra separadas por océanos.'], mountains: ['⛰', 'Montañas altas y valles: más roca que picar (las menas no aumentan).'], plains: ['🌾', 'Llanuras abiertas, pocas montañas: ideal para construir.'], desert: ['🏜', 'Calor y arena: el agua escasea.'], frozen: ['❄', 'Un mundo más frío: taigas, tundra y nieve.'], tropical: ['🌴', 'Calor y humedad: selvas, manglares y mares cálidos.'] };
 const PRESETS = {
   normal: { n: 'Normal', g: {} },
   islands: { n: 'Archipiélago', g: { terrain: 18, water: 0.45, sand: 0.04 } },
   continents: { n: 'Continentes', g: { terrain: 60, water: 0.33 } },
-  mountains: { n: 'Montañoso', g: { mountain: 0.54, water: 0.3, ores: 0.55 } },
+  mountains: { n: 'Montañoso', g: { mountain: 0.54, water: 0.3 } },
   plains: { n: 'Llanuras', g: { mountain: 0.74, forest: 0.68, water: 0.3 } },
-  desert: { n: 'Desierto', g: { sand: 0.14, water: 0.27, forest: 0.78, oil: 0.62 } },
-  rich: { n: 'Rico en recursos', g: { ores: 0.5, oil: 0.62, gas: 0.003, mountain: 0.58 } },
+  desert: { n: 'Desierto', g: { sand: 0.14, water: 0.27, forest: 0.78, temp: 0.08, humid: -0.1 } },
+  frozen: { n: 'Tierras frías', g: { temp: -0.1, humid: 0.03 } },
+  tropical: { n: 'Tropical', g: { temp: 0.1, humid: 0.08, water: 0.38 } },
 };
 let cwS = null, _prevTimer = 0;
 const sliderAmount = (s, v) => s.inv ? (s.max - v) / (s.max - s.min) : (v - s.min) / (s.max - s.min);
@@ -79,7 +81,8 @@ function showCreate() {
     <div class="cwp" data-cwp="gen">
     <label class="fl"><span>Nombre</span><input id="cwName" type="text" maxlength="40" value="${esc(cwS.name)}"></label>
     <label class="fl"><span>Semilla <span class="mut small">(número o texto; vacía = al azar)</span></span><span class="row gap"><input id="cwSeed" type="text" maxlength="40" placeholder="Al azar"><button data-w="rseed" title="Semilla al azar">🎲</button></span><span class="mut small" id="cwSeedOut"></span></label>
-    <div class="fl"><span>Tipo de mundo</span><div class="presets">${Object.entries(PRESETS).map(([k, p]) => `<button data-w="preset:${k}" class="${k === 'normal' ? 'on' : ''}">${p.n}</button>`).join('')}</div></div>
+    <div class="fl"><span>Tipo de mundo</span><div class="presets">${Object.entries(PRESETS).map(([k, p]) => `<button data-w="preset:${k}" class="${k === 'normal' ? 'on' : ''}" title="${esc((PRESET_D[k] || [, ''])[1])}"><b>${(PRESET_D[k] || [''])[0]}</b> ${p.n}</button>`).join('')}</div><p class="mut small" id="cwPresetD">${PRESET_D.normal[1]}</p></div>
+    <p class="cwnota small">⚖ Los recursos están equilibrados para que el juego no sea demasiado fácil: en <b>Terreno</b> puedes poner menos menas, petróleo o gas, pero no más.</p>
     </div>
     <div class="cwp" data-cwp="ter" hidden><div class="slgrid">${SLIDERS.map(slHTML).join('')}</div></div>
     <div class="cwp" data-cwp="cli" hidden><div class="slgrid">${SLIDERS2.map(slHTML).join('')}</div><p class="mut small">Estas opciones cambian el carácter del mundo, pero no deciden qué encontrarás: los biomas raros y las menas de fantasía siguen siendo raros y su sitio depende de la semilla.</p></div>
@@ -88,13 +91,13 @@ function showCreate() {
       <label class="fl"><span>Enemigos</span><select id="cwFoes"><option value="0">Ninguno (mundo pacífico)</option><option value="0.5">Pocos</option><option value="1" selected>Normales</option><option value="1.6">Muchos</option><option value="2.4">Horda</option></select></label>
       <label class="fl"><span>Dificultad</span><select id="cwDiff"><option value="1">Normal</option><option value="1.5">Difícil (picar y cazar cuesta un 50 % más)</option><option value="2">Extremo (el doble)</option></select></label>
       <label class="chk"><input type="checkbox" id="cwSpawn" checked> Zona de inicio con recursos garantizados cerca</label>
-      <label class="chk"><input type="checkbox" id="cwSafe" checked> Empezar en un bosque templado (si no, puedes nacer en cualquier bioma)</label>
+      <label class="chk"><input type="checkbox" id="cwSafe" checked> Empezar en una zona tranquila (el bioma cambia con cada semilla: pradera, bosque, taiga, sabana…). Si no, puedes nacer en cualquier sitio, incluso en el desierto o la nieve</label>
       <label class="chk"><input type="checkbox" id="cwSurv" checked> Supervivencia: vida, hambre, sed, heridas y animales peligrosos</label>
       <label class="chk"><input type="checkbox" id="cwDay"> Siempre de día</label>
       <label class="chk"><input type="checkbox" id="cwSand"> Modo libre: todo desbloqueado, sin objetivos</label>
       <label class="chk"><input type="checkbox" id="cwCmd"> Permitir comandos y trucos (modo creativo, /dar, /oleada…). Si no lo marcas, en este mundo no se podrán usar nunca</label>
     </div>
-  </div><div class="cprev"><div class="row gap"><button data-w="pv:near" class="on" id="pvNear">Zona de inicio</button><button data-w="pv:far" id="pvFar">Mapa de biomas</button></div><canvas id="cwPrev" width="352" height="352"></canvas><p class="mut small" id="pvCap"></p><div id="pvQuirks" class="pvq"></div><div id="pvBiomes" class="pvb"></div><button class="pri big" data-w="create">Crear mundo y jugar</button></div></div>`;
+  </div><div class="cprev"><div class="row gap"><button data-w="pv:near" class="on" id="pvNear">Zona de inicio</button><button data-w="pv:far" id="pvFar">Mapa de biomas</button></div><canvas id="cwPrev" width="352" height="352"></canvas><p class="small cwspawn" id="pvSpawn"></p><p class="mut small" id="pvCap"></p><div id="pvQuirks" class="pvq"></div><div id="pvBiomes" class="pvb"></div><button class="pri big" data-w="create">Crear mundo y jugar</button></div></div>`;
   $('tBody').innerHTML = h; syncSliders(); schedulePreview();
 }
 const slHTML = s => `<label class="sl"><span>${s.n}</span><input type="range" id="sl-${s.k}" min="0" max="1000" step="1"><span class="mut small" id="slv-${s.k}"></span></label>`;
@@ -107,13 +110,14 @@ function syncSliders() {
 }
 function schedulePreview() { clearTimeout(_prevTimer); _prevTimer = setTimeout(drawPreview, 90); }
 function previewGen() { return applyQuirks({ ...cwS.gen, seed: parseSeed(cwS.seed, cwS.rand), spawnKit: cwS.spawnKit, safeSpawn: cwS.safeSpawn, diff: cwS.diff }); }
+function showSpawn(P) { const el = $('pvSpawn'); if (!el) return; try { const b = BIOMES[biomeAt(0, 4, P)]; el.innerHTML = `🏕 Empezarás en: <b>${esc(b ? b.n : '?')}</b>${P.safeSpawn === false ? ' <span class="mut">(sin zona tranquila: puede tocar cualquier sitio)</span>' : ''}`; } catch (e) { el.textContent = ''; } }
 function showQuirks(P) { const el = $('pvQuirks'); if (!el) return; el.innerHTML = `<div class="cat">Rasgos de esta semilla <span class="mut small">(no se pueden elegir)</span></div>` + P.quirks.map(n => { const q = QUIRKS.find(x => x.n === n); return `<span class="chip" title="${esc(q.d)}">✦ ${esc(n)}</span>`; }).join(' ') + `<div class="mut small">${P.quirks.map(n => esc(QUIRKS.find(x => x.n === n).d)).join(' ')}</div>`; }
 // Vista previa por partes (unas filas por tramo) para no congelar la interfaz
 let _pvJob = 0;
 function drawPreview() {
   const cv2 = $('cwPrev'); if (!cv2) return;
   const far = cwS.pv === 'far', N = far ? 128 : 176, span = far ? 4000 : 240, step = span / N, P = previewGen(), job = ++_pvJob;
-  showQuirks(P);
+  showQuirks(P); showSpawn(P);
   const c = cv2.getContext('2d'), img = c.createImageData(N, N), d = img.data, tmp = mkCanvas(N, N), counts = new Map(), cl = [0, 0, 0, 0, 0];
   $('pvCap').textContent = far ? 'Mapa de biomas (4.000 × 4.000 casillas alrededor del inicio). Lo que no ves aquí puede estar mucho más lejos.' : 'Zona de inicio (240 × 240 casillas). El mundo no tiene límites.';
   let row = 0;
@@ -209,7 +213,7 @@ function worldAction(act, btn) {
       toast('Mundo borrado'); showList(); break;
     case 'rseed': cwS.seed = String(((Math.random() * 2e9) | 0) || 1); $('cwSeed').value = cwS.seed; syncSliders(); schedulePreview(); break;
     case 'preset':
-      cwS.preset = id; cwS.gen = { ...GEN_DEFAULT, ...PRESETS[id].g };
+      cwS.preset = id; cwS.gen = { ...GEN_DEFAULT, ...PRESETS[id].g }; { const pd = $('cwPresetD'); if (pd) pd.textContent = (PRESET_D[id] || [, ''])[1]; }
       document.querySelectorAll('.presets button').forEach(b => b.classList.toggle('on', b.dataset.w === act));
       syncSliders(); schedulePreview(); break;
     case 'create': createFromForm(); break;

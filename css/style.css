@@ -2338,3 +2338,9 @@ body:has(.modal:not([hidden])) #chat:not(.open) { opacity: 0; transition: opacit
 #bossBar .bbb span { z-index: 3; width: 2px; background: #140c10; }
 #bossBar.shield .bbb i { background-image: linear-gradient(#e8d8ff 0 3px, #b090f0 3px 9px, #7a5ad0 9px 13px, #4a3090 13px 16px); }
 @media (max-width: 700px) { #bossBar .bbb { height: 10px; } #bossBar .bbb i { background-image: linear-gradient(#ff8a6a 0 2px, #e8402e 2px 6px, #b01e1e 6px 8px, #7a1010 8px 10px); } }
+/* Creador de mundos: tipos con icono, aviso de recursos y bioma de inicio */
+.presets button b { font-weight: 400; margin-right: 2px; }
+#cwPresetD { margin: 6px 0 0; min-height: 1.4em; }
+.cwnota { margin: 10px 0 0; padding: 8px 10px; border: 1px solid rgba(232,200,144,.25); background: rgba(232,200,144,.06); color: #e8dcc0; border-radius: 4px; }
+.cwspawn { margin: 6px 0 2px; color: #f4e6c8; }
+.cwspawn b { color: var(--brass, #e8c890); }

@@ -269,7 +269,7 @@ for (const b of BIOMES) {
 
 // ---------- Clima ----------
 const GEN_DEFAULT = { seed: 0, terrain: 30, water: 0.35, sand: 0.03, mountain: 0.63, ores: 0.6, forest: 0.6, oil: 0.7, gas: 0.0012, biomeSize: 1, rivers: 1, spawnKit: true,
-  temp: 0, humid: 0, contSize: 1, islands: 1, chaos: 1, lakes: 0, veins: 1, flora: 1, fauna: 1, dayLen: 600, diff: 1, foes: 1, safeSpawn: true, quirks: [], blend: 2, hearth: 1 };
+  temp: 0, humid: 0, contSize: 1, islands: 1, chaos: 1, lakes: 0, veins: 1, flora: 1, fauna: 1, dayLen: 600, diff: 1, foes: 1, safeSpawn: true, quirks: [], blend: 2, hearth: 1, spawnV: 1, realV: 1 }; // spawnV/realV: solo en mundos nuevos (los guardados siguen igual)
 // Rasgos de la semilla: cada semilla recibe 2 o 3 rasgos que no se pueden elegir (así ningún mundo es igual).
 // g: grupo (no se repiten dos rasgos del mismo grupo) · f: cómo cambian los parámetros
 const QUIRKS = [
@@ -278,7 +278,7 @@ const QUIRKS = [
   { n: 'Monzones', d: 'Más humedad: selvas y pantanos.', g: 'h', f: P => { P.humid += 0.07; } },
   { n: 'Gran sequía', d: 'Menos humedad: desiertos y sabanas.', g: 'h', f: P => { P.humid -= 0.07; } },
   { n: 'Vetas profundas', d: 'Las vetas de mena son más grandes y más escasas.', g: 'v', f: P => { P.veins *= 1.35; P.ores += 0.015; } },
-  { n: 'Vetas finas', d: 'Muchas vetas pequeñas.', g: 'v', f: P => { P.veins *= 0.75; P.ores -= 0.01; } },
+  { n: 'Vetas finas', d: 'Vetas pequeñas y repartidas.', g: 'v', f: P => { P.veins *= 0.75; } },
   { n: 'Placas rotas', d: 'Los biomas se mezclan con bordes caóticos.', g: 'c', f: P => { P.chaos *= 1.5; } },
   { n: 'Ríos serpenteantes', d: 'Más ríos y más anchos.', g: 'r', f: P => { P.rivers *= 1.3; } },
   { n: 'Tierra fértil', d: 'Más plantas y bosques.', g: 'f', f: P => { P.flora *= 1.4; P.forest -= 0.02; } },
@@ -303,6 +303,9 @@ function applyQuirks(gen) {
   }
   P.quirks = out; return P;
 }
+// Clima de la zona de inicio según la semilla: biomas tranquilos para empezar (temperatura, humedad, rareza)
+const SPAWN_CLIMAS = [[0.5, 0.36, 0.4], [0.5, 0.52, 0.5], [0.5, 0.53, 0.14], [0.5, 0.4, 0.14], [0.5, 0.4, 0.88], [0.5, 0.56, 0.9], [0.3, 0.5, 0.5], [0.71, 0.46, 0.5], [0.3, 0.22, 0.4], [0.72, 0.64, 0.4], [0.36, 0.25, 0.62], [0.71, 0.3, 0.4]];
+function spawnClima(P) { return SPAWN_CLIMAS[Math.floor(hash2(P.seed | 0, 17, 5150) * SPAWN_CLIMAS.length) % SPAWN_CLIMAS.length]; }
 function fbmN(x, y, s, o) { let t = 0, a = .5, f = 1, n = 0; for (let i = 0; i < o; i++) { t += vnoise(x * f, y * f, s + i * 17) * a; n += a; a *= .5; f *= 2; } return t / n; }
 const contrast = v => clamp(0.5 + (v - 0.5) * 1.9, 0, 1);
 const smooth = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
@@ -322,9 +325,15 @@ function climate(x, y, P, out) {
     Wd += (fbmN(jx * 1.2, jy * 1.2, s + 95, 2) - 0.5) * 0.12; C += (fbmN(x / 34, y / 34, s + 99, 2) - 0.5) * 0.035; }
   let Is = contrast(fbmN(wx * k / 240, wy * k / 240, s + 81, 2));
   if (P.temp) Tm = clamp(Tm + P.temp, 0, 1); if (P.humid) Hu = clamp(Hu + P.humid, 0, 1); if (P.islands !== undefined && P.islands !== 1) Is = clamp(Is + (P.islands - 1) * 0.06, 0, 1);
-  // Alrededor del inicio el clima se vuelve templado y con tierra firme
+  // Mundos nuevos: clima más realista. La humedad sube cerca del mar y baja tierra adentro (los desiertos quedan
+  // lejos de la costa) y la temperatura sigue franjas muy anchas, como latitudes (zonas frías y cálidas que se suceden)
+  if (P.realV) { const costa = clamp((0.6 - C) * 2.2, -0.4, 0.6); Hu = clamp(Hu + costa * 0.22, 0, 1);
+    const lat = 0.5 + 0.5 * Math.sin((wy * k) / 5200 * Math.PI * 2 + s % 7); Tm = clamp(Tm * 0.72 + lat * 0.28, 0, 1); }
+  // Alrededor del inicio, tierra firme y un clima tranquilo. En los mundos nuevos el bioma de inicio cambia con la
+  // semilla (pradera, bosque, abedules, taiga, sabana, campo de flores…); en los antiguos sigue siendo templado.
   const m = smooth(220, 600, Math.hypot(x, y));
-  if (m < 1 && P.safeSpawn !== false) { Tm = 0.5 + (Tm - 0.5) * m; Hu = 0.45 + (Hu - 0.45) * m; Wd = 0.4 + (Wd - 0.4) * m; C = C * m + 0.72 * (1 - m); Is *= m; }
+  if (m < 1 && P.safeSpawn !== false) { const z = P.spawnV ? spawnClima(P) : [0.5, 0.45, 0.4];
+    Tm = z[0] + (Tm - z[0]) * m; Hu = z[1] + (Hu - z[1]) * m; Wd = z[2] + (Wd - z[2]) * m; C = C * m + 0.72 * (1 - m); Is *= m; }
   out[0] = C; out[1] = Tm; out[2] = Hu; out[3] = Wd; out[4] = Is; return out;
 }
 /* Franja de mezcla entre biomas: casilla a casilla, un ruido fino (manchas de 3–4 casillas) mueve el

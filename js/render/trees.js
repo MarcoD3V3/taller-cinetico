@@ -144,7 +144,7 @@ function drawTrees(ctx, k, ox, oy, x0, y0, x1, y1, front) {
       const tx = list[i], ty = list[i + 1]; if (tx < x0 - 2 || tx > x1 + 2 || ty < y0 - 1 || ty > y1 + 5) continue;
       const s = treeSprite(list[i + 2], list[i + 3] & 63, list[i + 3] >> 6), baseY = ty * T + 26, sortY = baseY + (s.sortDy || 0); // la línea de orden se puede mover en el motor
       if ((sortY > pty) !== front) continue;
-      const dw = s.dw || TREE_W, dh = s.dh || TREE_H, X = tx * T + 16 - (s.ax ?? TREE_AX), Y = baseY - (s.ay ?? TREE_AY), sd = hash2(tx, ty, 91), wa = 2.4 * (s.wind ?? 1);
+      const dw = s.dw || TREE_W, dh = s.dh || TREE_H, X = tx * T + 16 - (s.ax ?? TREE_AX) + (typeof talaSacude === 'function' ? talaSacude(tx, ty) : 0), Y = baseY - (s.ay ?? TREE_AY), sd = hash2(tx, ty, 91), wa = 2.4 * (s.wind ?? 1); // talaSacude: tiembla un poco al golpearlo
       items.push([sortY, typeof windDraw === 'function' ? () => windDraw(dc, s.cv, X, Y, dw, dh, sd, wa) : () => dc.drawImage(s.cv, X, Y, dw, dh)]); // los árboles propios traen su tamaño
     }
   }
