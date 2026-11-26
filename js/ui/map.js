@@ -34,7 +34,7 @@ function queueMapTiles(keys) { _mapQueue = keys.filter(k => !MAPT.has(k)); _mapS
 /* Las zonas guardadas en el archivo (CHARCH) se dibujan directo desde sus datos comprimidos: sin generar
    ni cargar el chunk entero. Con presupuesto de tiempo por cuadro (más si el mapa está abierto) y
    empezando por lo más cercano al jugador. */
-const _mqTmp = { cx: 0, cy: 0, g: new Uint8Array(CS * CS), b: null };
+const _mqTmp = { cx: 0, cy: 0, g: new Uint16Array(CS * CS), b: null };
 function mapQueueTick() {
   if (!_mapQueue.length) return;
   if (_mapSort && S && S.player) { _mapSort = false; const px = Math.floor(S.player.x / T) >> CSH, py = Math.floor(S.player.y / T) >> CSH;
@@ -45,7 +45,7 @@ function mapQueueTick() {
     const k = _mapQueue.pop(); if (MAPT.has(k)) continue; const [cx, cy] = ckeyXY(k);
     const c = peekChunk(cx, cy); if (c) { buildMapTile(c); continue; }
     const a = typeof CHARCH !== 'undefined' && CHARCH.get(k);
-    if (a) { _mqTmp.cx = cx; _mqTmp.cy = cy; _mqTmp.g.fill(0); unrle(a[0], _mqTmp.g); buildMapTile(_mqTmp); }
+    if (a) { _mqTmp.cx = cx; _mqTmp.cy = cy; _mqTmp.g.fill(0); unrle(a[0], _mqTmp.g); if (a[2] && typeof t16Fix === 'function') t16Fix(_mqTmp); buildMapTile(_mqTmp); }
     else { getChunk(cx, cy); break; }
   }
 }

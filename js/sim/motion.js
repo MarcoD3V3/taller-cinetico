@@ -54,7 +54,7 @@ function paredEn(px, py) {
   if (up > l) { const hx = faceH(up - l) + jit; if (y < hx) pon(up, [px, ty * T + hx + 0.6], [px, ty * T - 0.6]); } // pared de delante
   for (const side of [-1, 1]) {
     const k = side < 0 ? x : T - 1 - x, edge = side < 0 ? tx * T : (tx + 1) * T, hi = nivel(tx + side, ty);
-    if (hi > l) { const w = anchoLado(Math.min(7, 3 + (hi - l) * 2) - ((ihash(wy >> 2, tx * 17 + side) * 3) | 0), y, nivel(tx + side, ty - 1) <= l); if (k < w) pon(hi, [edge - side * (w + 0.6), py], [edge + side * 1.5, py]); } // lateral
+    if (hi > l) { const w = anchoLado(Math.min(7, 3 + (hi - l) * 2) - ((ihash(wy >> 2, tx * 17 + side) * 3) | 0), y, nivel(tx + side, ty - 1) <= l); if (k < w) pon(hi, [edge - side * (w + 0.6) - (side > 0 ? 1 : 0), py], [edge + side * 1.5, py]); } // lateral (a la derecha k cuenta desde T-1: un píxel más para quedar fuera de verdad)
     else if (up <= l) { const dg = nivel(tx + side, ty - 1); if (dg > l) { // esquina: la pared lateral de la diagonal baja por aquí
       const fh = Math.min(T, faceH(dg - l)), w = Math.min(7, 3 + (dg - l) * 2) - ((ihash(wy >> 2, tx * 17 + side) * 3) | 0);
       const hxc = Math.min(fh, fh + jit);
@@ -163,9 +163,26 @@ function motionPost(fromLv) {
     if (k >= 1) { P._sube = null; dust(p.x, p.y + 8, 3); } return; }
   // bajar por un borde: caes hasta el pie de la pared (nunca te quedas de pie sobre ella). Varias veces por si hay
   // paredes seguidas (escalones de varias capas o esquinas raras)
-  if (!_flyMove()) for (let n = 0; n < 4; n++) { const w = paredEn(p.x, p.y + 5); if (!w || fromLv < w.up) break; const [ax, ay] = w.fuera; if (!playerFreeAt(ax, ay - 5)) break; p.x = ax; p.y = ay - 5; }
+  // También si por lo que sea los pies acaban DENTRO de la cara de una pared (al aterrizar de un salto, un empujón,
+  // una montura, reaparecer…): se baja al pie de la pared y nunca te quedas de pie encima de ella. El pie de la pared
+  // cambia un poco con x (el borde es irregular), por eso se repite.
+  let bajaY = 0;
+  if (!_flyMove()) for (let n = 0; n < 6; n++) { const w = paredEn(p.x, p.y + 5); if (!w) break;
+    if (fromLv < w.up && ((P.z || 0) > 0.5 || GI[gnd(Math.floor(p.x / T), Math.floor((p.y + 5) / T))].shaft)) break; // en el aire o sobre un pozo (para caer dentro), como antes
+    let [ax, ay] = w.fuera;
+    if (!playerFreeAt(ax, ay - 5)) { // el cuerpo choca justo ahí: un poco más hacia fuera (hasta 8 px)
+      const vx = ax - p.x, vy = ay - 5 - p.y, l = Math.hypot(vx, vy); if (l < 0.01) break; let ok = false;
+      for (let k = 2; k <= 8 && !ok; k += 2) { const bx = ax + vx / l * k, by = ay + vy / l * k; if (playerFreeAt(bx, by - 5)) { ax = bx; ay = by; ok = true; } }
+      if (!ok) break; }
+    bajaY += ay - 5 - p.y; p.x = ax; p.y = ay - 5; }
   const now = lvPoint(p.x, p.y + 5);
-  if (now < fromLv && !_flyMove() && !(typeof escalonEn === 'function' && escalonEn(p.x, p.y + 5))) { P.z = (P.z || 0) + LV_H * (fromLv - now); if (!(P.vz > 0)) P.vz = 0; }
+  if (now < fromLv && !_flyMove() && !(typeof escalonEn === 'function' && escalonEn(p.x, p.y + 5))) {
+    // Altura de la caída = lo que has bajado en pantalla: al caer por delante de una terraza se compensa el paso al pie
+    // de la pared y la imagen sigue suave; por un lado (sin pared delante) no hay tirón hacia arriba. En un hoyo, como siempre.
+    const hoyo = GI[gnd(Math.floor(p.x / T), Math.floor((p.y + 5) / T))].hole;
+    const sube = hoyo ? LV_H * (fromLv - now) : Math.max(0, Math.min(LV_H * (fromLv - now) + 6, bajaY));
+    P.z = (P.z || 0) + sube; if (!(P.vz > 0)) P.vz = 0;
+  }
 }
 // Velocidad objetivo según el terreno y el agua; agarre (cuánto tarda en acelerar o frenar)
 function moveFactors() {

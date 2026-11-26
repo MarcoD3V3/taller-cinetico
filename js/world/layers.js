@@ -70,7 +70,7 @@ function genCaveChunk(c, k) {
   const L = LAYERS[k], P = S.gen, s = P.seed + k * 7919, x0 = c.cx * CS, y0 = c.cy * CS, ys0 = y0 - k * LAY_OFF;
   let surf = null;
   if (k === 1) {
-    surf = new Uint8Array(CS * CS); const cl = [0, 0, 0, 0, 0]; computeClimateGrid(x0, ys0, P);
+    surf = new Uint16Array(CS * CS); const cl = [0, 0, 0, 0, 0]; computeClimateGrid(x0, ys0, P);
     for (let y = 0; y < CS; y++) for (let x = 0; x < CS; x++) { climateLerp(x, y, cl); surf[(y << CSH) | x] = genTileB(x0 + x, ys0 + y, P, cl, pickBiome(cl[0], cl[1], cl[2], cl[3], cl[4], P)); }
   }
   // Las primeras capas comparten parte de las menas del bioma de encima

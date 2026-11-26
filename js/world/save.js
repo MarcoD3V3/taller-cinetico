@@ -9,7 +9,7 @@ function serialize() {
   const bs = blocks.map(b => { const o = {}; for (const k in b) if (!SKIP.has(k)) o[k] = b[k]; return o; });
   const ch = []; for (const c of WORLD.values()) if (c.mod) ch.push([c.cx, c.cy, rle(c.g), rle(c.t)]);
   const { _sortPending, ...rest } = S;
-  return JSON.stringify({ ...rest, ch, seen: [...MAPT.keys()], bs });
+  return JSON.stringify({ ...rest, t16: 1, ch, seen: [...MAPT.keys()], bs }); /* t16: el suelo ya se guarda bien (16 bits) */
 }
 function deserialize(str) {
   const d = JSON.parse(str); if (!d || d.v !== 3) return false;
@@ -17,7 +17,7 @@ function deserialize(str) {
   S = { ...rest, gen: { ...GEN_DEFAULT, blend: 1, hearth: 0, spawnV: 0, realV: 0, ...rest.gen } }; /* partidas de antes: sin cambiar sus lindes grandes */
   WORLD.clear(); _lk = -1; _lc = null; blocks = [];
   worldReset();
-  for (const [cx, cy, g, t] of ch) { const c = newChunk(cx, cy); unrle(g, c.g); unrle(t, c.t); c.mod = true; computeChunkBiomes(c); WORLD.set(ckey(cx, cy), c); onChunkGen(c); }
+  for (const [cx, cy, g, t] of ch) { const c = newChunk(cx, cy); unrle(g, c.g); unrle(t, c.t); if (!rest.t16 && typeof t16Fix === 'function') t16Fix(c); c.mod = true; computeChunkBiomes(c); WORLD.set(ckey(cx, cy), c); onChunkGen(c); }
   for (const o of bs) { if (!BD[o.type]) continue; const b = makeB(o.type, o.x, o.y, o.dir); Object.assign(b, o); setBlockAt(b.x, b.y, b); blocks.push(b); }
   for (const b of blocks) mapPixel(b.x, b.y);
   if (seen) queueMapTiles(seen);

@@ -36,7 +36,8 @@ function setBlockAt(x, y, b) {
   if (c.b[i] && !b) c.nb--; else if (!c.b[i] && b) c.nb++;
   c.b[i] = b;
 }
-function newChunk(cx, cy) { return { cx, cy, g: new Uint8Array(CS * CS), t: new Uint8Array(CS * CS), bio: new Uint8Array(CS * CS), b: null, nb: 0, mod: false }; }
+/* Tipo de suelo en 16 bits: ya hay más de 256 tipos de casilla (con 8 bits el pozo se convertía en petróleo y las cuevas se estropeaban) */
+function newChunk(cx, cy) { return { cx, cy, g: new Uint16Array(CS * CS), t: new Uint8Array(CS * CS), bio: new Uint8Array(CS * CS), b: null, nb: 0, mod: false }; }
 function genChunk(cx, cy) {
   const c = newChunk(cx, cy);
   genChunkTiles(c);
