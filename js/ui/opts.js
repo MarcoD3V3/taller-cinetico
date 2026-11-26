@@ -43,6 +43,7 @@ const spellReady = n => { try { const st = spellState(); return !!st.slots[n - 1
 const _typing = e => { const t = e.target, tg = t && t.tagName; return tg === 'INPUT' || tg === 'TEXTAREA' || tg === 'SELECT' || (t && t.isContentEditable); };
 for (const type of ['keydown', 'keyup']) addEventListener(type, e => {
   if (e.__tc || _typing(e) || e.ctrlKey || e.metaKey) return;
+  if (/^Numpad([0-9]|Enter)$/.test(e.code || '')) return; /* el teclado numérico es para apuntar sin ratón (ui/teclado.js) */
   const k = evKey(e), sh = /^shift\+\d$/.test(k);
   let list = KMAP.get(k);
   if (sh && type === 'keydown') { const live = typeof S !== 'undefined' && S && !ui.open; list = (list || []).filter(to => !/^spell\d$/.test(to) || (live && spellReady(+to[5]))); }

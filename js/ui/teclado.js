@@ -10,8 +10,8 @@
 //     planta) y, si hay un enemigo o un animal delante, va a por él. No cava el suelo si hay algo mejor.
 //   · Para poner busca la casilla libre más cercana delante de ti (o a los lados si delante no se puede);
 //     las cintas y ejes se orientan solos hacia donde miras.
-//  Al mover el ratón vuelve el control normal. El chat pasa a la tecla Y (o / para comandos, o el Intro del
-//  teclado numérico).
+//  Teclado numérico: 7 8 9 / 4 6 / 1 2 3 apuntan (8 direcciones), 5 o su Intro pican, 0 pone.
+//  Al mover el ratón vuelve el control normal. El chat pasa a la tecla Y (o / para comandos).
 // =====================================================================================
 const TEC = { on: false, dx: 1, dy: 0, t0: {}, enter: false, place: false, placeT: 0, tgt: null, wx: 0, wy: 0, rmx: -1, rmy: -1, lastTile: '' };
 const TEC_FLECHAS = ['arrowup', 'arrowdown', 'arrowleft', 'arrowright'], TEC_TOQUE = 220; // ms: menos que esto = solo girar
@@ -100,6 +100,28 @@ function tecTick(fdt) {
   if (_tecMarcaT > 0) _tecMarcaT -= fdt;
 }
 // ---------- Teclas ----------
+function tecEmpiezaPicar() { TEC.on = true; TEC.enter = true; ui.mlock = null; TEC_ult.x = TEC_ult.y = -1e9; const t = tecObjetivoPicar(); tecApuntar(t.wx, t.wy); mouse.down = true; mouse.last = null; mouse.dragged = []; }
+function tecParaPicar() { if (!TEC.enter) return; TEC.enter = false; mouse.down = false; mouse.grapDone = false; ui.mlock = null; }
+// Teclado numérico (con o sin Bloq Num): 7 8 9 / 4 6 / 1 2 3 apuntan en 8 direcciones (sin caminar),
+// 5 o el Intro del numérico pican (mantener) y 0 pone. Se captura antes para que los números no cambien de hueco.
+const TEC_NUM = { Numpad8: [0, -1], Numpad2: [0, 1], Numpad4: [-1, 0], Numpad6: [1, 0], Numpad7: [-1, -1], Numpad9: [1, -1], Numpad1: [-1, 1], Numpad3: [1, 1] };
+const TEC_NUM_PICA = ['Numpad5', 'NumpadEnter'], TEC_NUM_PON = 'Numpad0';
+const tecEsNum = c => !!TEC_NUM[c] || TEC_NUM_PICA.includes(c) || c === TEC_NUM_PON;
+addEventListener('keydown', e => {
+  if (!tecEsNum(e.code) || !S || ui.open || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (typeof CHAT !== 'undefined' && CHAT.open) return;
+  const tg = e.target && e.target.tagName; if (tg === 'INPUT' || tg === 'TEXTAREA' || tg === 'SELECT') return;
+  e.preventDefault(); e.stopImmediatePropagation(); TEC.on = true;
+  const d = TEC_NUM[e.code];
+  if (d) { const l = Math.hypot(d[0], d[1]); TEC.dx = d[0] / l; TEC.dy = d[1] / l; TEC_ult.x = TEC_ult.y = -1e9; return; }
+  if (e.repeat) return;
+  if (TEC_NUM_PICA.includes(e.code)) tecEmpiezaPicar();
+  else { TEC.place = true; TEC.placeT = 0.35; tecPoner(false); }
+}, true);
+addEventListener('keyup', e => {
+  if (!tecEsNum(e.code)) return; e.stopImmediatePropagation();
+  if (TEC_NUM_PICA.includes(e.code)) tecParaPicar(); else if (e.code === TEC_NUM_PON) TEC.place = false;
+}, true);
 addEventListener('keydown', e => {
   if (!S || ui.open || e.ctrlKey || e.metaKey || e.altKey) return;
   if (typeof CHAT !== 'undefined' && CHAT.open) return;
@@ -107,8 +129,7 @@ addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   if (TEC_FLECHAS.includes(k)) { if (!e.repeat) TEC.t0[k] = performance.now(); if (!TEC.on) TEC.on = true; return; }
   if (e.key === 'Enter' && e.code !== 'NumpadEnter') {
-    e.preventDefault(); if (e.repeat) return; TEC.on = true; TEC.enter = true; ui.mlock = null; TEC_ult.x = TEC_ult.y = -1e9;
-    const t = tecObjetivoPicar(); tecApuntar(t.wx, t.wy); mouse.down = true; mouse.last = null; mouse.dragged = []; return;
+    e.preventDefault(); if (e.repeat) return; tecEmpiezaPicar(); return;
   }
   if (e.code === 'ShiftRight') {
     if (e.repeat) return; TEC.on = true; TEC.place = true; TEC.placeT = 0.35; tecDirDeFlechas(); tecPoner(false);
@@ -116,7 +137,7 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => {
   const k = e.key.toLowerCase(); if (TEC_FLECHAS.includes(k)) delete TEC.t0[k];
-  if (e.key === 'Enter' && TEC.enter) { TEC.enter = false; mouse.down = false; mouse.grapDone = false; ui.mlock = null; }
+  if (e.key === 'Enter') tecParaPicar();
   if (e.code === 'ShiftRight' || e.key === 'Shift') TEC.place = false;
 });
 addEventListener('blur', () => { TEC.enter = TEC.place = false; TEC.t0 = {}; });
