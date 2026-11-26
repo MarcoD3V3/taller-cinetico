@@ -10,7 +10,7 @@ const TALA = { sacude: new Map(), caidas: [], tocones: [], part: [] };
 const TALA_TOCON = 28, TALA_FUNDE = 2.5;
 function talaArbolEn(tx, ty) { // sprite y datos del árbol de esa casilla (antes de que desaparezca)
   const list = typeof tileTrees !== 'undefined' ? tileTrees.get(chunkKey(Math.floor(tx / CH), Math.floor(ty / CH))) : null; if (!list) return null;
-  for (let i = 0; i < list.length; i += 4) if (list[i] === tx && list[i + 1] === ty) { const s = treeSprite(list[i + 2], list[i + 3] & 63, list[i + 3] >> 6); return s && s.cv ? s : null; }
+  for (let i = 0; i < list.length; i += 4) if (list[i] === tx && list[i + 1] === ty) { const s = treeSprite(list[i + 2], list[i + 3] & 63, 3); return s && s.cv ? s : null; } // a tamaño completo, como se veía
   return null;
 }
 function talaSacude(tx, ty) { const e = TALA.sacude.get(tx + ',' + ty); if (!e) return 0; const k = e.t / 0.38; if (k >= 1) return 0; return Math.round(Math.sin(e.t * 46) * 1.6 * (1 - k) * e.dir); }

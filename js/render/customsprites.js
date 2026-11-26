@@ -219,7 +219,7 @@ function csTreeMake(im, flip, k, a) {
   const imgs = csTreeImgs(t); if (!imgs) return t0(t, v, size);
   const key = t * 256 + v * 4 + size; let s = _csTreeSpr.get(key); if (s) return s;
   // variante: qué dibujo y si va en espejo (así cada árbol del bosque es distinto al de al lado)
-  const im = imgs[(v >> 1) % imgs.length], flip = v & 1, k = [0.62, 0.78, 0.9, 1][size] || 1; // talado a medias: más pequeño
+  const im = imgs[(v >> 1) % imgs.length], flip = v & 1, k = 1; // mantiene su tamaño hasta caer
   s = csTreeMake(im, flip, k, ajSpr(im.__key)); _csTreeSpr.set(key, s); return s;
 }; }
 // Choque del árbol: la base del tronco (y raíces) tal como está dibujada, no un punto en el centro de la casilla.

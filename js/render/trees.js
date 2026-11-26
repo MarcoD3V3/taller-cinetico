@@ -12,7 +12,7 @@ let _treeLayer = false, _treeList = null;
 function treeSprite(t, v, size) {
   v &= 3; const key = t * 16 + v * 4 + size; let s = _treeSpr.get(key); if (s) return s; // los árboles dibujados por código tienen 4 variantes
   const tr = GI[t].tree, q = TREE_RES, W = TREE_W * q, H = TREE_H * q, cv = mkCanvas(W, H), c = cv.getContext('2d', { willReadFrequently: true });
-  const k = (tr.big || tr.s === 'jungle' ? 1.18 : 1) * [0.62, 0.78, 0.9, 1][size]; // los árboles talados a medias son más pequeños
+  const k = (tr.big || tr.s === 'jungle' ? 1.18 : 1); // el árbol mantiene su tamaño hasta caer (cada golpe lo sacude: render/talar.js)
   const bx = TREE_AX * q, by = TREE_AY * q, img = c.createImageData(W, H), u = new Uint32Array(img.data.buffer);
   const put = (x, y, p) => { x |= 0; y |= 0; if (x >= 0 && y >= 0 && x < W && y < H) u[y * W + x] = p; };
   const rect = (x, y, w, h, p) => { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) put(x + i, y + j, p); };
@@ -142,6 +142,7 @@ function drawTrees(ctx, k, ox, oy, x0, y0, x1, y1, front) {
     const list = tileTrees.get(chunkKey(cx, cy)); if (!list) continue;
     for (let i = 0; i < list.length; i += 4) {
       const tx = list[i], ty = list[i + 1]; if (tx < x0 - 2 || tx > x1 + 2 || ty < y0 - 1 || ty > y1 + 5) continue;
+      if (!GI[gnd(tx, ty)].tree) continue; // recién talado: ya no se dibuja (la copa que cae la pinta render/talar.js)
       const s = treeSprite(list[i + 2], list[i + 3] & 63, list[i + 3] >> 6), baseY = ty * T + 26, sortY = baseY + (s.sortDy || 0); // la línea de orden se puede mover en el motor
       if ((sortY > pty) !== front) continue;
       const dw = s.dw || TREE_W, dh = s.dh || TREE_H, X = tx * T + 16 - (s.ax ?? TREE_AX) + (typeof talaSacude === 'function' ? talaSacude(tx, ty) : 0), Y = baseY - (s.ay ?? TREE_AY), sd = hash2(tx, ty, 91), wa = 2.4 * (s.wind ?? 1); // talaSacude: tiembla un poco al golpearlo
