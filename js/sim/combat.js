@@ -83,7 +83,7 @@ function spawnPlan(night) {
 }
 function spawnTick(dt) {
   const night = daylight() < 0.3, ni = nightIndex();
-  if (night && ni !== _lastNight) { _lastNight = ni; _bloodMoon = ni % 5 === 4 && foeMult() >= 0.5; if (_bloodMoon) { toast('🩸 ¡Luna de sangre! Esta noche salen muchos más enemigos', true); if (!BOSS && Math.random() < 0.2 * Math.min(1.5, foeMult())) { const ks = Object.keys(BOSSES).filter(b => BOSSES[b].tier <= S.tier + 1); summonBoss(ks[(Math.random() * ks.length) | 0], true); } } }
+  if (night && ni !== _lastNight) { _lastNight = ni; _bloodMoon = (ni % 5 === 4 || (S.dir && S.dir.lunaPend)) && foeMult() >= 0.5; if (_bloodMoon && typeof dirActivo === 'function' && dirActivo() && dirActivo() !== 'luna') { _bloodMoon = false; if (S.dir) S.dir.lunaPend = true; } else if (S.dir && _bloodMoon) S.dir.lunaPend = false; /* si coincide con otro evento grande, pasa a la noche siguiente */ if (_bloodMoon) { toast('🩸 ¡Luna de sangre! Esta noche salen muchos más enemigos', true); if (!BOSS && !(S.wb && S.wb.st !== 'wait') && Math.random() < 0.2 * Math.min(1.5, foeMult())) { const ks = Object.keys(BOSSES).filter(b => BOSSES[b].tier <= S.tier + 1); summonBoss(ks[(Math.random() * ks.length) | 0], true); } } }
   if (!night) _bloodMoon = false;
   const plan = spawnPlan(night); if (!plan) return;
   _spawnT -= dt; if (_spawnT > 0) return; _spawnT = plan.every * (0.7 + Math.random() * 0.6);

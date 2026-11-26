@@ -20,9 +20,10 @@ function evTick(dt) {
   for (const k in EV.enfr) EV.enfr[k] = Math.max(0, EV.enfr[k] - dt);
   EV.chk -= dt;
   if (EV.chk <= 0) { EV.chk = 20 + Math.random() * 10; const dia = daylight();
-    if (!EV.met && dia < 0.2 && !EV.enfr.met && Math.random() < 0.1) evMeteoros();
-    else if (dia > 0.6 && !EV.enfr.mig && Math.random() < 0.08) evMigracion();
-    else if (WX.type === 'heat' && WX.int > 0.5 && !EV.enfr.fue && Math.random() < 0.15) evPrender(p.x + (Math.random() - 0.5) * 24 * T, p.y + (Math.random() - 0.5) * 18 * T, true); }
+    const dir = k => typeof dirPuede !== 'function' || dirPuede(k), marca = k => { if (typeof dirMarca === 'function') dirMarca(k); };
+    if (!EV.met && dia < 0.2 && !EV.enfr.met && dir('grande') && Math.random() < 0.08) { evMeteoros(); marca('grande'); }                   // el director decide si toca
+    else if (dia > 0.6 && !EV.enfr.mig && dir('medio') && Math.random() < 0.12) { evMigracion(); marca('medio'); }
+    else if (WX.type === 'heat' && WX.int > 0.5 && !EV.enfr.fue && dir('grande') && Math.random() < 0.1) { if (evPrender(p.x + (Math.random() - 0.5) * 24 * T, p.y + (Math.random() - 0.5) * 18 * T, true)) marca('grande'); } }
   // lluvia de meteoritos en marcha
   if (EV.met) { EV.met.t -= dt; EV.met.cae -= dt;
     if (Math.random() < dt * 3.5) EV.estelas.push({ x: Math.random(), y: Math.random() * 0.35, vx: 0.5 + Math.random() * 0.4, vy: 0.22 + Math.random() * 0.2, t: 0, d: 0.6 + Math.random() * 0.6 });
@@ -78,7 +79,7 @@ function evPrender(x, y, buscar) {
   EV.fuegos.set(tx + ',' + ty, { x: tx, y: ty, t: 0, d: 14 + Math.random() * 10 }); return true;
 }
 // los rayos de las tormentas pueden prender un árbol
-{ const l0 = lightning; lightning = (...a) => { const r = l0(...a); try { if (WX.boltAt && Math.random() < 0.35 && evLibre()) evPrender(WX.boltAt.x, WX.boltAt.y, true); } catch (e) { } return r; }; }
+{ const l0 = lightning; lightning = (...a) => { const r = l0(...a); try { if (WX.boltAt && Math.random() < 0.12 && evLibre() && (typeof dirPuede !== 'function' || dirPuede('grande'))) { if (evPrender(WX.boltAt.x, WX.boltAt.y, true) && typeof dirMarca === 'function') dirMarca('grande'); } } catch (e) { } return r; }; }
 
 // ---------- Dibujo ----------
 function evDibujoSuelo(ctx) { // cráteres: tierra quemada con borde levantado, brasas que se apagan

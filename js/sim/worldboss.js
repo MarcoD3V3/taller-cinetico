@@ -31,7 +31,7 @@ function wbAnnounce(w) {
 }
 function wbTick(dt) {
   const w = S.wb;
-  if (!isGuest() && !w && wbDay() >= 6 && wbDay() % 6 === 0 && S.wbDay !== wbDay()) { S.wbDay = wbDay(); wbStart(); }
+  if (!isGuest() && !w && wbDay() >= 6 && wbDay() % 6 <= 1 && S.wbCiclo !== Math.floor(wbDay() / 6) && (typeof dirPuede !== 'function' || dirPuede('coloso'))) { S.wbCiclo = Math.floor(wbDay() / 6); S.wbDay = wbDay(); if (wbStart() && typeof dirMarca === 'function') dirMarca('grande'); } /* cada 6 días; si coincide con otro evento, espera (ese día o el siguiente) */
   wbHud(); if (!w || isGuest()) return;
   const cx = (w.x + 0.5) * T, cy = (w.y + 0.5) * T, p = S.player, d = Math.hypot(cx - p.x, cy - p.y) / T;
   if (w.st === 'wait' && S.time > w.until) { wbEnd(false); return; }
