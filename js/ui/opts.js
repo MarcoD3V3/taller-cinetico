@@ -12,13 +12,14 @@ const OPT_DEF = {
 };
 const OPT = { ...OPT_DEF };
 try { const o = JSON.parse(localStorage.getItem('tc-opts')); if (o) Object.assign(OPT, o, { keys: { ...(o.keys || {}) } }); } catch (e) { }
+if (OPT.keys.enter && !OPT.keys.y) { OPT.keys.y = OPT.keys.enter; delete OPT.keys.enter; } /* el chat pasó de Intro a Y (Intro ahora pica) */
 function optSave() { try { localStorage.setItem('tc-opts', JSON.stringify(OPT)); } catch (e) { } }
 // ---------- Teclas ----------
 // [tecla original, nombre]. Lo que pulses se traduce a la tecla original antes de que el juego lo vea.
 const KEY_ACTIONS = [
   ['Movimiento', [['w', 'Arriba'], ['a', 'Izquierda'], ['s', 'Abajo'], ['d', 'Derecha'], [' ', 'Saltar (Shift+: esquivar)']]],
   ['Acciones', [['f', 'Usar / abrir / interactuar'], ['r', 'Girar bloque'], ['t', 'Ajustar bloque'], ['x', 'Encender / apagar bloque'], ['g', 'Modo redstone del bloque'], ['q', 'Mano vacía'], ['l', 'Soltar objeto (Shift: el montón)']]],
-  ['Ventanas', [['e', 'Inventario'], ['b', 'Recetario'], ['m', 'Mapa'], ['c', 'Personaje'], ['j', 'Crónicas'], ['h', 'Ayuda'], ['u', 'Multijugador'], ['enter', 'Chat'], ['n', 'Minimapa'], [',', 'Mi pueblo (colonos)']]],
+  ['Ventanas', [['e', 'Inventario'], ['b', 'Recetario'], ['m', 'Mapa'], ['c', 'Personaje'], ['j', 'Crónicas'], ['h', 'Ayuda'], ['u', 'Multijugador'], ['y', 'Chat'], ['n', 'Minimapa'], [',', 'Mi pueblo (colonos)']]],
 ];
 const KEY_NAME = k => /^shift\+\d$/.test(k) ? '⇧' + k.slice(6) : ({ ' ': 'Espacio', enter: 'Intro', escape: 'Esc', arrowup: '↑', arrowdown: '↓', arrowleft: '←', arrowright: '→', backspace: 'Retroceso', tab: 'Tab', control: 'Ctrl', alt: 'Alt' }[k] || k.toUpperCase());
 const KEY_EVT = k => ({ ' ': ' ', enter: 'Enter' }[k] || k);

@@ -1,6 +1,6 @@
 'use strict';
 // =====================================================================================
-//  Chat (Intro para escribir, / para comandos). Funciona en solitario y en multijugador:
+//  Chat (Y para escribir, / para comandos). Funciona en solitario y en multijugador:
 //  net.js engancha el envío (chatSend) y añade sus propios comandos a CMDS.
 //  Comandos de trucos (modo creativo, dar objetos, hora, clima…): siempre en solitario;
 //  en una partida compartida, solo el anfitrión o si el anfitrión los permite.
@@ -185,10 +185,10 @@ addEventListener('keydown', e => {
   }
   if (!S || ui.open || e.ctrlKey || e.metaKey || e.altKey) return;
   const tg = e.target.tagName; if (tg === 'INPUT' || tg === 'TEXTAREA' || tg === 'SELECT') return;
-  if (e.key === 'Enter' || e.key === '/') { e.preventDefault(); e.stopPropagation(); chatOpen(e.key === '/' ? '/' : ''); }
+  if ((e.key === 'Enter' && e.code === 'NumpadEnter') || e.key === 'y' || e.key === 'Y' || e.key === '/') { e.preventDefault(); e.stopPropagation(); chatOpen(e.key === '/' ? '/' : ''); }
 }, true);
 // El cursor del juego no atraviesa el chat abierto
 chatEl.addEventListener('mousedown', e => { if (CHAT.open) e.stopPropagation(); });
 // Botón en la barra
-{ HUD_IC.bChat = ['M4 5h16v11H9l-5 4V5z M8 9h8 M8 12h5', 'Chat', 'Intro']; const b = document.createElement('button'); b.id = 'bChat'; b.onclick = () => CHAT.open ? chatClose() : chatOpen(''); $('topbar').insertBefore(b, $('bHelp')); }
-sysMsg('Pulsa Intro para hablar o / para usar comandos (/ayuda).');
+{ HUD_IC.bChat = ['M4 5h16v11H9l-5 4V5z M8 9h8 M8 12h5', 'Chat', 'Y']; const b = document.createElement('button'); b.id = 'bChat'; b.onclick = () => CHAT.open ? chatClose() : chatOpen(''); $('topbar').insertBefore(b, $('bHelp')); }
+sysMsg('Pulsa Y para hablar o / para usar comandos (/ayuda). Sin ratón: flechas para mirar, Intro para picar y Shift derecho para poner.');
