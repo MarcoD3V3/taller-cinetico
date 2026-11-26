@@ -20,7 +20,7 @@ const CS_AV_H = 38; // alto (en el mundo) del personaje dibujado a escala 1.6, c
 function csCanvas(w, h) { const c = mkCanvas(w, h); c.getContext('2d').imageSmoothingEnabled = false; return c; }
 // Una imagen → sus cuadros (tira horizontal de cuadros cuadrados, o uno solo)
 function csFrames(img) {
-  const w = img.naturalWidth, h = img.naturalHeight, n = w > h && w % h === 0 ? w / h : 1, fw = w / n, out = [];
+  const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height, n = w > h && w % h === 0 ? w / h : 1, fw = w / n, out = [];
   for (let i = 0; i < n; i++) { const c = csCanvas(fw, h); c.getContext('2d').drawImage(img, i * fw, 0, fw, h, 0, 0, fw, h); out.push(c); }
   return out;
 }
@@ -58,16 +58,31 @@ function csBuild(entries) {
   const all = []; for (const d in dirs) all.push(dirs[d].idle, ...dirs[d].walk);
   return { dirs, box: csUnion(all), raw: (single || entries[0]).fr[0] };
 }
+// ---------- Hojas: muchos iconos en una sola imagen (sprites/hojas/<nombre>.png + .json) ----------
+// El .json dice el tamaño de cada celda, cuántas columnas hay y qué objeto va en cada celda (en orden, por filas).
+// Cada icono recortado cuenta como si fuera sprites/objetos/<id>.png. Un PNG suelto en objetos/ tiene prioridad.
+const CS_HOJAS = ['menas'];
+async function csHojas(groups) {
+  for (const nom of CS_HOJAS) { try {
+    const r = await fetch('sprites/hojas/' + nom + '.json', { cache: 'no-cache' }); if (!r.ok) continue; const m = await r.json();
+    const img = await new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = 'sprites/hojas/' + nom + '.png?v=' + Date.now(); });
+    const C = m.celda, COLS = m.columnas;
+    m.objetos.forEach((id, k) => { const cv = document.createElement('canvas'); cv.width = C; cv.height = C; const c = cv.getContext('2d'); c.imageSmoothingEnabled = false;
+      c.drawImage(img, (k % COLS) * C, Math.floor(k / COLS) * C, C, C, 0, 0, C, C);
+      const base = 'objetos/' + _cslug(id); if (!groups.has(base)) groups.set(base, [{ rest: [], fr: csFrames(cv), hoja: 1 }]); });
+  } catch (e) { console.warn('Hoja de sprites', nom, e); } }
+}
 // ---------- Carga ----------
 async function csLoad() {
-  let list; try { const r = await fetch('sprites/lista.json', { cache: 'no-cache' }); if (!r.ok) return; list = await r.json(); } catch (e) { return; }
-  const files = (list && list.files) || []; if (!files.length) return;
+  let list; try { const r = await fetch('sprites/lista.json', { cache: 'no-cache' }); if (r.ok) list = await r.json(); } catch (e) { }
+  const files = ((list && list.files) || []).filter(([path]) => !/^hojas\//i.test(path)); // las hojas se recortan aparte (abajo)
   const groups = new Map();
+  await csHojas(groups); if (!files.length && !groups.size) return;
   await Promise.all(files.map(([path, v]) => new Promise(res => {
     const img = new Image(); img.onload = () => {
       const segs = path.replace(/\.[a-z0-9]+$/i, '').split('/').map(_cslug), folder = segs[0];
       const base = folder === 'jugador' ? 'jugador' : folder + '/' + segs[1], rest = segs.slice(folder === 'jugador' ? 1 : 2);
-      if (!groups.has(base)) groups.set(base, []); groups.get(base).push({ rest, fr: csFrames(img) }); res();
+      if (!groups.has(base) || (groups.get(base)[0] && groups.get(base)[0].hoja)) groups.set(base, []); groups.get(base).push({ rest, fr: csFrames(img) }); res(); // un PNG suelto manda sobre la hoja
     };
     img.onerror = () => { CSPR.err.push(path); res(); };
     img.src = 'sprites/' + path.split('/').map(encodeURIComponent).join('/') + '?v=' + (v || 0);

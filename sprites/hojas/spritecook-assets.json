@@ -1,0 +1,16 @@
+{
+ "menas.png": {
+  "sha12": "51ea9422bf64",
+  "origen": "SpriteCook",
+  "asset_ids": [
+   "ced6961b-52a0-4276-9f3f-3cbd960dee3f",
+   "553d9df5-7a5b-494d-b5f1-e87972b2dc95",
+   "adc9440a-cc75-4539-9c0f-d7abd2f5fd5f",
+   "91aa995c-2d5d-4805-bbdd-0da632307a88",
+   "94bbfb4e-51a9-496a-943b-29928dd36f78",
+   "9c0cd815-0c2c-4eb2-bc02-03d5f7630034",
+   "d91336ac-f552-41f2-9b98-bb654cf027d3"
+  ],
+  "label": "Iconos de las 120 menas (6 hojas de 20 + vidrionegro rehecho)"
+ }
+}

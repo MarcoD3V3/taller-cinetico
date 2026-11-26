@@ -38,3 +38,9 @@ o poner estos archivos:
 - Si no salen, ejecuta `node sprites-lista.js` en la carpeta del juego y recarga.
 
 Con una imagen propia, el bloque deja de tener sus animaciones de serie (engranajes que giran, luces…).
+
+## Hojas (muchos iconos en una imagen)
+
+`hojas/<nombre>.png` con su `hojas/<nombre>.json` (`celda`, `columnas` y la lista `objetos` en orden, por filas).
+Cada celda se usa como el icono de ese objeto. `hojas/menas.png` tiene los iconos de las 120 menas.
+Un PNG suelto en `objetos/` con el mismo nombre manda sobre la hoja.
