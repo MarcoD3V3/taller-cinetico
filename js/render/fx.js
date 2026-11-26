@@ -33,19 +33,22 @@ function drawFxWorld(ctx) {
   // Solo lo que se ve; primero todos los halos (un único cambio de mezcla), luego las partículas
   const hw = innerWidth / 2 / view.z + 60, hh = innerHeight / 2 / view.z + 60, vx0 = view.x - hw, vx1 = view.x + hw, vy0 = view.y - hh, vy1 = view.y + hh;
   ctx.globalCompositeOperation = 'lighter';
-  for (const p of FXP) { if (!p.glow || p.ring || p.smoke || p.x < vx0 || p.x > vx1 || p.y < vy0 || p.y > vy1) continue; const k = p.t / p.life, r = p.size * 3;
-    ctx.globalAlpha = Math.min(1, (1 - k) * 2) * (p.fly ? 0.5 + 0.5 * Math.sin(p.t * 6 + p.x) : 1); ctx.drawImage(fxGlowSpr(p.col), p.x - r, p.y - r, r * 2, r * 2); }
+  const smF = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
+  for (const p of FXP) { if (!p.glow || p.ring || p.smoke || p.x < vx0 || p.x > vx1 || p.y < vy0 || p.y > vy1) continue; const k = p.t / p.life, r = Math.max(2, Math.round(p.size * 2)), X = Math.round(p.x), Y = Math.round(p.y);
+    ctx.globalAlpha = 0.28 * Math.min(1, (1 - k) * 2) * (p.fly ? 0.5 + 0.5 * Math.sin(p.t * 6 + p.x) : 1); ctx.fillStyle = p.col; // halo de píxeles en cruz (escalonado, sin degradado suave)
+    ctx.fillRect(X - r, Y - 1, r * 2 + 1, 3); ctx.fillRect(X - 1, Y - r, 3, r * 2 + 1); ctx.fillRect(X - (r >> 1), Y - (r >> 1), r + 1, r + 1); }
   ctx.globalCompositeOperation = 'source-over';
   for (const p of FXP) { if (p.x < vx0 || p.x > vx1 || p.y < vy0 || p.y > vy1) continue; const k = p.t / p.life, a = p.smoke ? (1 - k) * 0.35 : p.ring ? 1 - k : Math.min(1, (1 - k) * 2);
-    if (p.ring) { ctx.strokeStyle = p.col; ctx.globalAlpha = a; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p.x, p.y, p.ring * (0.3 + k), 0, 7); ctx.stroke(); continue; }
-    if (p.smoke) { ctx.fillStyle = p.col + a.toFixed(3) + ')'; ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(p.x, p.y, p.size + (p.grow || 0) * k, 0, 7); ctx.fill(); continue; }
+    if (p.ring) { ctx.fillStyle = p.col; ctx.globalAlpha = a; const R = p.ring * (0.3 + k), n = Math.max(8, Math.round(R * 1.4)); for (let q = 0; q < n; q++) { const an = q / n * Math.PI * 2; ctx.fillRect(Math.round(p.x + Math.cos(an) * R) - 1, Math.round(p.y + Math.sin(an) * R) - 1, 2, 2); } continue; } // anillo de píxeles
+    if (p.smoke) { ctx.fillStyle = p.col + a.toFixed(3) + ')'; ctx.globalAlpha = 1; const R = Math.max(1, Math.round(p.size + (p.grow || 0) * k)), X = Math.round(p.x), Y = Math.round(p.y); ctx.fillRect(X - R, Y - (R >> 1), R * 2, R); ctx.fillRect(X - (R >> 1), Y - R, R, R * 2); continue; } // humo en bloques de píxeles
     ctx.globalAlpha = a * (p.fly ? 0.5 + 0.5 * Math.sin(p.t * 6 + p.x) : 1);
     ctx.fillStyle = p.col;
-    if (p.shape === 'leaf') { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.t * 3 + p.sway); ctx.beginPath(); ctx.ellipse(0, 0, 3, 1.5, 0, 0, 7); ctx.fill(); ctx.restore(); }
-    else if (p.shape === 'star') { ctx.fillRect(p.x - p.size, p.y - 0.5, p.size * 2, 1); ctx.fillRect(p.x - 0.5, p.y - p.size, 1, p.size * 2); }
-    else ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+    const X = Math.round(p.x), Y = Math.round(p.y), sz = Math.max(1, Math.round(p.size));
+    if (p.shape === 'leaf') { const g = Math.sin(p.t * 6 + p.sway) > 0; ctx.fillRect(X, Y, g ? 3 : 1, g ? 1 : 2); } // hoja de píxeles que gira al caer
+    else if (p.shape === 'star') { ctx.fillRect(X - sz, Y, sz * 2 + 1, 1); ctx.fillRect(X, Y - sz, 1, sz * 2 + 1); }
+    else ctx.fillRect(X - (sz >> 1), Y - (sz >> 1), sz, sz);
   }
-  ctx.globalAlpha = 1;
+  ctx.globalAlpha = 1; ctx.imageSmoothingEnabled = smF;
   // Rayo
   const bo = WX.boltAt; if (bo && bo.t > 0) { bo.t -= 1 / 60; ctx.strokeStyle = `rgba(230,240,255,${bo.t * 2.4})`; ctx.lineWidth = 2.5; ctx.beginPath(); let x = bo.x + (Math.random() - 0.5) * 30, y = bo.y - 400; ctx.moveTo(x, y); while (y < bo.y) { y += 30; x += (Math.random() - 0.5) * 26; ctx.lineTo(y >= bo.y ? bo.x : x, Math.min(y, bo.y)); } ctx.stroke(); ctx.lineWidth = 1; }
 }
@@ -98,10 +101,10 @@ function drawWeatherScreen(ctx, dt) {
   ctx.lineCap = 'round';
   for (const q of WXP) {
     if (type === 'rain' || type === 'storm') { q.y += (14 + q.s * 8) * d * 60 * dt; q.x += wind * d * 60 * dt; ctx.strokeStyle = `rgba(180,210,255,${0.25 + q.s * 0.3})`; ctx.lineWidth = d; ctx.beginPath(); ctx.moveTo(q.x, q.y); ctx.lineTo(q.x - wind * 2 * d, q.y - (10 + q.s * 8) * d); ctx.stroke(); }
-    else if (type === 'snow' || type === 'blizzard') { q.y += (1.2 + q.s * 1.5) * d * 60 * dt; q.x += (wind * 0.6 + Math.sin(q.y / 40 + q.s * 9)) * d * 60 * dt; ctx.fillStyle = `rgba(255,255,255,${0.5 + q.s * 0.4})`; ctx.beginPath(); ctx.arc(q.x, q.y, (1 + q.s * 1.8) * d, 0, 7); ctx.fill(); }
+    else if (type === 'snow' || type === 'blizzard') { q.y += (1.2 + q.s * 1.5) * d * 60 * dt; q.x += (wind * 0.6 + Math.sin(q.y / 40 + q.s * 9)) * d * 60 * dt; ctx.fillStyle = `rgba(255,255,255,${0.5 + q.s * 0.4})`; { const R = Math.max(2, Math.round((1 + q.s * 1.8) * d * 2)); ctx.fillRect(Math.round(q.x), Math.round(q.y), R, R); } /* copo de píxeles */ }
     else if (type === 'sandstorm') { q.x += (8 + q.s * 8) * d * 60 * dt; q.y += Math.sin(q.x / 60) * d; ctx.fillStyle = `rgba(220,180,110,${0.3 + q.s * 0.3})`; ctx.fillRect(q.x, q.y, 3 * d, 1.2 * d); }
     else if (type === 'ashfall') { q.y += (0.8 + q.s) * d * 60 * dt; q.x += Math.sin(q.y / 50) * 0.5 * d; ctx.fillStyle = q.s > 0.85 ? 'rgba(255,140,60,.8)' : `rgba(90,85,80,${0.5 + q.s * 0.3})`; ctx.fillRect(q.x, q.y, 2 * d, 2 * d); }
-    else if (type === 'spores') { q.y -= (0.3 + q.s * 0.5) * d * 60 * dt; q.x += Math.sin(q.y / 30 + q.s * 7) * 0.6 * d; ctx.fillStyle = `rgba(200,160,255,${0.35 + q.s * 0.3})`; ctx.beginPath(); ctx.arc(q.x, q.y, (1.5 + q.s * 2) * d, 0, 7); ctx.fill(); }
+    else if (type === 'spores') { q.y -= (0.3 + q.s * 0.5) * d * 60 * dt; q.x += Math.sin(q.y / 30 + q.s * 7) * 0.6 * d; ctx.fillStyle = `rgba(200,160,255,${0.35 + q.s * 0.3})`; { const R = Math.max(2, Math.round((1.5 + q.s * 2) * d * 2)); ctx.fillRect(Math.round(q.x), Math.round(q.y), R, R); } /* espora de píxeles */ }
     if (q.y > H + 20) { q.y = -20; q.x = Math.random() * W; } if (q.y < -30) { q.y = H + 10; q.x = Math.random() * W; } if (q.x > W + 30) { q.x = -20; q.y = Math.random() * H; }
   }
   // Velos: niebla, ventisca, arena, calor

@@ -50,9 +50,7 @@ function workStrike(tx, ty) {
   const before = gnd(x, y); d0(x, y); const after = gnd(x, y); if (before === after || !S) return;
   const g = GI[before], cx = (x + 0.5) * T, cy = (y + 0.5) * T;
   if (g.tree) {
-    const dir = cx >= S.player.x ? 1 : -1;
-    AN.fall.push({ x: cx, y: cy + 10, dir, t: 0, life: 1, leaf: g.tree.a || '#3a7a3a', leaf2: g.tree.b || g.tree.a || '#4a8a4a', trunk: g.tree.trunk || '#6a4a2a', big: g.tree.big ? 1.3 : 1 });
-    tone(110, 0.25, 'sawtooth', 0.04, 0.5);
+    /* la caída del árbol la hace render/talar.js con el dibujo real del árbol, partido por la mitad (aquí antes salía un árbol simple) */
   } else if (g.rock || g.dot) {
     for (let i = 0; i < 14; i++) { const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.6, s = 40 + Math.random() * 90; fxAdd({ x: cx + (Math.random() - 0.5) * 16, y: cy, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 30, life: 0.8 + Math.random() * 0.4, t: 0, size: 2.5 + Math.random() * 2.5, col: rgbStr(g.c || [120, 116, 112]), grav: 420, drag: 0.6 }); }
     for (let i = 0; i < 4; i++) fxSmoke(cx, cy, 'rgba(170,160,150,', 5);
